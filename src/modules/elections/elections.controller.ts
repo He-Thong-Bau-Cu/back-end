@@ -41,6 +41,20 @@ export class ElectionsController {
     }
   }
 
+  @Get(`${METHOD.GET}/haha/:id`)
+  @ApiOperation({ summary: 'Lấy thông tin kỳ bầu cử theo ID' })
+  @ApiParam({ name: 'id', description: 'ID của kỳ bầu cử', type: String })
+  @ApiResponse({ status: 200, description: 'Thông tin kỳ bầu cử' })
+  @ApiResponse({ status: 500, description: 'Lỗi server' })
+  async getElectionHahaById(@Param('id') id: string): Promise<BaseResponse> {
+    try {
+      const resData = await this.electionsService.getElectionById(id);s
+      return BaseResponse.success(resData, 'Hihi', HttpStatus.OK);
+    } catch (e) {
+      throw new HttpException({ message: e.message }, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+  }
+
   @Get(`${METHOD.GET}-by-election-id/:id`)
   @ApiOperation({ summary: 'Tìm danh sách tài liệu theo ElectionId' })
   @ApiParam({ name: 'id', description: 'ID của kỳ bầu cử', type: String })
