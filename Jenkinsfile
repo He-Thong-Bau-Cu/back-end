@@ -28,8 +28,8 @@ pipeline {
                 rm -rf /home/adminuser/back-end/dist
                 cp -r dist /home/adminuser/back-end/
                 cd /home/adminuser/back-end
-                pm2 stop nestjs-app || true
-                pm2 start dist/main.js --name nestjs-app
+                pm2 stop nest-app || true
+                pm2 start dist/main.js --name nest-app
                 pm2 save
                 '''
             }
