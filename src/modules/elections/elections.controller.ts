@@ -48,7 +48,7 @@ export class ElectionsController {
   @ApiResponse({ status: 500, description: 'Lỗi server' })
   async getElectionHahaById(@Param('id') id: string): Promise<BaseResponse> {
     try {
-      const resData = await this.electionsService.getElectionById(id);s
+      const resData = await this.electionsService.getElectionById(id);
       return BaseResponse.success(resData, 'Hihi', HttpStatus.OK);
     } catch (e) {
       throw new HttpException({ message: e.message }, HttpStatus.INTERNAL_SERVER_ERROR);
