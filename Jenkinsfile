@@ -28,9 +28,9 @@ pipeline {
                   sudo -u adminuser bash -c '
                     rm -rf /home/adminuser/back-end/dist &&
                     cp -r dist /home/adminuser/back-end/ &&
+                    cp -f .env /home/adminuser/back-end/.env &&
                     cd /home/adminuser/back-end &&
-                    pm2 delete nest-app || true &&
-                    pm2 start dist/main.js --name nest-app &&
+                    pm2 restart nest-app || pm2 start dist/main.js --name nest-app &&
                     pm2 save
                   '
                 '''
