@@ -8,17 +8,17 @@ pipeline {
             }
         }
 
-        stage('Install dependencies') {
+        stage('Build as adminuser') {
             steps {
-                sh 'node -v'
-                sh 'npm -v'
-                sh 'npm install'
-            }
-        }
-
-        stage('Build') {
-            steps {
-                sh 'npm run build'
+                sh '''
+                  sudo -u adminuser bash -c '
+                    cd /home/adminuser/back-end &&
+                    git fetch origin anlp &&
+                    git reset --hard origin/anlp &&
+                    npm install &&
+                    npm run build
+                  '
+                '''
             }
         }
 
@@ -26,8 +26,6 @@ pipeline {
             steps {
                 sh '''
                   sudo -u adminuser bash -c '
-                    rm -rf /home/adminuser/back-end/dist &&
-                    cp -r dist /home/adminuser/back-end/ &&
                     cd /home/adminuser/back-end &&
                     pm2 restart nest-app || pm2 start dist/main.js --name nest-app -f &&
                     pm2 save
@@ -35,6 +33,5 @@ pipeline {
                 '''
             }
         }
-
     }
 }
