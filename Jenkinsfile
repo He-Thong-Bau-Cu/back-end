@@ -1,10 +1,6 @@
 pipeline {
     agent any
 
-    tools {
-        nodejs "node18"   // Tên bạn đã config ở Global Tool Configuration
-    }
-
     stages {
         stage('Checkout') {
             steps {
@@ -12,24 +8,28 @@ pipeline {
             }
         }
 
-        stage('Install dependencies') {
+        stage('Build as adminuser') {
             steps {
-                sh 'npm install'
-            }
-        }
-
-        stage('Build') {
-            steps {
-                sh 'npm run build'
+                sh '''
+                  sudo -u adminuser bash -c '
+                    cd /home/adminuser/back-end &&
+                    git fetch origin anlp &&
+                    git reset --hard origin/anlp &&
+                    npm install &&
+                    npm run build
+                  '
+                '''
             }
         }
 
         stage('Deploy') {
             steps {
                 sh '''
-                pm2 stop nestjs-app || true
-                pm2 start dist/main.js --name nestjs-app
-                pm2 save
+                  sudo -u adminuser bash -c '
+                    cd /home/adminuser/back-end &&
+                    pm2 restart nest-app || pm2 start dist/main.js --name nest-app -f &&
+                    pm2 save
+                  '
                 '''
             }
         }
