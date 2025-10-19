@@ -1,5 +1,5 @@
-import { Prop, SchemaFactory } from "@nestjs/mongoose";
-import { Document } from "mongoose";
+import { Prop, SchemaFactory } from '@nestjs/mongoose';
+import { Document } from 'mongoose';
 
 export type ElectionsDocument = Elections & Document;
 
