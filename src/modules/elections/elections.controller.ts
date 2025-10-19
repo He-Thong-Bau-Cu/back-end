@@ -1,6 +1,13 @@
 import {
-  Body, Controller, Delete, Get, HttpException, HttpStatus,
-  Param, Post, Put
+  Body,
+  Controller,
+  Delete,
+  Get,
+  HttpException,
+  HttpStatus,
+  Param,
+  Post,
+  Put,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiParam } from '@nestjs/swagger';
 import { BaseResponse } from 'src/common/dto/base-response.dto';
@@ -16,14 +23,20 @@ export class ElectionsController {
 
   @Post(METHOD.SEARCH)
   @ApiOperation({ summary: 'Tìm kiếm danh sách kỳ bầu cử' })
-  @ApiResponse({ status: 200, description: 'Danh sách kỳ bầu cử trả về thành công.' })
+  @ApiResponse({
+    status: 200,
+    description: 'Danh sách kỳ bầu cử trả về thành công.',
+  })
   @ApiResponse({ status: 500, description: 'Lỗi server' })
   async searchElections(@Body() req: ElectionsDto): Promise<BaseResponse> {
     try {
       const resData = await this.electionsService.searchElections(req);
       return BaseResponse.success(resData, 'Success', HttpStatus.OK);
     } catch (e) {
-      throw new HttpException({ message: e.message }, HttpStatus.INTERNAL_SERVER_ERROR);
+      throw new HttpException(
+        { message: e.message },
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
     }
   }
 
@@ -37,7 +50,10 @@ export class ElectionsController {
       const resData = await this.electionsService.getElectionById(id);
       return BaseResponse.success(resData, 'Success', HttpStatus.OK);
     } catch (e) {
-      throw new HttpException({ message: e.message }, HttpStatus.INTERNAL_SERVER_ERROR);
+      throw new HttpException(
+        { message: e.message },
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
     }
   }
 
@@ -51,7 +67,10 @@ export class ElectionsController {
       const resData = await this.electionsService.getElectionById(id);
       return BaseResponse.success(resData, 'Hihi', HttpStatus.OK);
     } catch (e) {
-      throw new HttpException({ message: e.message }, HttpStatus.INTERNAL_SERVER_ERROR);
+      throw new HttpException(
+        { message: e.message },
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
     }
   }
 
@@ -60,12 +79,18 @@ export class ElectionsController {
   @ApiParam({ name: 'id', description: 'ID của kỳ bầu cử', type: String })
   @ApiResponse({ status: 200, description: 'Danh sách tài liệu' })
   @ApiResponse({ status: 500, description: 'Lỗi server' })
-  async searchElectionDocumentsByElectionId(@Param('id') id: string): Promise<BaseResponse> {
+  async searchElectionDocumentsByElectionId(
+    @Param('id') id: string,
+  ): Promise<BaseResponse> {
     try {
-      const resData = await this.electionsService.searchElectionDocumentsByElectionId(id);
+      const resData =
+        await this.electionsService.searchElectionDocumentsByElectionId(id);
       return BaseResponse.success(resData, 'Success', HttpStatus.OK);
     } catch (e) {
-      throw new HttpException({ message: e.message }, HttpStatus.INTERNAL_SERVER_ERROR);
+      throw new HttpException(
+        { message: e.message },
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
     }
   }
 
@@ -74,12 +99,18 @@ export class ElectionsController {
   @ApiParam({ name: 'id', description: 'ID của kỳ bầu cử', type: String })
   @ApiResponse({ status: 200, description: 'Cập nhật thành công' })
   @ApiResponse({ status: 500, description: 'Lỗi server' })
-  async updateElections(@Param('id') id: string, @Body() req: ElectionsDto): Promise<BaseResponse> {
+  async updateElections(
+    @Param('id') id: string,
+    @Body() req: ElectionsDto,
+  ): Promise<BaseResponse> {
     try {
       const resData = await this.electionsService.updateElections(id, req);
       return BaseResponse.success(resData, 'Success', HttpStatus.OK);
     } catch (e) {
-      throw new HttpException({ message: e.message }, HttpStatus.INTERNAL_SERVER_ERROR);
+      throw new HttpException(
+        { message: e.message },
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
     }
   }
 
@@ -93,7 +124,10 @@ export class ElectionsController {
       const resData = await this.electionsService.deleteElection(id);
       return BaseResponse.success(resData, 'Success', HttpStatus.OK);
     } catch (e) {
-      throw new HttpException({ message: e.message }, HttpStatus.INTERNAL_SERVER_ERROR);
+      throw new HttpException(
+        { message: e.message },
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
     }
   }
 
@@ -101,26 +135,41 @@ export class ElectionsController {
   @ApiOperation({ summary: 'Tạo tài liệu cho một kỳ bầu cử' })
   @ApiResponse({ status: 201, description: 'Tạo tài liệu thành công' })
   @ApiResponse({ status: 500, description: 'Lỗi server' })
-  async createElectionDocuments(@Body() req: ElectionsDocumentDto): Promise<BaseResponse> {
+  async createElectionDocuments(
+    @Body() req: ElectionsDocumentDto,
+  ): Promise<BaseResponse> {
     try {
       const resData = await this.electionsService.createElectionDocuments(req);
       return BaseResponse.success(resData, 'Success', HttpStatus.OK);
     } catch (e) {
-      throw new HttpException({ message: e.message }, HttpStatus.INTERNAL_SERVER_ERROR);
+      throw new HttpException(
+        { message: e.message },
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
     }
   }
 
   @Delete(`/document/${METHOD.DELETE}/:electionId`)
   @ApiOperation({ summary: 'Xoá tất cả tài liệu theo ElectionId' })
-  @ApiParam({ name: 'electionId', description: 'ID của kỳ bầu cử', type: String })
+  @ApiParam({
+    name: 'electionId',
+    description: 'ID của kỳ bầu cử',
+    type: String,
+  })
   @ApiResponse({ status: 200, description: 'Xoá tài liệu thành công' })
   @ApiResponse({ status: 500, description: 'Lỗi server' })
-  async deleteDocumentByElectionId(@Param('electionId') electionId: string): Promise<BaseResponse> {
+  async deleteDocumentByElectionId(
+    @Param('electionId') electionId: string,
+  ): Promise<BaseResponse> {
     try {
-      const resData = await this.electionsService.deleteDocumentByElectionId(electionId);
+      const resData =
+        await this.electionsService.deleteDocumentByElectionId(electionId);
       return BaseResponse.success(resData, 'Success', HttpStatus.OK);
     } catch (e) {
-      throw new HttpException({ message: e.message }, HttpStatus.INTERNAL_SERVER_ERROR);
+      throw new HttpException(
+        { message: e.message },
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
     }
   }
 }
