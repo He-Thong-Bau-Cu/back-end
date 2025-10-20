@@ -1,0 +1,321 @@
+import { Injectable } from '@nestjs/common';
+import * as fs from 'fs';
+import * as path from 'path';
+import * as forge from 'node-forge';
+import { SignPdf, plainAddPlaceholder } from 'node-signpdf';
+import PizZip from 'pizzip';
+import { createHash } from 'crypto';
+
+const UPLOADS = path.join(process.cwd(), 'uploads');
+if (!fs.existsSync(UPLOADS)) fs.mkdirSync(UPLOADS, { recursive: true });
+
+@Injectable()
+export class SigningService {
+  constructor() {}
+
+  /**
+   * Ký file PDF bằng file chứng thư .p12
+   */
+  async signPdfWithP12(
+      pdfBuffer: Buffer,
+      p12Buffer: Buffer,
+      passphrase?: string,
+  ): Promise<Buffer> {
+    const signer = new SignPdf();
+
+    const pdfWithPlaceholder = plainAddPlaceholder({
+      pdfBuffer,
+      reason: 'Signed by internal CA',
+      signatureLength: 8192,
+    });
+
+    const signedPdfBuffer = signer.sign(pdfWithPlaceholder, p12Buffer, {
+      passphrase,
+    });
+
+    return Buffer.from(signedPdfBuffer);
+  }
+
+
+  /**
+   * Ký file Word\
+   */
+  async signDocxWithP12(
+      docBuffer: Buffer,
+      p12Buffer: Buffer,
+      passphrase?: string,
+  ): Promise<Buffer> {
+    // Đọc và giải mã file .p12 (PKCS#12)
+    const p12Der = forge.util.createBuffer(p12Buffer.toString('binary'));
+    const p12Asn1 = forge.asn1.fromDer(p12Der);
+    const p12 = forge.pkcs12.pkcs12FromAsn1(p12Asn1, passphrase);
+
+    // Trích xuất private key & certificate
+    let keyObj;
+    let certObj;
+    const keyBags =
+        p12.getBags({ bagType: forge.pki.oids.keyBag })[forge.pki.oids.keyBag] ||
+        [];
+    if (keyBags.length > 0) keyObj = keyBags[0];
+    const certBags =
+        p12.getBags({ bagType: forge.pki.oids.certBag })[
+            forge.pki.oids.certBag
+            ] || [];
+    if (certBags.length > 0) certObj = certBags[0];
+
+    // fallback: pkcs8ShroudedKeyBag
+    if (!keyObj) {
+      const sk =
+          p12.getBags({
+            bagType: forge.pki.oids.pkcs8ShroudedKeyBag,
+          })[forge.pki.oids.pkcs8ShroudedKeyBag];
+      if (sk && sk.length > 0) keyObj = sk[0];
+    }
+
+    if (!keyObj || !certObj)
+      throw new Error('Cannot extract key/cert from p12');
+
+    const privateKey = keyObj.key;
+    const cert = certObj.cert;
+
+    // Hash toàn bộ file DOCX
+    const md = forge.md.sha256.create();
+    md.update(docBuffer.toString('binary'));
+    const signatureBytes = privateKey.sign(md);
+    const signatureBase64 = forge.util.encode64(signatureBytes);
+    const certPem = forge.pki.certificateToPem(cert);
+
+    // Mở file DOCX (zip)
+    const zip = new PizZip(docBuffer);
+
+    // Tạo JSON metadata chữ ký
+    const signatureJson = JSON.stringify(
+        {
+          signedAt: new Date().toISOString(),
+          signature: signatureBase64,
+          certificate: certPem,
+          algorithm: 'RSA-SHA256',
+        },
+        null,
+        2,
+    );
+
+    // Thêm file vào customXml/signature.json
+    zip.file('customXml/signature.json', signatureJson);
+
+    // Cập nhật Content_Types (để tránh lỗi mở Word)
+    try {
+      const contentTypes = zip.file('[Content_Types].xml');
+      if (contentTypes) {
+        let ct = contentTypes.asText();
+        if (!ct.includes('customXml/signature.json')) {
+          const insertAt = ct.lastIndexOf('</Types>');
+          const override = `\n  <Override PartName="/customXml/signature.json" ContentType="application/json"/>`;
+          ct = ct.slice(0, insertAt) + override + '\n' + ct.slice(insertAt);
+          zip.file('[Content_Types].xml', ct);
+        }
+      }
+    } catch (err) {
+      console.warn('Could not update [Content_Types].xml:', err);
+    }
+
+    return zip.generate({ type: 'nodebuffer' });
+  }
+
+  async signDocxXml(
+      docBuffer: Buffer,
+      p12Buffer: Buffer,
+      passphrase?: string,
+  ): Promise<Buffer> {
+    const zip = new PizZip(docBuffer);
+
+    // 1) Parse p12 -> privateKey + cert
+    const p12Der = forge.util.createBuffer(p12Buffer.toString('binary'));
+    const p12Asn1 = forge.asn1.fromDer(p12Der);
+    const p12 = forge.pkcs12.pkcs12FromAsn1(p12Asn1, passphrase);
+
+    // find key bag & cert bag
+    let keyBag;
+    let certBag;
+    const skBags = p12.getBags({ bagType: forge.pki.oids.pkcs8ShroudedKeyBag })[forge.pki.oids.pkcs8ShroudedKeyBag] || [];
+    const keyBags = p12.getBags({ bagType: forge.pki.oids.keyBag })[forge.pki.oids.keyBag] || [];
+    if (skBags.length) keyBag = skBags[0];
+    else if (keyBags.length) keyBag = keyBags[0];
+
+    const certBags = p12.getBags({ bagType: forge.pki.oids.certBag })[forge.pki.oids.certBag] || [];
+    if (certBags.length) certBag = certBags[0];
+
+    if (!keyBag || !certBag) throw new Error('Cannot extract key/cert from P12');
+
+    const privateKey = keyBag.key;
+    const cert = certBag.cert;
+
+    // helper to base64-encode DER cert
+    const certDer = forge.asn1.toDer(forge.pki.certificateToAsn1(cert)).getBytes();
+    const certBase64 = Buffer.from(certDer, 'binary').toString('base64');
+
+    // 2) Ensure required parts exist
+    const contentTypesEntry = zip.file('[Content_Types].xml');
+    if (!contentTypesEntry) throw new Error('DOCX missing [Content_Types].xml');
+
+    const relsEntry = zip.file('_rels/.rels');
+    if (!relsEntry) throw new Error('DOCX missing _rels/.rels');
+
+    const documentEntry = zip.file('word/document.xml');
+    if (!documentEntry) throw new Error('DOCX missing word/document.xml');
+
+    // 3) Compute digest of the part(s) you want to sign
+    // Minimal: sign word/document.xml. For production you may also sign core properties, relationships, etc.
+    const documentXml = documentEntry.asText();
+    // compute SHA256 digest of the raw bytes (note: proper OPC requires canonicalization & transforms)
+    const docDigest = createHash('sha256').update(Buffer.from(documentXml, 'utf8')).digest('base64');
+
+    // 4) Build SignedInfo (simple, without relationship transform). This is a simplified SignedInfo.
+    // Real Word expects relationship transform and c14n; you may need to canonicalize and include transforms.
+    const signedInfo = `
+    <SignedInfo xmlns="http://www.w3.org/2000/09/xmldsig#">
+      <CanonicalizationMethod Algorithm="http://www.w3.org/TR/2001/REC-xml-c14n-20010315"/>
+      <SignatureMethod Algorithm="http://www.w3.org/2001/04/xmldsig-more#rsa-sha256"/>
+      <Reference URI="/word/document.xml">
+        <Transforms>
+          <Transform Algorithm="http://www.w3.org/2001/10/xml-exc-c14n#"/>
+          <!-- Optionally, RelationshipTransform is required by Office for certain references -->
+          <!-- <Transform Algorithm="http://schemas.openxmlformats.org/package/2006/RelationshipTransform"/> -->
+        </Transforms>
+        <DigestMethod Algorithm="http://www.w3.org/2001/04/xmlenc#sha256"/>
+        <DigestValue>${docDigest}</DigestValue>
+      </Reference>
+    </SignedInfo>
+  `;
+
+    // 5) Sign the canonicalized SignedInfo
+    // IMPORTANT: proper signature must be computed over canonicalized SignedInfo (C14N). Here we sign the string as-is,
+    // which may not match Word's expectation. For best results, perform XML canonicalization before signing.
+    const md = forge.md.sha256.create();
+    md.update(signedInfo, 'utf8');
+    const signatureBytes = privateKey.sign(md);
+    const signatureValue = forge.util.encode64(signatureBytes);
+
+    // 6) Compose final Signature XML
+    const signatureXml = `<?xml version="1.0" encoding="UTF-8"?>
+<Signature xmlns="http://www.w3.org/2000/09/xmldsig#">
+  ${signedInfo}
+  <SignatureValue>${signatureValue}</SignatureValue>
+  <KeyInfo>
+    <X509Data>
+      <X509Certificate>${certBase64}</X509Certificate>
+    </X509Data>
+  </KeyInfo>
+</Signature>`;
+
+    // 7) Create _xmlsignatures folder & write sig1.xml
+    // Ensure folder entries - PizZip writes file paths with forward slashes
+    zip.file('_xmlsignatures/sig1.xml', signatureXml);
+
+    // 8) Create origin.sigs (digital signature origin)
+    const originXml = `<?xml version="1.0" encoding="UTF-8"?>
+<Origin xmlns="http://schemas.openxmlformats.org/package/2006/digital-signature-origin">
+  <SignatureInfoV1/>
+</Origin>`;
+    zip.file('_xmlsignatures/origin.sigs', originXml);
+
+    // 9) Update [Content_Types].xml to include signature parts
+    let contentTypes = contentTypesEntry.asText();
+    if (!contentTypes.includes('/_xmlsignatures/sig1.xml')) {
+      const insertAt = contentTypes.lastIndexOf('</Types>');
+      const overrideSig = `\n  <Override PartName="/_xmlsignatures/sig1.xml" ContentType="application/vnd.openxmlformats-package.digital-signature-xmlsignature+xml"/>`;
+      const overrideOrigin = `\n  <Override PartName="/_xmlsignatures/origin.sigs" ContentType="application/vnd.openxmlformats-package.digital-signature-origin"/>`;
+      contentTypes = contentTypes.slice(0, insertAt) + overrideSig + overrideOrigin + '\n' + contentTypes.slice(insertAt);
+      zip.file('[Content_Types].xml', contentTypes);
+    }
+
+    // 10) Update package relationships _rels/.rels to point to origin.sigs
+    let relsXml = relsEntry.asText();
+    if (!relsXml.includes('digital-signature/origin')) {
+      const insertAt = relsXml.lastIndexOf('</Relationships>');
+      const relItem = `\n  <Relationship Id="rIdSign1" Type="http://schemas.openxmlformats.org/package/2006/relationships/digital-signature/origin" Target="/_xmlsignatures/origin.sigs"/>`;
+      relsXml = relsXml.slice(0, insertAt) + relItem + '\n' + relsXml.slice(insertAt);
+      zip.file('_rels/.rels', relsXml);
+    }
+
+    // 11) Optionally add _xmlsignatures/_rels/sig1.xml.rels (may be empty or include certificate relationship)
+    const sigRelsPath = '_xmlsignatures/_rels/sig1.xml.rels';
+    if (!zip.file(sigRelsPath)) {
+      const sigRels = `<?xml version="1.0" encoding="UTF-8"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <!-- Optionally include relationships from signature part to certificate parts -->
+</Relationships>`;
+      zip.file(sigRelsPath, sigRels);
+    }
+
+    // 12) Return signed docx buffer
+    return zip.generate({ type: 'nodebuffer' });
+  }
+
+  async verifyPdfSignature(pdfBuffer: Buffer) {
+    try {
+      const pdfString = pdfBuffer.toString('binary');
+
+      const byteRangeMatch = /\/ByteRange\s*\[\s*(\d+)\s+(\d+)\s+(\d+)\s+(\d+)/.exec(pdfString);
+      if (!byteRangeMatch) throw new Error('No ByteRange found in PDF');
+
+      const [_, start1, len1, start2, len2] = byteRangeMatch.map(Number);
+
+      // (PKCS#7) /Contents
+      const contentsMatch = /\/Contents\s*<([0-9A-Fa-f]+)>/.exec(pdfString);
+      if (!contentsMatch) throw new Error('No Contents found in PDF');
+
+      let signatureHex = contentsMatch[1].replace(/>$/, '');
+      let signatureBytes = Buffer.from(signatureHex, 'hex');
+
+      while (signatureBytes[signatureBytes.length - 1] === 0x00) {
+        signatureBytes = signatureBytes.slice(0, -1);
+      }
+
+      const signedData = Buffer.concat([
+        pdfBuffer.subarray(start1, start1 + len1),
+        pdfBuffer.subarray(start2, start2 + len2),
+      ]);
+
+      // parse PKCS#7
+      const p7Asn1 = forge.asn1.fromDer(forge.util.createBuffer(signatureBytes)); // dùng Buffer trực tiếp
+      const p7 = forge.pkcs7.messageFromAsn1(p7Asn1);
+
+      // certificate signer
+      const signerCert = p7.certificates[0];
+      if (!signerCert) throw new Error('No certificate found in signature.');
+
+      const md = forge.md.sha256.create();
+      md.update(signedData.toString('binary'));
+
+      const publicKey = signerCert.publicKey;
+      const verifiedData =
+          p7.rawCapture.signature && publicKey.verify(md.digest().bytes(), p7.rawCapture.signature);
+
+      // CA nội bộ
+      let caVerified = false;
+      try {
+        const caPath = path.join(process.cwd(), 'certs', 'rootCA-crt.pem');
+        const caCertPem = fs.readFileSync(caPath, 'utf8');
+        console.log(caCertPem)
+        const caCert = forge.pki.certificateFromPem(caCertPem);
+
+        const caStore = forge.pki.createCaStore([caCert]);
+        caVerified = forge.pki.verifyCertificateChain(caStore, [signerCert]);
+      } catch (caErr) {
+        console.warn('⚠️ Không verify được bằng CA nội bộ:', caErr.message);
+      }
+
+      return {
+        integrity: !verifiedData,
+        caVerified,
+        overallVerified: !verifiedData && caVerified,
+        subject: signerCert.subject.attributes,
+        issuer: signerCert.issuer.attributes,
+      };
+    } catch (err) {
+      console.error('Verify error:', err);
+      throw new Error(err.message);
+    }
+  }
+}

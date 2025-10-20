@@ -7,6 +7,8 @@ import { UserModule } from './modules/user/user.module';
 import { MinioModule } from './modules/minio/minio.module';
 import { ElectionsModule } from './modules/elections/elections.module';
 import { SmsModule } from './modules/sms/sms.module';
+import { SignatureModule } from './modules/signature/signature.module';
+import { CaModule } from './modules/ca/ca.module';
 
 @Module({
   imports: [
@@ -18,6 +20,8 @@ import { SmsModule } from './modules/sms/sms.module';
     MinioModule,
     ElectionsModule,
     SmsModule,
+    SignatureModule,
+    CaModule,
   ],
   controllers: [AppController],
   providers: [AppService],
