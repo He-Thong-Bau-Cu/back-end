@@ -6,16 +6,18 @@ import { ConfigModule } from '@nestjs/config';
 import { UserModule } from './modules/user/user.module';
 import { MinioModule } from './modules/minio/minio.module';
 import { ElectionsModule } from './modules/elections/elections.module';
+import { SmsModule } from './modules/sms/sms.module';
 
 @Module({
-  imports:[
+  imports: [
     ConfigModule.forRoot({
       isGlobal: true,
     }),
     DatabaseModule,
     UserModule,
     MinioModule,
-    ElectionsModule
+    ElectionsModule,
+    SmsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

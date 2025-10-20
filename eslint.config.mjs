@@ -1,8 +1,9 @@
 // @ts-check
 import eslint from '@eslint/js';
-import eslintPluginPrettierRecommended from 'eslint-plugin-prettier/recommended';
 import globals from 'globals';
 import tseslint from 'typescript-eslint';
+import prettierPlugin from 'eslint-plugin-prettier';
+import prettierConfig from 'eslint-config-prettier';
 
 export default tseslint.config(
   {
@@ -10,8 +11,11 @@ export default tseslint.config(
   },
   eslint.configs.recommended,
   ...tseslint.configs.recommendedTypeChecked,
-  eslintPluginPrettierRecommended,
+  prettierConfig, // đảm bảo ESLint tắt rule xung đột với Prettier
   {
+    plugins: {
+      prettier: prettierPlugin,
+    },
     languageOptions: {
       globals: {
         ...globals.node,
@@ -23,12 +27,17 @@ export default tseslint.config(
         tsconfigRootDir: import.meta.dirname,
       },
     },
-  },
-  {
     rules: {
+      // 'prettier/prettier': [
+      //   'error',
+      //   {
+      //     endOfLine: 'auto',
+      //   },
+      // ],
+      'prettier/prettier': 'off',
       '@typescript-eslint/no-explicit-any': 'off',
       '@typescript-eslint/no-floating-promises': 'warn',
-      '@typescript-eslint/no-unsafe-argument': 'warn'
+      '@typescript-eslint/no-unsafe-argument': 'warn',
     },
   },
 );
