@@ -25,6 +25,9 @@ export class ElectionDocuments {
 
   @Prop({ type: Date, default: Date.now })
   updatedAt: Date;
+
+  @Prop()
+  remark: string;
 }
 
 export const ElectionDocumentSchema =

@@ -1,32 +1,48 @@
 import { Prop, SchemaFactory } from '@nestjs/mongoose';
-import { Document } from 'mongoose';
+import { Document, Types } from 'mongoose';
+import { BaseSchema } from './base.schema';
+import { ElectionTypes } from './electionTypes.schema';
+import { VotingMethods } from './votingMethods.schema';
+import { Thresholds } from './thresholds.schema';
 
 export type ElectionsDocument = Elections & Document;
 
-export class Elections {
-  @Prop()
+export class Elections extends BaseSchema{
+  @Prop({required: true})
   title: string;
 
-  @Prop()
-  electionType: string;
+  @Prop({ type: Types.ObjectId, ref: ElectionTypes.name, required: true })
+  typeId: Types.ObjectId;
 
-  @Prop()
-  votingMethod: string;
+  @Prop({ type: Types.ObjectId, ref: VotingMethods.name, required: true })
+  methodId: Types.ObjectId;
 
-  @Prop()
+  @Prop({ type: Types.ObjectId, ref: Thresholds.name, required: true })
+  thresholdId: Types.ObjectId;
+
+  @Prop({required: true})
   startDate: Date;
 
-  @Prop()
+  @Prop({required: true})
   endDate: Date;
 
-  @Prop()
+  @Prop({required: true})
+  delegationStart: Date;
+
+  @Prop({required: true})
+  delegationEnd: Date;
+
+  @Prop({required: true})
   status: string;
 
-  @Prop()
-  createdBy: number;
+  @Prop({required: true})
+  statusData: string;
 
-  @Prop()
-  companyType: string;
+  @Prop({required: true})
+  decisionNumber: string;
+
+  @Prop({required: true})
+  decisionName: string;
 }
 
 export const ElectionsSchema = SchemaFactory.createForClass(Elections);

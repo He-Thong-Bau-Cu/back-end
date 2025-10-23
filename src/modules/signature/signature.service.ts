@@ -123,81 +123,69 @@ export class SigningService {
   }
 
   async signDocxXml(
-      docBuffer: Buffer,
-      p12Buffer: Buffer,
-      passphrase?: string,
-  ): Promise<Buffer> {
-    const zip = new PizZip(docBuffer);
+  docBuffer: Buffer,
+  p12Buffer: Buffer,
+  passphrase?: string,
+): Promise<Buffer> {
+  const zip = new PizZip(docBuffer);
 
-    // 1) Parse p12 -> privateKey + cert
-    const p12Der = forge.util.createBuffer(p12Buffer.toString('binary'));
-    const p12Asn1 = forge.asn1.fromDer(p12Der);
-    const p12 = forge.pkcs12.pkcs12FromAsn1(p12Asn1, passphrase);
+  // 1️⃣ Parse certificate & private key
+  const p12Der = forge.util.createBuffer(p12Buffer.toString('binary'));
+  const p12Asn1 = forge.asn1.fromDer(p12Der);
+  const p12 = forge.pkcs12.pkcs12FromAsn1(p12Asn1, passphrase);
+  const keyBag = p12.getBags({ bagType: forge.pki.oids.pkcs8ShroudedKeyBag })[forge.pki.oids.pkcs8ShroudedKeyBag][0];
+  const certBag = p12.getBags({ bagType: forge.pki.oids.certBag })[forge.pki.oids.certBag][0];
+  const privateKey = keyBag.key;
+  const cert = certBag.cert;
+  const certBase64 = Buffer.from(
+    forge.asn1.toDer(forge.pki.certificateToAsn1(cert)).getBytes(),
+    'binary'
+  ).toString('base64');
 
-    // find key bag & cert bag
-    let keyBag;
-    let certBag;
-    const skBags = p12.getBags({ bagType: forge.pki.oids.pkcs8ShroudedKeyBag })[forge.pki.oids.pkcs8ShroudedKeyBag] || [];
-    const keyBags = p12.getBags({ bagType: forge.pki.oids.keyBag })[forge.pki.oids.keyBag] || [];
-    if (skBags.length) keyBag = skBags[0];
-    else if (keyBags.length) keyBag = keyBags[0];
+  // 2️⃣ Lấy các file chính
+  const contentTypesEntry = zip.file('[Content_Types].xml');
+  const relsEntry = zip.file('_rels/.rels');
+  const documentEntry = zip.file('word/document.xml');
+  if (!contentTypesEntry || !relsEntry || !documentEntry) {
+    throw new Error('DOCX missing required parts');
+  }
 
-    const certBags = p12.getBags({ bagType: forge.pki.oids.certBag })[forge.pki.oids.certBag] || [];
-    if (certBags.length) certBag = certBags[0];
+  // 3️⃣ Hash nội dung chính (word/document.xml)
+  const documentXml = documentEntry.asText();
+  const docDigest = createHash('sha256')
+    .update(Buffer.from(documentXml, 'utf8'))
+    .digest('base64');
 
-    if (!keyBag || !certBag) throw new Error('Cannot extract key/cert from P12');
-
-    const privateKey = keyBag.key;
-    const cert = certBag.cert;
-
-    // helper to base64-encode DER cert
-    const certDer = forge.asn1.toDer(forge.pki.certificateToAsn1(cert)).getBytes();
-    const certBase64 = Buffer.from(certDer, 'binary').toString('base64');
-
-    // 2) Ensure required parts exist
-    const contentTypesEntry = zip.file('[Content_Types].xml');
-    if (!contentTypesEntry) throw new Error('DOCX missing [Content_Types].xml');
-
-    const relsEntry = zip.file('_rels/.rels');
-    if (!relsEntry) throw new Error('DOCX missing _rels/.rels');
-
-    const documentEntry = zip.file('word/document.xml');
-    if (!documentEntry) throw new Error('DOCX missing word/document.xml');
-
-    // 3) Compute digest of the part(s) you want to sign
-    // Minimal: sign word/document.xml. For production you may also sign core properties, relationships, etc.
-    const documentXml = documentEntry.asText();
-    // compute SHA256 digest of the raw bytes (note: proper OPC requires canonicalization & transforms)
-    const docDigest = createHash('sha256').update(Buffer.from(documentXml, 'utf8')).digest('base64');
-
-    // 4) Build SignedInfo (simple, without relationship transform). This is a simplified SignedInfo.
-    // Real Word expects relationship transform and c14n; you may need to canonicalize and include transforms.
-    const signedInfo = `
-    <SignedInfo xmlns="http://www.w3.org/2000/09/xmldsig#">
-      <CanonicalizationMethod Algorithm="http://www.w3.org/TR/2001/REC-xml-c14n-20010315"/>
-      <SignatureMethod Algorithm="http://www.w3.org/2001/04/xmldsig-more#rsa-sha256"/>
-      <Reference URI="/word/document.xml">
-        <Transforms>
-          <Transform Algorithm="http://www.w3.org/2001/10/xml-exc-c14n#"/>
-          <!-- Optionally, RelationshipTransform is required by Office for certain references -->
-          <!-- <Transform Algorithm="http://schemas.openxmlformats.org/package/2006/RelationshipTransform"/> -->
-        </Transforms>
-        <DigestMethod Algorithm="http://www.w3.org/2001/04/xmlenc#sha256"/>
-        <DigestValue>${docDigest}</DigestValue>
-      </Reference>
-    </SignedInfo>
+  // 4️⃣ Tạo SignedInfo — bổ sung RelationshipTransform & canonicalization
+  const signedInfo = `
+  <SignedInfo xmlns="http://www.w3.org/2000/09/xmldsig#">
+    <CanonicalizationMethod Algorithm="http://www.w3.org/TR/2001/REC-xml-c14n-20010315"/>
+    <SignatureMethod Algorithm="http://www.w3.org/2001/04/xmldsig-more#rsa-sha256"/>
+    <Reference URI="/word/document.xml">
+      <Transforms>
+        <Transform Algorithm="http://schemas.openxmlformats.org/package/2006/RelationshipTransform"/>
+        <Transform Algorithm="http://www.w3.org/2001/10/xml-exc-c14n#"/>
+      </Transforms>
+      <DigestMethod Algorithm="http://www.w3.org/2001/04/xmlenc#sha256"/>
+      <DigestValue>${docDigest}</DigestValue>
+    </Reference>
+    <Reference URI="/_xmlsignatures/origin.sigs">
+      <DigestMethod Algorithm="http://www.w3.org/2001/04/xmlenc#sha256"/>
+      <DigestValue>${createHash('sha256')
+        .update(Buffer.from('<Origin/>', 'utf8'))
+        .digest('base64')}</DigestValue>
+    </Reference>
+  </SignedInfo>
   `;
 
-    // 5) Sign the canonicalized SignedInfo
-    // IMPORTANT: proper signature must be computed over canonicalized SignedInfo (C14N). Here we sign the string as-is,
-    // which may not match Word's expectation. For best results, perform XML canonicalization before signing.
-    const md = forge.md.sha256.create();
-    md.update(signedInfo, 'utf8');
-    const signatureBytes = privateKey.sign(md);
-    const signatureValue = forge.util.encode64(signatureBytes);
+  // 5️⃣ Ký SignedInfo (RSA-SHA256)
+  const md = forge.md.sha256.create();
+  md.update(signedInfo, 'utf8');
+  const signatureBytes = privateKey.sign(md);
+  const signatureValue = forge.util.encode64(signatureBytes);
 
-    // 6) Compose final Signature XML
-    const signatureXml = `<?xml version="1.0" encoding="UTF-8"?>
+  // 6️⃣ Tạo file sig1.xml
+  const signatureXml = `<?xml version="1.0" encoding="UTF-8"?>
 <Signature xmlns="http://www.w3.org/2000/09/xmldsig#">
   ${signedInfo}
   <SignatureValue>${signatureValue}</SignatureValue>
@@ -207,49 +195,88 @@ export class SigningService {
     </X509Data>
   </KeyInfo>
 </Signature>`;
+  zip.file('_xmlsignatures/sig1.xml', signatureXml);
 
-    // 7) Create _xmlsignatures folder & write sig1.xml
-    // Ensure folder entries - PizZip writes file paths with forward slashes
-    zip.file('_xmlsignatures/sig1.xml', signatureXml);
-
-    // 8) Create origin.sigs (digital signature origin)
-    const originXml = `<?xml version="1.0" encoding="UTF-8"?>
+  // 7️⃣ origin.sigs
+  const originXml = `<?xml version="1.0" encoding="UTF-8"?>
 <Origin xmlns="http://schemas.openxmlformats.org/package/2006/digital-signature-origin">
   <SignatureInfoV1/>
 </Origin>`;
-    zip.file('_xmlsignatures/origin.sigs', originXml);
+  zip.file('_xmlsignatures/origin.sigs', originXml);
 
-    // 9) Update [Content_Types].xml to include signature parts
-    let contentTypes = contentTypesEntry.asText();
-    if (!contentTypes.includes('/_xmlsignatures/sig1.xml')) {
-      const insertAt = contentTypes.lastIndexOf('</Types>');
-      const overrideSig = `\n  <Override PartName="/_xmlsignatures/sig1.xml" ContentType="application/vnd.openxmlformats-package.digital-signature-xmlsignature+xml"/>`;
-      const overrideOrigin = `\n  <Override PartName="/_xmlsignatures/origin.sigs" ContentType="application/vnd.openxmlformats-package.digital-signature-origin"/>`;
-      contentTypes = contentTypes.slice(0, insertAt) + overrideSig + overrideOrigin + '\n' + contentTypes.slice(insertAt);
-      zip.file('[Content_Types].xml', contentTypes);
-    }
+  // 8️⃣ Update [Content_Types].xml
+  let contentTypes = contentTypesEntry.asText();
+  if (!contentTypes.includes('digital-signature')) {
+    const insertAt = contentTypes.lastIndexOf('</Types>');
+    const add = `
+  <Override PartName="/_xmlsignatures/sig1.xml" ContentType="application/vnd.openxmlformats-package.digital-signature-xmlsignature+xml"/>
+  <Override PartName="/_xmlsignatures/origin.sigs" ContentType="application/vnd.openxmlformats-package.digital-signature-origin"/>
+`;
+    contentTypes = contentTypes.slice(0, insertAt) + add + contentTypes.slice(insertAt);
+    zip.file('[Content_Types].xml', contentTypes);
+  }
 
-    // 10) Update package relationships _rels/.rels to point to origin.sigs
-    let relsXml = relsEntry.asText();
-    if (!relsXml.includes('digital-signature/origin')) {
-      const insertAt = relsXml.lastIndexOf('</Relationships>');
-      const relItem = `\n  <Relationship Id="rIdSign1" Type="http://schemas.openxmlformats.org/package/2006/relationships/digital-signature/origin" Target="/_xmlsignatures/origin.sigs"/>`;
-      relsXml = relsXml.slice(0, insertAt) + relItem + '\n' + relsXml.slice(insertAt);
-      zip.file('_rels/.rels', relsXml);
-    }
+  // 9️⃣ Update _rels/.rels
+  let relsXml = relsEntry.asText();
+  if (!relsXml.includes('digital-signature/origin')) {
+    const insertAt = relsXml.lastIndexOf('</Relationships>');
+    const rel = `
+  <Relationship Id="rIdSign1" Type="http://schemas.openxmlformats.org/package/2006/relationships/digital-signature/origin" Target="/_xmlsignatures/origin.sigs"/>`;
+    relsXml = relsXml.slice(0, insertAt) + rel + relsXml.slice(insertAt);
+    zip.file('_rels/.rels', relsXml);
+  }
 
-    // 11) Optionally add _xmlsignatures/_rels/sig1.xml.rels (may be empty or include certificate relationship)
-    const sigRelsPath = '_xmlsignatures/_rels/sig1.xml.rels';
-    if (!zip.file(sigRelsPath)) {
-      const sigRels = `<?xml version="1.0" encoding="UTF-8"?>
+  // 🔟 Add _xmlsignatures/_rels/origin.sigs.rels
+  const originRels = `<?xml version="1.0" encoding="UTF-8"?>
 <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
-  <!-- Optionally include relationships from signature part to certificate parts -->
+  <Relationship Id="rIdSig" Type="http://schemas.openxmlformats.org/package/2006/relationships/digital-signature/signature" Target="sig1.xml"/>
 </Relationships>`;
-      zip.file(sigRelsPath, sigRels);
-    }
+  zip.file('_xmlsignatures/_rels/origin.sigs.rels', originRels);
 
-    // 12) Return signed docx buffer
-    return zip.generate({ type: 'nodebuffer' });
+  // 11️⃣ Add _xmlsignatures/_rels/sig1.xml.rels (optional)
+  const sigRels = `<?xml version="1.0" encoding="UTF-8"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"/>`;
+  zip.file('_xmlsignatures/_rels/sig1.xml.rels', sigRels);
+
+  // ✅ Trả về file DOCX đã ký
+  return zip.generate({ type: 'nodebuffer' });
+}
+
+
+  // Ky bang file doc
+  async signDocWithP12(
+    docBuffer: Buffer,
+    p12Buffer: Buffer,
+    passphrase?: string,
+  ): Promise<Buffer> {
+    const p12Asn1 = forge.asn1.fromDer(p12Buffer.toString('binary'));
+    const p12 = forge.pkcs12.pkcs12FromAsn1(p12Asn1, passphrase);
+
+    const keyBag = p12.getBags({ bagType: forge.pki.oids.pkcs8ShroudedKeyBag })[
+      forge.pki.oids.pkcs8ShroudedKeyBag
+    ][0];
+    const certBag = p12.getBags({ bagType: forge.pki.oids.certBag })[
+      forge.pki.oids.certBag
+    ][0];
+
+    const privateKey = keyBag.key;
+    const cert = certBag.cert;
+
+    // Tạo gói PKCS#7 Detached
+    const p7 = forge.pkcs7.createSignedData();
+    p7.content = forge.util.createBuffer(docBuffer.toString('binary'));
+    p7.addCertificate(cert);
+    p7.addSigner({
+      key: privateKey,
+      certificate: cert,
+      digestAlgorithm: forge.pki.oids.sha256,
+    });
+
+    p7.sign({ detached: true });
+
+    const asn1 = p7.toAsn1();
+    const der = forge.asn1.toDer(asn1).getBytes();
+    return Buffer.from(der, 'binary'); // file .p7s
   }
 
   async verifyPdfSignature(pdfBuffer: Buffer) {
