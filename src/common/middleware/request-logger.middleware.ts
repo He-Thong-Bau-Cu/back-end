@@ -1,0 +1,55 @@
+import { Injectable, NestMiddleware } from '@nestjs/common';
+import { Request, Response, NextFunction } from 'express';
+import { InjectModel } from '@nestjs/mongoose';
+import { Model } from 'mongoose';
+import { SystemLog, SystemLogDocument } from 'src/database/schemas/systemLog.schema';
+
+
+@Injectable()
+export class RequestLoggerMiddleware implements NestMiddleware {
+  constructor(
+    @InjectModel(SystemLog.name) private requestLogModel: Model<SystemLogDocument>,
+  ) {}
+
+  async use(req: Request, res: Response, next: NextFunction) {
+    const start = Date.now();
+
+    res.on('finish', async () => {
+      const responseTime = Date.now() - start;
+      const { method, originalUrl, ip, body, query, headers } = req;
+      const { statusCode } = res;
+
+      const clientIpHeader = req.headers['x-client-ip'] as string | undefined;
+
+      const fallbackIp =
+          (req.headers['x-forwarded-for'] as string) || req.socket.remoteAddress || req.ip;
+
+      const finalIp = clientIpHeader || fallbackIp;
+
+      const userId = (req as any).user ? (req as any).user.userId : null;
+
+      const filteredHeaders = { ...headers };
+      delete filteredHeaders.authorization;
+
+      const requestLog = new this.requestLogModel({
+        method,
+        url: originalUrl,
+        statusCode,
+        ipAddress: finalIp,
+        userId,
+        body: method === 'POST' || method === 'PUT' ? body : undefined,
+        query,
+        headers: filteredHeaders,
+        responseTime,
+      });
+
+      try {
+        await requestLog.save();
+      } catch (error) {
+        console.error('Error saving request log:', error);
+      }
+    });
+
+    next();
+  }
+}

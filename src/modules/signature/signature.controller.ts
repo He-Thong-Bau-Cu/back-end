@@ -75,6 +75,20 @@ export class SigningController {
     }
   }
 
+  @Post('doc')
+  @UseInterceptors(FileInterceptor('file'))
+  async signDoc(
+    @UploadedFile() file: Express.Multer.File,
+    @Body() body: { p12Path: string; password: string },
+    @Res() res: Response,
+  ) {
+    const p12Buffer = fs.readFileSync(body.p12Path);
+    const signed = await this.signingService.signDocWithP12(file.buffer, p12Buffer, body.password);
+    const outputPath = path.join('uploads', `${file.originalname}.p7s`);
+    fs.writeFileSync(outputPath, signed);
+    return res.download(outputPath);
+  }
+
 
   @Post('word-xml')
   @UseInterceptors(FileInterceptor('file'))
