@@ -10,10 +10,10 @@ export class BaseSchema extends Document {
   @Prop({ default: Date.now })
   createdAt: Date;
 
-  @Prop({ type: Types.ObjectId, ref: User.name })
+  @Prop({ type: Types.ObjectId, ref: 'User' })
   createdByUserId: Types.ObjectId;
 
-  @Prop({ type: Types.ObjectId, ref: User.name })
+  @Prop({ type: Types.ObjectId, ref: 'User' })
   updatedByUserId: Types.ObjectId;
 }
 
