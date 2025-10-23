@@ -4,6 +4,7 @@ import { ConfigModule } from '@nestjs/config';
 import { UserModule } from './modules/user/user.module';
 import { MinioModule } from './modules/minio/minio.module';
 import { ElectionsModule } from './modules/elections/elections.module';
+import { SmsModule } from './modules/sms/sms.module';
 import { SignatureModule } from './modules/signature/signature.module';
 import { CaModule } from './modules/ca/ca.module';
 import { AuthModule } from './modules/auth/auth.module';
@@ -30,6 +31,7 @@ import { SystemLog, SystemLogSchema } from './database/schemas/systemLog.schema'
     UserModule,
     MinioModule,
     ElectionsModule,
+    SmsModule,
     SignatureModule,
     CaModule,
     AuthModule,
