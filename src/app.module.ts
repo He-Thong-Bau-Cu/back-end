@@ -14,6 +14,10 @@ import { RequestLoggerMiddleware } from './common/middleware/request-logger.midd
 import { AuthMiddleware } from './common/middleware/auth.middleware';
 import { MongooseModule } from '@nestjs/mongoose';
 import { SystemLog, SystemLogSchema } from './database/schemas/systemLog.schema';
+import { AuditLogsMiddleware } from './common/middleware/audit-logs.middleware';
+import { AuditLogs, AuditLogsSchema } from './database/schemas/auditLogs.schema';
+import { SystemModule } from './modules/system/system.module';
+import { ENDPOINT, METHOD } from './common/enums/method.enum';
 
 @Module({
   imports: [
@@ -27,7 +31,10 @@ import { SystemLog, SystemLogSchema } from './database/schemas/systemLog.schema'
       },
     ]),
     DatabaseModule,
-    MongooseModule.forFeature([{name: SystemLog.name, schema: SystemLogSchema}]),
+    MongooseModule.forFeature([
+      {name: SystemLog.name, schema: SystemLogSchema},
+      {name: AuditLogs.name, schema: AuditLogsSchema}
+    ]),
     UserModule,
     MinioModule,
     ElectionsModule,
@@ -35,6 +42,7 @@ import { SystemLog, SystemLogSchema } from './database/schemas/systemLog.schema'
     SignatureModule,
     CaModule,
     AuthModule,
+    SystemModule,
   ],
   controllers: [],
   providers: [
@@ -52,8 +60,11 @@ export class AppModule {
       .exclude(
         { path: "auth/login", method: RequestMethod.POST },
         { path: "auth/register", method: RequestMethod.POST },
-        { path: "api", method: RequestMethod.GET },
+        { path: `system/${ENDPOINT.SYSTEM_LOG}/${METHOD.SEARCH}`, method: RequestMethod.POST },
+        { path: "api/docs", method: RequestMethod.GET },
+        { path: "api/*", method: RequestMethod.GET },
       )
       .forRoutes("*");
+      // consumer.apply(AuditLogsMiddleware).forRoutes("*");
   }
 }
