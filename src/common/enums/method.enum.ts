@@ -8,3 +8,7 @@ export enum METHOD {
   CREATE = 'create',
   UPDATE = 'update',
 }
+
+export enum ENDPOINT {
+  SYSTEM_LOG = 'system-logs'
+}

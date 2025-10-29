@@ -51,3 +51,20 @@ export enum STATUS {
   PRODUCTION = 'production',
   STAGING = 'staging',
 }
+
+
+export enum STATUS_SYSTEM {
+  SUCCESS = 'success',
+  INFORMATION = 'information',
+  REDIRECTION = 'redirection',
+  CLIENT_ERROR = 'client_error',
+  SERVER_ERROR = 'server_error',
+}
+
+export enum MESSAGE_STATUS {
+  SUCCESS = 'Thành công!',
+  INFORMATION = 'Thống báo',
+  REDIRECTION = 'Chuyển huận',
+  CLIENT_ERROR = 'Loại lỗi client',
+  SERVER_ERROR = 'Loại lỗi server',
+}

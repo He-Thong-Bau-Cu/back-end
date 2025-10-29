@@ -14,8 +14,15 @@ import { RequestLoggerMiddleware } from './common/middleware/request-logger.midd
 import { AuthMiddleware } from './common/middleware/auth.middleware';
 import { MongooseModule } from '@nestjs/mongoose';
 import { SystemLog, SystemLogSchema } from './database/schemas/systemLog.schema';
+
 import { Roles } from './database/schemas/roles.schema';
 import { RolesModule } from './modules/role/roles.module';
+
+import { AuditLogsMiddleware } from './common/middleware/audit-logs.middleware';
+import { AuditLogs, AuditLogsSchema } from './database/schemas/auditLogs.schema';
+import { SystemModule } from './modules/system/system.module';
+import { ENDPOINT, METHOD } from './common/enums/method.enum';
+
 
 @Module({
   imports: [
@@ -29,7 +36,10 @@ import { RolesModule } from './modules/role/roles.module';
       },
     ]),
     DatabaseModule,
-    MongooseModule.forFeature([{name: SystemLog.name, schema: SystemLogSchema}]),
+    MongooseModule.forFeature([
+      {name: SystemLog.name, schema: SystemLogSchema},
+      {name: AuditLogs.name, schema: AuditLogsSchema}
+    ]),
     UserModule,
     MinioModule,
     ElectionsModule,
@@ -37,7 +47,11 @@ import { RolesModule } from './modules/role/roles.module';
     SignatureModule,
     CaModule,
     AuthModule,
+
     RolesModule,
+
+    SystemModule,
+
   ],
   controllers: [],
   providers: [
@@ -55,14 +69,13 @@ export class AppModule {
       .exclude(
         { path: "auth/login", method: RequestMethod.POST },
         { path: "auth/register", method: RequestMethod.POST },
-        { path: "sms/send", method: RequestMethod.POST },
-        { path: "api", method: RequestMethod.GET },
-        { path: "role", method: RequestMethod.GET },
-        { path: "role/:id", method: RequestMethod.GET },
-        { path: "role", method: RequestMethod.POST },
-        { path: "role/:id", method: RequestMethod.PUT },
-        { path: "role/:id", method: RequestMethod.DELETE },
+
+        { path: `system/${ENDPOINT.SYSTEM_LOG}/${METHOD.SEARCH}`, method: RequestMethod.POST },
+        { path: "api/docs", method: RequestMethod.GET },
+        { path: "api/*", method: RequestMethod.GET },
+
       )
       .forRoutes("*");
+      // consumer.apply(AuditLogsMiddleware).forRoutes("*");
   }
 }
