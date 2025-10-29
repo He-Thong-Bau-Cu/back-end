@@ -57,6 +57,11 @@ export class AppModule {
         { path: "auth/register", method: RequestMethod.POST },
         { path: "sms/send", method: RequestMethod.POST },
         { path: "api", method: RequestMethod.GET },
+        { path: "role", method: RequestMethod.GET },
+        { path: "role/:id", method: RequestMethod.GET },
+        { path: "role", method: RequestMethod.POST },
+        { path: "role/:id", method: RequestMethod.PUT },
+        { path: "role/:id", method: RequestMethod.DELETE },
       )
       .forRoutes("*");
   }

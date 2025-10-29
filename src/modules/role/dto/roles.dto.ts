@@ -2,7 +2,7 @@ import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
 import { IsOptional } from "class-validator";
 import { BaseRequest } from "src/common/dto/base-request.dto";
 
-export class CreateRolesDto extends BaseRequest {
+export class RolesDto extends BaseRequest {
 
     @ApiPropertyOptional({
         description: 'Tên vai trò',
