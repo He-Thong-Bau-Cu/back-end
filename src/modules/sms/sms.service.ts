@@ -21,7 +21,7 @@ export class SmsService {
 
   constructor(private readonly configService: ConfigService) {
     this.baseUrl = this.configService.get<string>('INFOBIP_BASE_URL', '');
-    this.apiKey = this.configService.get<string>(`App INFOBIP_API_KEY`, '');
+    this.apiKey = this.configService.get<string>(`INFOBIP_API_KEY`, '');
   }
 
   async sendSms(phone: string, message: string): Promise<SmsResponse> {

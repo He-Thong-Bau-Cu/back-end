@@ -14,6 +14,8 @@ import { RequestLoggerMiddleware } from './common/middleware/request-logger.midd
 import { AuthMiddleware } from './common/middleware/auth.middleware';
 import { MongooseModule } from '@nestjs/mongoose';
 import { SystemLog, SystemLogSchema } from './database/schemas/systemLog.schema';
+import { Roles } from './database/schemas/roles.schema';
+import { RolesModule } from './modules/role/roles.module';
 
 @Module({
   imports: [
@@ -35,6 +37,7 @@ import { SystemLog, SystemLogSchema } from './database/schemas/systemLog.schema'
     SignatureModule,
     CaModule,
     AuthModule,
+    RolesModule,
   ],
   controllers: [],
   providers: [
@@ -52,6 +55,7 @@ export class AppModule {
       .exclude(
         { path: "auth/login", method: RequestMethod.POST },
         { path: "auth/register", method: RequestMethod.POST },
+        { path: "sms/send", method: RequestMethod.POST },
         { path: "api", method: RequestMethod.GET },
       )
       .forRoutes("*");
