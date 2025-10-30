@@ -1,4 +1,4 @@
-import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
+import {Prop, Schema, SchemaFactory} from '@nestjs/mongoose';
 import { Document, Types } from 'mongoose';
 import { BaseSchema } from './base.schema';
 import { ElectionTypes } from './electionTypes.schema';
@@ -10,6 +10,7 @@ import { Voters } from './voters.schema';
 import { STATUS } from 'src/common/enums/status.enum';
 
 export type VotingRightsDocument = VotingRights & Document;
+
 @Schema()
 export class VotingRights extends BaseSchema{
   @Prop({ type: Types.ObjectId, ref: Elections.name, required: true })
