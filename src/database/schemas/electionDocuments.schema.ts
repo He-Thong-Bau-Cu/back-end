@@ -1,9 +1,10 @@
-import { Prop, SchemaFactory } from '@nestjs/mongoose';
+import {Prop, Schema, SchemaFactory} from '@nestjs/mongoose';
 import { Date, Document, Types } from 'mongoose';
 import { Elections } from './elections.schema';
 
 export type ElectionDocument = ElectionDocuments & Document;
 
+@Schema()
 export class ElectionDocuments {
   @Prop({ type: Types.ObjectId, ref: Elections.name })
   electionId: Types.ObjectId;

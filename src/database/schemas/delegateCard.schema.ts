@@ -1,4 +1,4 @@
-import { Prop, SchemaFactory } from '@nestjs/mongoose';
+import {Prop, Schema, SchemaFactory} from '@nestjs/mongoose';
 import { Document, Types } from 'mongoose';
 import { BaseSchema } from './base.schema';
 import { ElectionTypes } from './electionTypes.schema';
@@ -12,6 +12,7 @@ import { Delegations } from './delegations.schema';
 
 export type DelegateCardDocument = DelegateCard & Document;
 
+@Schema()
 export class DelegateCard extends BaseSchema{
   @Prop({required: true})
   token: string;

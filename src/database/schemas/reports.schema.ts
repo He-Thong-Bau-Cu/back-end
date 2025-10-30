@@ -1,4 +1,4 @@
-import { Prop, SchemaFactory } from '@nestjs/mongoose';
+import {Prop, Schema, SchemaFactory} from '@nestjs/mongoose';
 import { Document, Types } from 'mongoose';
 import { BaseSchema } from './base.schema';
 import { ElectionTypes } from './electionTypes.schema';
@@ -9,6 +9,7 @@ import { User } from './users.schema';
 
 export type ReportsDocument = Reports & Document;
 
+@Schema()
 export class Reports extends BaseSchema{
   @Prop({required: true})
   type: string;
