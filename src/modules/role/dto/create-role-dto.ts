@@ -19,7 +19,7 @@ export class CreateRoleDTO  {
     })
     @IsString()
     @IsNotEmpty()
-   roleCode: string;
+    roleCode: string;
     
     @ApiPropertyOptional({
         description: 'Mô tả vai trò',

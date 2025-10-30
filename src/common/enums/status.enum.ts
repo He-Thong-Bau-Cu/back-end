@@ -50,6 +50,10 @@ export enum STATUS {
   TESTING = 'testing',
   PRODUCTION = 'production',
   STAGING = 'staging',
+  //status sent email
+  SENT = 'sent',
+  DELIVERED = 'delivered',
+  OPENED = 'opened',
 }
 
 

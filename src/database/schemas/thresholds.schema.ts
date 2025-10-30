@@ -3,6 +3,7 @@ import {  Document, Types } from 'mongoose';
 import { USER_ROLE } from 'src/common/enums/config.enum';
 import { BaseSchema } from './base.schema';
 import { Roles } from './roles.schema';
+import { STATUS } from 'src/common/enums/status.enum';
 
 export type ThresholdsDocument = Thresholds & Document;
 
@@ -23,7 +24,7 @@ export class Thresholds extends BaseSchema {
   @Prop()
   description: string;
 
-  @Prop({required: true})
+  @Prop({required: true, default:STATUS.ACTIVE})
   status: string;
 }
 

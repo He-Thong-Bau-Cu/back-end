@@ -1,0 +1,46 @@
+import { Controller, Get, Post, Body, Patch, Param, Delete, HttpException, HttpStatus, Put } from '@nestjs/common';
+import { VotersService } from './voters.service';
+import { CreateVoterDto } from './dto/create-voter.dto';
+import { UpdateVoterDto } from './dto/update-voter.dto';
+import Api from 'twilio/lib/rest/Api';
+import { BaseResponse } from 'src/common/dto/base-response.dto';
+import { ApiOperation, ApiResponse } from '@nestjs/swagger';
+
+@Controller('voters')
+export class VotersController {
+  constructor(private readonly votersService: VotersService) {}
+
+  @Post()
+  @ApiOperation({ summary: 'Tạo mới cử tri' })
+  @ApiResponse({ status: 201, description: 'Cử tri được tạo thành công.' })
+  @ApiResponse({ status: 400, description: 'Dữ liệu không hợp lệ.' })
+  @ApiResponse({ status: 500, description: 'Lỗi server' })
+  async create(@Body() createVoter: CreateVoterDto):Promise<BaseResponse> { 
+    try {
+      const resData = await this.votersService.create(createVoter);
+      return BaseResponse.success(resData, 'Success', 201);
+    } catch (error) {
+      throw new HttpException(
+        {message:error.message},
+        HttpStatus.INTERNAL_SERVER_ERROR
+      )
+    }
+  }
+
+  @Put(':id')
+  @ApiOperation({ summary: 'Cập nhật cử tri' })
+  @ApiResponse({ status: 200, description: 'Cử tri được cập nhật thành công.' })
+  @ApiResponse({ status: 400, description: 'Dữ liệu không hợp lệ.' })
+  @ApiResponse({ status: 500, description: 'Lỗi server' })
+  async update(@Param('id') id: string, @Body() updateVoter: UpdateVoterDto):Promise<BaseResponse> {
+    try {
+      const resData = await this.votersService.update(id, updateVoter);
+      return BaseResponse.success(resData, 'Success', 200);
+    } catch (error) {
+      throw new HttpException(
+        {message:error.message},
+        HttpStatus.INTERNAL_SERVER_ERROR
+      )
+    } 
+  }
+}

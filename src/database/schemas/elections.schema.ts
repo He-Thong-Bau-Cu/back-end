@@ -1,12 +1,13 @@
-import { Prop, SchemaFactory } from '@nestjs/mongoose';
+import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Types } from 'mongoose';
 import { BaseSchema } from './base.schema';
 import { ElectionTypes } from './electionTypes.schema';
 import { VotingMethods } from './votingMethods.schema';
 import { Thresholds } from './thresholds.schema';
+import { STATUS } from 'src/common/enums/status.enum';
 
 export type ElectionsDocument = Elections & Document;
-
+@Schema()
 export class Elections extends BaseSchema{
   @Prop({required: true})
   title: string;
@@ -32,7 +33,7 @@ export class Elections extends BaseSchema{
   @Prop({required: true})
   delegationEnd: Date;
 
-  @Prop({required: true})
+  @Prop({ default:STATUS.ACTIVE})
   status: string;
 
   @Prop({required: true})
