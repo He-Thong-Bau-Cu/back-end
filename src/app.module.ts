@@ -14,19 +14,22 @@ import { RequestLoggerMiddleware } from './common/middleware/request-logger.midd
 import { AuthMiddleware } from './common/middleware/auth.middleware';
 import { MongooseModule } from '@nestjs/mongoose';
 import { SystemLog, SystemLogSchema } from './database/schemas/systemLog.schema';
+
+import { Roles } from './database/schemas/roles.schema';
+import { RolesModule } from './modules/role/roles.module';
+
 import { AuditLogsMiddleware } from './common/middleware/audit-logs.middleware';
 import { AuditLogs, AuditLogsSchema } from './database/schemas/auditLogs.schema';
 import { SystemModule } from './modules/system/system.module';
 import { ENDPOINT, METHOD } from './common/enums/method.enum';
-import { RolesModule } from './modules/role/roles.module';
 import { ElectionTypesModule } from './modules/election-types/election-types.module';
 import { ThresholdsModule } from './modules/thresholds/thresholds.module';
 import { VotingMethodsModule } from './modules/voting-methods/voting-methods.module';
 import { ElectionEntitiesModule } from './modules/election-entities/election-entities.module';
 import { ElectionParticipantsModule } from './modules/election-participants/election-participants.module';
 import { VotersModule } from './modules/voters/voters.module';
-import { VoterInvitationsModule } from './modules/voter-invitations/voter-invitations.module';
 import { VotingRightsModule } from './modules/voting-rights/voting-rights.module';
+import { VoterInvitationsModule } from './modules/voter-invitations/voter-invitations.module';
 
 
 @Module({
@@ -52,8 +55,11 @@ import { VotingRightsModule } from './modules/voting-rights/voting-rights.module
     SignatureModule,
     CaModule,
     AuthModule,
-    SystemModule,
+
     RolesModule,
+
+    SystemModule,
+  
     ElectionTypesModule,
     ThresholdsModule,
     VotingMethodsModule,
