@@ -5,6 +5,7 @@ import { ElectionTypes } from './electionTypes.schema';
 import { VotingMethods } from './votingMethods.schema';
 import { Thresholds } from './thresholds.schema';
 import { Elections } from './elections.schema';
+import { STATUS } from 'src/common/enums/status.enum';
 
 export type MeetingsDocument = Meetings & Document;
 
@@ -13,7 +14,7 @@ export class Meetings extends BaseSchema{
   @Prop({ type: Types.ObjectId, ref: Elections.name, required: true })
   electionId: Types.ObjectId;
 
-  @Prop({required: true})
+  @Prop()
   title: string;
 
   @Prop({required: true})
@@ -22,8 +23,11 @@ export class Meetings extends BaseSchema{
   @Prop({required: true})
   location: string;
 
-  @Prop({required: true})
+  @Prop()
   description: string;
+
+  @Prop({default:STATUS.SCHEDULED})
+  status: string;
 }
 
 export const MeetingsSchema = SchemaFactory.createForClass(Meetings);

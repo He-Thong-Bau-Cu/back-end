@@ -30,6 +30,8 @@ import { ElectionParticipantsModule } from './modules/election-participants/elec
 import { VotersModule } from './modules/voters/voters.module';
 import { VotingRightsModule } from './modules/voting-rights/voting-rights.module';
 import { VoterInvitationsModule } from './modules/voter-invitations/voter-invitations.module';
+import { MeetingsModule } from './modules/meetings/meetings.module';
+import { DelegationsModule } from './modules/delegations/delegations.module';
 
 
 @Module({
@@ -68,6 +70,8 @@ import { VoterInvitationsModule } from './modules/voter-invitations/voter-invita
     VotersModule,
     VotingRightsModule,
     VoterInvitationsModule,
+    MeetingsModule,
+    DelegationsModule,
   ],
   controllers: [],
   providers: [
@@ -98,6 +102,13 @@ export class AppModule {
         { path: "voters/:id", method: RequestMethod.PUT },
         { path: "voting-rights", method: RequestMethod.POST },
         { path: "voting-rights/:id", method: RequestMethod.PUT },
+        { path: "meetings", method: RequestMethod.POST },
+        { path: "meetings/:id", method: RequestMethod.PUT },
+        { path: "delegations/:id", method: RequestMethod.GET },
+        { path: "delegations/pending", method: RequestMethod.GET },
+        { path: "delegations/election/:electionId", method: RequestMethod.GET },
+        { path: "delegations", method: RequestMethod.POST },
+        { path: "delegations/:id", method: RequestMethod.PUT },
         
       )
       .forRoutes("*");

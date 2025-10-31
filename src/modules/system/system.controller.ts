@@ -16,7 +16,7 @@ export class SystemController {
   async searchSystemLogs(@Body() req: SearchDTO){
     try{
       const resData = await this.systemService.searchSystemLogs(req);
-      return BaseResponse.success(resData, MESSAGE_STATUS.SUCCESS, HttpStatus.OK);
+      return BaseResponse.success(resData, 'Tìm kiếm log hệ thống thành công', HttpStatus.OK);
     }catch(e){
       throw new HttpException(
         { message: e.message },

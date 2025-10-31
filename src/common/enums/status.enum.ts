@@ -54,6 +54,12 @@ export enum STATUS {
   SENT = 'sent',
   DELIVERED = 'delivered',
   OPENED = 'opened',
+
+  //status of meeting
+  SCHEDULED = 'scheduled',
+  ONGOING = 'ongoing',
+  POSTPONED = 'postponed',
+
 }
 
 
@@ -71,4 +77,9 @@ export enum MESSAGE_STATUS {
   REDIRECTION = 'Chuyển huận',
   CLIENT_ERROR = 'Loại lỗi client',
   SERVER_ERROR = 'Loại lỗi server',
+}
+
+export enum DELEGATION_TYPE{
+  ELECTION ='election',
+  LONG_TERM = 'long_term'
 }

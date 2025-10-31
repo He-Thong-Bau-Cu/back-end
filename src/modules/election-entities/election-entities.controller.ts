@@ -18,7 +18,7 @@ export class ElectionEntitiesController {
   async create(@Body() createElectionEntity: CreateElectionEntityDto):Promise<BaseResponse> {
     try {
       const resData = await this.electionEntitiesService.create(createElectionEntity);
-      return BaseResponse.success(resData, "Success", 201);
+      return BaseResponse.success(resData, "Tạo entity cuộc bầu cử thành công", 201);
     } catch (error) {
       throw new HttpException(
         { message: error.message },
@@ -36,7 +36,7 @@ export class ElectionEntitiesController {
   async update(@Param('id') id: string, @Body() updateElectionEntity: UpdateElectionEntityDto):Promise<BaseResponse> {
     try {
       const resData = await this.electionEntitiesService.update(id, updateElectionEntity);
-      return BaseResponse.success(resData, "Success", 200);
+      return BaseResponse.success(resData, "Cập nhật entity cuộc bầu cử thành công", 200);
     } catch (error) {
       throw new HttpException(
         { message: error.message },

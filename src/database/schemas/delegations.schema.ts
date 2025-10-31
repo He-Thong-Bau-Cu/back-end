@@ -7,6 +7,7 @@ import { Thresholds } from './thresholds.schema';
 import { Elections } from './elections.schema';
 import { User } from './users.schema';
 import { ElectionDocuments } from './electionDocuments.schema';
+import { STATUS } from 'src/common/enums/status.enum';
 
 export type DelegationsDocument = Delegations & Document;
 
@@ -24,28 +25,28 @@ export class Delegations extends BaseSchema{
   @Prop({ type: Types.ObjectId, ref: User.name, required: true })
   delegateId: Types.ObjectId;
 
-  @Prop({required: true})
+  @Prop()
   startDate: Date;
 
-  @Prop({required: true})
+  @Prop()
   endDate: Date;
 
-  @Prop({ type: Types.ObjectId, ref: ElectionDocuments.name, required: true })
+  @Prop({ type: Types.ObjectId, ref: ElectionDocuments.name })
   documentId: Types.ObjectId;
 
-  @Prop({required: true})
+  @Prop()
   delegateReason: string;
 
-  @Prop({required: true})
+  @Prop()
   signature: string;
 
-  @Prop({required: true})
+  @Prop({default:STATUS.PENDING})
   status: string;
 
   @Prop({ type: Types.ObjectId, ref: User.name, required: true })
   confirmedBy: Types.ObjectId;
 
-  @Prop({required: true})
+  @Prop({default: new Date()})
   confirmedAt: Date;
 }
 

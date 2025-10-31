@@ -5,12 +5,18 @@ import { InjectModel } from '@nestjs/mongoose';
 import { VoterInvitations } from 'src/database/schemas/voterInvitations.schema';
 import { Model } from 'mongoose';
 import { JwtService } from '@nestjs/jwt';
+import { Voters } from 'src/database/schemas/voters.schema';
+import { Elections } from 'src/database/schemas/elections.schema';
 
 @Injectable()
 export class VoterInvitationsService {
   constructor(
     @InjectModel(VoterInvitations.name)
     private readonly voterInvitationsModel: Model<VoterInvitations>,
+    @InjectModel(Voters.name)
+    private readonly votersModel: Model<Voters>,
+    @InjectModel(Elections.name)
+    private readonly electionsModel: Model<Elections>,
     private readonly jwtService: JwtService,
   ) {}
 
@@ -22,6 +28,16 @@ export class VoterInvitationsService {
 
   async create(voterInvitation: CreateVoterInvitationDto){
     try {
+      // Check if the voterId exists in the database
+      const voterExists = await this.votersModel.exists({ _id: voterInvitation.voterId });
+      if (!voterExists) {
+        throw new Error('Voter ID does not exist');
+      }
+      // Check if the electionId exists in the database
+      const electionExists = await this.electionsModel.exists({ _id: voterInvitation.electionId });
+      if (!electionExists) {
+        throw new Error('Election ID does not exist');
+      }
       const createdInvitation = await this.voterInvitationsModel.create(voterInvitation);
       return createdInvitation;
     } catch (error) {
