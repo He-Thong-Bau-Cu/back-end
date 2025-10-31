@@ -16,7 +16,7 @@ export class ElectionTypesController {
   async getElectionTypeByCode(@Param('typeCode') typeCode:string):Promise<BaseResponse>{
     try {
       const resData  = await this.electionTypesService.findOne(typeCode);
-      return BaseResponse.success(resData, "Success", 200);
+      return BaseResponse.success(resData, "Lấy thông tin electionType theo code thành công", 200);
     } catch (error) {
       throw new HttpException(
         { message: error.message },

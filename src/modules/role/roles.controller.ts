@@ -25,7 +25,7 @@ export class RolesController {
   async getRoles(@Query() query:BaseRequest ):Promise<BaseResponse>{
     try {
       const resData = await this.rolesService.findAll(query);
-      return BaseResponse.success(resData, "Success", HttpStatus.OK);
+      return BaseResponse.success(resData, "Lấy danh sách role thành công", HttpStatus.OK);
     } catch (error) {
       throw new HttpException(
         { message: error.message },
@@ -43,7 +43,7 @@ export class RolesController {
   async getRoleById(@Param('id') id:string):Promise<BaseResponse>{
     try {
       const resData = await this.rolesService.getRoleById(id);
-      return BaseResponse.success(resData, "Success", HttpStatus.OK);
+      return BaseResponse.success(resData, "Lấy thông tin role theo ID thành công", HttpStatus.OK);
     } catch (error) {
       throw new HttpException(
         { message: error.message },
@@ -60,7 +60,7 @@ export class RolesController {
     try {
        console.log('👉 DTO controller nhận được:', req);
       const resData = await this.rolesService.createRole(req);
-      return BaseResponse.success(resData,'Success', HttpStatus.OK );
+      return BaseResponse.success(resData,'Tạo role thành công', HttpStatus.OK );
     } catch (error) {
       throw new HttpException(
         { message: error.message },
@@ -77,7 +77,7 @@ export class RolesController {
   async deleteRole(@Param('id') id:string):Promise<BaseResponse>{
     try { 
       const resData = await this.rolesService.deleteRole(id);
-      return BaseResponse.success(resData, "Success", HttpStatus.OK);
+      return BaseResponse.success(resData, "Xóa role thành công", HttpStatus.OK);
     } catch (error) {
       throw new HttpException(
         { message: error.message },
@@ -94,7 +94,7 @@ export class RolesController {
   async updateRole(@Param('id') id:string, @Body() req:RolesDto):Promise<BaseResponse>{
     try {
       const resData = await this.rolesService.updateRole(id, req);
-      return BaseResponse.success(resData, "Success", HttpStatus.OK);
+      return BaseResponse.success(resData, "Cập nhật role thành công", HttpStatus.OK);
     } catch (error) {
       throw new HttpException(
         { message: error.message },

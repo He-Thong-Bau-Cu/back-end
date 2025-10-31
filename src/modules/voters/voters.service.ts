@@ -39,6 +39,11 @@ export class VotersService {
 
   async update(id: string, updateVoter: UpdateVoterDto) {
     try {
+      //Check if the voter exists
+      const voterExists = await this.voterModel.exists({ _id: id });
+      if (!voterExists) {
+        throw new Error('Voter not found');
+      }
       const voter = await this.voterModel
         .findByIdAndUpdate(new Types.ObjectId(id), updateVoter, { new: true })
         .exec();

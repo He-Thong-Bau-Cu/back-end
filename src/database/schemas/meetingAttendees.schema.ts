@@ -5,7 +5,7 @@ import { ElectionTypes } from './electionTypes.schema';
 import { VotingMethods } from './votingMethods.schema';
 import { Thresholds } from './thresholds.schema';
 import { Elections } from './elections.schema';
-import { Meetings } from './mettings.schema';
+import { Meetings } from './meetings.schema';
 import { ElectionsParticipants } from './electionParticipants.schema';
 
 export type MeetingAttendeesDocument = MeetingAttendees & Document;

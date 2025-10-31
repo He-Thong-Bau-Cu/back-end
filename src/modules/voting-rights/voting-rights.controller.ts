@@ -18,7 +18,7 @@ export class VotingRightsController {
   async create(@Body() createVotingRight: CreateVotingRightDto): Promise<BaseResponse> {
     try {
       const votingRight = await this.votingRightsService.create(createVotingRight);
-      return BaseResponse.success(votingRight, 'Success', 201);
+      return BaseResponse.success(votingRight, 'Tạo quyền bầu cử thành công', 201);
     } catch (error) {
       throw new HttpException(
         { message: error.message },
@@ -35,7 +35,7 @@ export class VotingRightsController {
   async update(@Param('id') id: string, @Body() updateVotingRight: UpdateVotingRightDto): Promise<BaseResponse> {
     try {
       const votingRight = await this.votingRightsService.update(id, updateVotingRight);
-      return BaseResponse.success(votingRight, 'Success', 200);
+      return BaseResponse.success(votingRight, 'Cập nhật quyền bầu cử thành công', 200);
     } catch (error) {
       throw new HttpException(
         { message: error.message },

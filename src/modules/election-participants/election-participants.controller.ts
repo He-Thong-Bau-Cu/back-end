@@ -17,7 +17,7 @@ export class ElectionParticipantsController {
     try {
 
       const resData = await this.electionParticipantsService.create(electionParticipants);
-      return BaseResponse.success(resData, 'Success', 201);
+      return BaseResponse.success(resData, 'Tạo người tham gia cuộc bầu cử thành công', 201);
     } catch (error) {
       throw new HttpException(
         {message: error.message},

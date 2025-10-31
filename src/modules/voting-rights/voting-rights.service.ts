@@ -39,6 +39,15 @@ export class VotingRightsService {
 
   async update(id: string, updateVotingRightDto: UpdateVotingRightDto) {
     try {
+      //Check if the voting right exists
+      const votingRightExists = await this.votingRightModel.exists({ _id: id });
+
+      console.log("id: ", id);
+      console.log("updateVotingRightDto ", updateVotingRightDto);
+      console.log("votingExist: ", votingRightExists);
+      if (!votingRightExists) {
+        throw new Error('Voting right not found');
+      }
       const votingRight = await this.votingRightModel
       .findByIdAndUpdate(new Types.ObjectId(id), updateVotingRightDto, { new: true })
       .exec();
