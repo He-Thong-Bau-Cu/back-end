@@ -17,7 +17,7 @@ export class ThresholdsController {
   async getThresholdByCode(@Param('thresholdCode') thresholdCode: string):Promise<BaseResponse>{
     try {
       const resData = await this.thresholdsService.findOne(thresholdCode);
-      return BaseResponse.success(resData, 'Lấy thông tin ngưỡng thông qua theo code thành công', 200);
+      return BaseResponse.success(resData, 'Lấy thông tin ngưỡng thông qua theo code thành công', HttpStatus.OK);
     } catch (error) {
       throw new HttpException(
         { message: error.message },

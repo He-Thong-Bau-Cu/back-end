@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, HttpException } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, HttpException, HttpStatus } from '@nestjs/common';
 import { ElectionTypesService } from './election-types.service';
 import { CreateElectionTypeDto } from './dto/create-election-type.dto';
 import { UpdateElectionTypeDto } from './dto/update-election-type.dto';
@@ -16,7 +16,7 @@ export class ElectionTypesController {
   async getElectionTypeByCode(@Param('typeCode') typeCode:string):Promise<BaseResponse>{
     try {
       const resData  = await this.electionTypesService.findOne(typeCode);
-      return BaseResponse.success(resData, "Lấy thông tin electionType theo code thành công", 200);
+      return BaseResponse.success(resData, "Lấy thông tin electionType theo code thành công", HttpStatus.OK);
     } catch (error) {
       throw new HttpException(
         { message: error.message },

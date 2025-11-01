@@ -17,7 +17,7 @@ export class VotingMethodsController {
   async getVotingMethodByCode(@Param('methodCode') methodCode: string):Promise<BaseResponse>{
     try {
       const resData = await this.votingMethodsService.findOne(methodCode);
-      return BaseResponse.success(resData, 'Lấy thông tin phương thức bầu cử theo code thành công', 200);
+      return BaseResponse.success(resData, 'Lấy thông tin phương thức bầu cử theo code thành công', HttpStatus.OK);
     } catch (error) {
       throw new HttpException(
         { message: error.message },

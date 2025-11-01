@@ -9,6 +9,7 @@ import { User } from './users.schema';
 import { ElectionDocuments } from './electionDocuments.schema';
 import { Voters } from './voters.schema';
 import { Delegations } from './delegations.schema';
+import { STATUS } from 'src/common/enums/status.enum';
 
 export type DelegateCardDocument = DelegateCard & Document;
 
@@ -32,7 +33,7 @@ export class DelegateCard extends BaseSchema{
   @Prop({required: true})
   expiresAt: Date;
 
-  @Prop({required: true})
+  @Prop({default:STATUS.ACTIVE})
   status: string;
 }
 

@@ -83,3 +83,9 @@ export enum DELEGATION_TYPE{
   ELECTION ='election',
   LONG_TERM = 'long_term'
 }
+
+export enum SEVERITY {
+  LOW = 'low',
+  MEDIUM = 'medium',
+  HIGH = 'high',
+}

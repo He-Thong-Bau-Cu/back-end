@@ -26,11 +26,13 @@ export class DelegationsService {
     try {
       const delegation = await this.delegationModel
          .findOne({ electionId: id })
-          .populate('delegatorId', 'username fullName email position') 
-          .populate('delegateId', 'username fullName email position')
-          .populate('confirmedBy', 'username fullName email position')
-          .populate('documentId', 'title file_url status')
-          .exec();
+         .populate([
+          {path:'electionId', select:"title startDate endDate delegationStart delegationEnd status statusData decisionNumber decisionName"},
+          {path:'delegatorId', select:"username fullName email position"}, 
+          {path:'delegateId', select:"username fullName email position"},
+          {path:'confirmedBy', select:"username fullName email position"},
+          {path:'documentId', select:"title file_url status"},
+        ]) .exec();
       return delegation;
     } catch (error) {
       throw error;

@@ -32,6 +32,11 @@ import { VotingRightsModule } from './modules/voting-rights/voting-rights.module
 import { VoterInvitationsModule } from './modules/voter-invitations/voter-invitations.module';
 import { MeetingsModule } from './modules/meetings/meetings.module';
 import { DelegationsModule } from './modules/delegations/delegations.module';
+import { ReportsModule } from './modules/reports/reports.module';
+import { DelegateCardsModule } from './modules/delegate-cards/delegate-cards.module';
+import { MeetingAttendeesModule } from './modules/meeting-attendees/meeting-attendees.module';
+import { BallotsModule } from './modules/ballots/ballots.module';
+import { ResultsModule } from './modules/results/results.module';
 
 
 @Module({
@@ -47,8 +52,8 @@ import { DelegationsModule } from './modules/delegations/delegations.module';
     ]),
     DatabaseModule,
     MongooseModule.forFeature([
-      {name: SystemLog.name, schema: SystemLogSchema},
-      {name: AuditLogs.name, schema: AuditLogsSchema}
+      { name: SystemLog.name, schema: SystemLogSchema },
+      { name: AuditLogs.name, schema: AuditLogsSchema }
     ]),
     UserModule,
     MinioModule,
@@ -61,7 +66,7 @@ import { DelegationsModule } from './modules/delegations/delegations.module';
     RolesModule,
 
     SystemModule,
-  
+
     ElectionTypesModule,
     ThresholdsModule,
     VotingMethodsModule,
@@ -72,6 +77,11 @@ import { DelegationsModule } from './modules/delegations/delegations.module';
     VoterInvitationsModule,
     MeetingsModule,
     DelegationsModule,
+    ReportsModule,
+    DelegateCardsModule,
+    MeetingAttendeesModule,
+    BallotsModule,
+    ResultsModule,
   ],
   controllers: [],
   providers: [
@@ -109,9 +119,29 @@ export class AppModule {
         { path: "delegations/election/:electionId", method: RequestMethod.GET },
         { path: "delegations", method: RequestMethod.POST },
         { path: "delegations/:id", method: RequestMethod.PUT },
-        
+        { path: "reports/:id", method: RequestMethod.GET },
+        { path: "reports", method: RequestMethod.GET },
+        { path: "reports", method: RequestMethod.POST },
+        { path: "reports/:id", method: RequestMethod.PUT },
+        { path: "delegate-cards/active", method: RequestMethod.GET },
+        { path: "meeting-attendees/:id", method: RequestMethod.PUT },
+        { path: "meeting-attendees/meetings/:meetingId/participants/:participantId/attendance", method: RequestMethod.PATCH },
+        { path: "meeting-attendees", method: RequestMethod.GET },
+        { path: "meeting-attendees/:id", method: RequestMethod.GET },
+        { path: "meeting-attendees", method: RequestMethod.POST },
+        { path: "ballots", method: RequestMethod.GET },
+        { path: "ballots/elections/:electionId", method: RequestMethod.GET },
+        { path: "ballots/:id", method: RequestMethod.GET },
+        { path: "ballots/:id", method: RequestMethod.PUT },
+        { path: "ballots", method: RequestMethod.POST },
+        { path: "results", method: RequestMethod.GET },
+        { path: "results/elections/:electionId", method: RequestMethod.GET },
+        { path: "results/:id", method: RequestMethod.GET },
+        { path: "results/:id", method: RequestMethod.PUT },
+        { path: "results", method: RequestMethod.POST },
+
       )
       .forRoutes("*");
-      // consumer.apply(AuditLogsMiddleware).forRoutes("*");
+    consumer.apply(AuditLogsMiddleware).forRoutes("*");
   }
 }

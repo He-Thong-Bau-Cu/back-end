@@ -6,6 +6,8 @@ import { VotingRights } from 'src/database/schemas/votingRights.schema';
 import { Model, Types } from 'mongoose';
 import { Elections } from 'src/database/schemas/elections.schema';
 import { Voters } from 'src/database/schemas/voters.schema';
+import e from 'express';
+import { STATUS } from 'src/common/enums/status.enum';
 
 @Injectable()
 export class VotingRightsService {
@@ -41,13 +43,10 @@ export class VotingRightsService {
     try {
       //Check if the voting right exists
       const votingRightExists = await this.votingRightModel.exists({ _id: id });
-
-      console.log("id: ", id);
-      console.log("updateVotingRightDto ", updateVotingRightDto);
-      console.log("votingExist: ", votingRightExists);
       if (!votingRightExists) {
         throw new Error('Voting right not found');
       }
+
       const votingRight = await this.votingRightModel
       .findByIdAndUpdate(new Types.ObjectId(id), updateVotingRightDto, { new: true })
       .exec();
@@ -56,5 +55,8 @@ export class VotingRightsService {
       throw error;
     }  
   }
+
+
+
 
 }

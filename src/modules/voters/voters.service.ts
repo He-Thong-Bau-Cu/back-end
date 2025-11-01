@@ -6,6 +6,7 @@ import { Voters } from 'src/database/schemas/voters.schema';
 import { Model, Types } from 'mongoose';
 import { Elections } from 'src/database/schemas/elections.schema';
 import { User } from 'src/database/schemas/users.schema';
+import { VotingRights } from 'src/database/schemas/votingRights.schema';
 
 @Injectable()
 export class VotersService {
@@ -16,6 +17,8 @@ export class VotersService {
     private readonly electionsModel: Model<Elections>,
     @InjectModel(User.name)
     private readonly userModel: Model<User>,
+    
+    
   ) {}
 
   async create(createVoter: CreateVoterDto) {
