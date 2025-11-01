@@ -17,7 +17,7 @@ export class MeetingsController {
   async create(@Body() createMeeting: CreateMeetingDto): Promise<BaseResponse> {
     try {
       const resData = await this.meetingsService.create(createMeeting);
-      return BaseResponse.success(resData, 'Tạo cuộc họp thành công', 201);
+      return BaseResponse.success(resData, 'Tạo cuộc họp thành công', HttpStatus.CREATED);
     } catch (error) {
       throw new HttpException(
         {message:error.message},
@@ -35,7 +35,7 @@ export class MeetingsController {
   async update(@Param('id') id:string, @Body() updateMeeting:UpdateMeetingDto):Promise<BaseResponse>{
     try {
       const resData = await this.meetingsService.update(id, updateMeeting);
-      return BaseResponse.success(resData, 'Cập nhật cuộc họp thành công', 200);
+      return BaseResponse.success(resData, 'Cập nhật cuộc họp thành công', HttpStatus.OK);
     } catch (error) {
       throw new HttpException(
         {message:error.message},

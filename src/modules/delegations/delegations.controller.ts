@@ -18,7 +18,7 @@ export class DelegationsController {
   async getDelegationsByElectionId(@Param('electionId') electionId:string):Promise<BaseResponse>{
     try {
       const resData = await this.delegationsService.getByElectionId(electionId);
-      return BaseResponse.success(resData, 'Lấy thông tin ủy quyền theo cuộc bầu cử thành công', 200);
+      return BaseResponse.success(resData, 'Lấy thông tin ủy quyền theo cuộc bầu cử thành công', HttpStatus.OK);
     } catch (error) {
       throw new HttpException(
         {message:error.message},
@@ -36,7 +36,7 @@ export class DelegationsController {
   async getDelegationsStatusPending():Promise<BaseResponse>{
     try {
       const resData = await this.delegationsService.getDeletaionsPending();
-      return BaseResponse.success(resData, 'Lấy danh sách ủy quyền cấn xác minh', 200);
+      return BaseResponse.success(resData, 'Lấy danh sách ủy quyền cấn xác minh', HttpStatus.OK);
     } catch (error) {
       throw new HttpException(
         {message:error.message},
@@ -55,7 +55,7 @@ export class DelegationsController {
     try {
       console.log("id controller: ", id);
       const resData = await this.delegationsService.getById(id);
-      return BaseResponse.success(resData, 'Lấy thông tin ủy quyền theo ID thành công', 200);
+      return BaseResponse.success(resData, 'Lấy thông tin ủy quyền theo ID thành công', HttpStatus.OK);
     } catch (error) {
       throw new HttpException(
         {message:error.message},
@@ -72,7 +72,7 @@ export class DelegationsController {
   async create(@Body() createDelegation: CreateDelegationDto): Promise<BaseResponse> {
     try {
       const resData = await this.delegationsService.create(createDelegation);
-      return BaseResponse.success(resData, 'Tạo ủy quyền thành công', 201);
+      return BaseResponse.success(resData, 'Tạo ủy quyền thành công', HttpStatus.CREATED);
     } catch (error) {
       throw new HttpException(
         { message: error.message },
@@ -93,7 +93,7 @@ export class DelegationsController {
   ): Promise<BaseResponse> {
     try {
       const resData = await this.delegationsService.update(id, updateDelegation);
-      return BaseResponse.success(resData, 'Cập nhật ủy quyền thành công', 200);
+      return BaseResponse.success(resData, 'Cập nhật ủy quyền thành công', HttpStatus.OK);
     } catch (error) {
       throw new HttpException(
         { message: error.message },

@@ -6,6 +6,7 @@ import { VotingMethods } from './votingMethods.schema';
 import { Thresholds } from './thresholds.schema';
 import { Elections } from './elections.schema';
 import { User } from './users.schema';
+import { SEVERITY, STATUS } from 'src/common/enums/status.enum';
 
 export type ReportsDocument = Reports & Document;
 
@@ -17,7 +18,7 @@ export class Reports extends BaseSchema{
   @Prop({type: Types.ObjectId, ref: Elections.name, required: true})
   electionId: Types.ObjectId;
 
-  @Prop({type: Types.ObjectId, ref: User.name, required: true})
+  @Prop({type: Types.ObjectId, ref: User.name})
   reviewedBy: Types.ObjectId;
 
   @Prop({type: Types.ObjectId, ref: User.name, required: true})
@@ -26,19 +27,19 @@ export class Reports extends BaseSchema{
   @Prop()
   description: string;
 
-  @Prop({required: true})
+  @Prop()
   fileUrl: string;
 
-  @Prop({required: true})
+  @Prop({default:STATUS.ACTIVE})
   status: string;
 
-  @Prop({required: true})
-  serverity: string;
+  @Prop({default:SEVERITY.LOW})
+  severity: string;
 
-  @Prop({required: true})
+  @Prop()
   summary: string;
 
-  @Prop({required: true})
+  @Prop({default: new Date()})
   reviewedAt: Date;
 }
 
