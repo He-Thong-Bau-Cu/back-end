@@ -9,6 +9,7 @@ import { User } from './users.schema';
 import { ElectionEntities } from './electionEntities.schema';
 import { LargeNumberLike } from 'crypto';
 import { Voters } from './voters.schema';
+import { STATUS } from 'src/common/enums/status.enum';
 
 export type BallotsDocument = Ballots & Document;
 
@@ -23,28 +24,28 @@ export class Ballots extends BaseSchema{
   @Prop({type: Types.ObjectId, ref: ElectionEntities.name, required: true})
   entityId: Types.ObjectId;
 
-  @Prop({required: true})
+  @Prop()
   voteValue: number;
 
-  @Prop({required: true})
+  @Prop()
   otpCode: string;
 
-  @Prop({required: true})
+  @Prop()
   signature: string;
 
-  @Prop({required: true})
+  @Prop({default: 0})
   attempts: number;
 
-  @Prop({required: true})
+  @Prop()
   encryptedVote: string;
 
-  @Prop({required: true})
+  @Prop({default:STATUS.DRAFT})
   status: string;
 
-  @Prop({required: true})
+  @Prop()
   issuedAt: Date;
 
-  @Prop({required: true})
+  @Prop()
   castAt: Date;
 }
 

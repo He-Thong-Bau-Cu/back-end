@@ -24,8 +24,7 @@ export class ElectionsParticipants extends BaseSchema{
   @Prop({required: true})
   position: string;
 
-  @Prop({required: true})
-  joinedAt: Date;
+  
 }
 
 export const ElectionsParticipantsSchema = SchemaFactory.createForClass(ElectionsParticipants);

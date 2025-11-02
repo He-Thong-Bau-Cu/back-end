@@ -1,4 +1,4 @@
-import {Prop, Schema, SchemaFactory} from '@nestjs/mongoose';
+import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Types } from 'mongoose';
 import { BaseSchema } from './base.schema';
 import { ElectionTypes } from './electionTypes.schema';
@@ -12,21 +12,20 @@ import { LargeNumberLike } from 'crypto';
 export type ResultsDocument = Results & Document;
 
 @Schema()
-export class Results extends BaseSchema{
+export class Results extends BaseSchema {
   @Prop({ type: Types.ObjectId, ref: Elections.name, required: true })
   electionId: Types.ObjectId;
 
-  @Prop({ type: Types.ObjectId, ref: ElectionEntities.name, required: true})
+  @Prop({ type: Types.ObjectId, ref: ElectionEntities.name, required: true })
   entityId: Types.ObjectId;
 
-  @Prop()
+  @Prop({ required: true })
   votesCount: number;
 
-  @Prop()
-  isFinal: number;
+  @Prop({ required: true })
+  isFinal: boolean;
 
-  @Prop()
-  calculatedAt: Date;
+
 }
 
 export const ResultsSchema = SchemaFactory.createForClass(Results);

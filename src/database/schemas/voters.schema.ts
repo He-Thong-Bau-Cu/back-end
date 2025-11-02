@@ -6,6 +6,7 @@ import { VotingMethods } from './votingMethods.schema';
 import { Thresholds } from './thresholds.schema';
 import { Elections } from './elections.schema';
 import { User } from './users.schema';
+import { STATUS } from 'src/common/enums/status.enum';
 
 export type VotersDocument = Voters & Document;
 
@@ -20,11 +21,10 @@ export class Voters extends BaseSchema{
   @Prop({ required: true })
   eligible: boolean;
 
-  @Prop({required: true})
+  @Prop({required: true, default:STATUS.PENDING})
   status: string;
 
-  @Prop()
-  verifyAt: Date;
+  
 }
 
 export const VotersSchema = SchemaFactory.createForClass(Voters);

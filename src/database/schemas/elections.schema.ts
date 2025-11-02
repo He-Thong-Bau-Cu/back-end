@@ -4,6 +4,7 @@ import { BaseSchema } from './base.schema';
 import { ElectionTypes } from './electionTypes.schema';
 import { VotingMethods } from './votingMethods.schema';
 import { Thresholds } from './thresholds.schema';
+import { STATUS } from 'src/common/enums/status.enum';
 
 export type ElectionsDocument = Elections & Document;
 
@@ -33,7 +34,7 @@ export class Elections extends BaseSchema{
   @Prop({required: true})
   delegationEnd: Date;
 
-  @Prop({required: true})
+  @Prop({ default:STATUS.ACTIVE})
   status: string;
 
   @Prop({required: true})

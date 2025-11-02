@@ -7,6 +7,7 @@ import { Thresholds } from './thresholds.schema';
 import { Elections } from './elections.schema';
 import { User } from './users.schema';
 import { Voters } from './voters.schema';
+import { STATUS } from 'src/common/enums/status.enum';
 
 export type VotingRightsDocument = VotingRights & Document;
 
@@ -24,7 +25,7 @@ export class VotingRights extends BaseSchema{
   @Prop({ required: true })
   votes: number;
 
-  @Prop({required: true})
+  @Prop({required: true, default:STATUS.ACTIVE})
   status: string;
 }
 

@@ -31,7 +31,7 @@ export class ElectionsController {
   async searchElections(@Body() req: ElectionsDto): Promise<BaseResponse> {
     try {
       const resData = await this.electionsService.searchElections(req);
-      return BaseResponse.success(resData, 'Success', HttpStatus.OK);
+      return BaseResponse.success(resData, 'Tìm kiếm kỳ bầu cử thành công', HttpStatus.OK);
     } catch (e) {
       throw new HttpException(
         { message: e.message },
@@ -48,7 +48,7 @@ export class ElectionsController {
   async getElectionById(@Param('id') id: string): Promise<BaseResponse> {
     try {
       const resData = await this.electionsService.getElectionById(id);
-      return BaseResponse.success(resData, 'Success', HttpStatus.OK);
+      return BaseResponse.success(resData, 'Lấy thông tin kỳ bầu cử  thành công', HttpStatus.OK);
     } catch (e) {
       throw new HttpException(
         { message: e.message },
@@ -85,7 +85,7 @@ export class ElectionsController {
     try {
       const resData =
         await this.electionsService.searchElectionDocumentsByElectionId(id);
-      return BaseResponse.success(resData, 'Success', HttpStatus.OK);
+      return BaseResponse.success(resData, 'Lấy danh sách tài liệu theo electionId thành công', HttpStatus.OK);
     } catch (e) {
       throw new HttpException(
         { message: e.message },
@@ -105,7 +105,7 @@ export class ElectionsController {
   ): Promise<BaseResponse> {
     try {
       const resData = await this.electionsService.updateElections(id, req);
-      return BaseResponse.success(resData, 'Success', HttpStatus.OK);
+      return BaseResponse.success(resData, 'Cập nhật kỳ bầu cử thành công', HttpStatus.OK);
     } catch (e) {
       throw new HttpException(
         { message: e.message },
@@ -122,7 +122,7 @@ export class ElectionsController {
   async deleteElection(@Param('id') id: string): Promise<BaseResponse> {
     try {
       const resData = await this.electionsService.deleteElection(id);
-      return BaseResponse.success(resData, 'Success', HttpStatus.OK);
+      return BaseResponse.success(resData, 'Xóa kỳ bầu cử thành công', HttpStatus.OK);
     } catch (e) {
       throw new HttpException(
         { message: e.message },
@@ -140,7 +140,7 @@ export class ElectionsController {
   ): Promise<BaseResponse> {
     try {
       const resData = await this.electionsService.createElectionDocuments(req);
-      return BaseResponse.success(resData, 'Success', HttpStatus.OK);
+      return BaseResponse.success(resData, 'Tạo tài liệu kỳ bầu cử thành công', HttpStatus.OK);
     } catch (e) {
       throw new HttpException(
         { message: e.message },
@@ -164,7 +164,7 @@ export class ElectionsController {
     try {
       const resData =
         await this.electionsService.deleteDocumentByElectionId(electionId);
-      return BaseResponse.success(resData, 'Success', HttpStatus.OK);
+      return BaseResponse.success(resData, 'Xóa tài liệu theo electionId thành công', HttpStatus.OK);
     } catch (e) {
       throw new HttpException(
         { message: e.message },
