@@ -7,10 +7,11 @@ import { Model, Types } from 'mongoose';
 import { Elections } from 'src/database/schemas/elections.schema';
 import { User } from 'src/database/schemas/users.schema';
 import { ElectionDocuments } from 'src/database/schemas/electionDocuments.schema';
+import { MESSAGE } from 'src/common/enums/message.enum';
 
 @Injectable()
 export class DelegationsService {
-   constructor(
+  constructor(
     @InjectModel(Delegations.name)
     private readonly delegationModel: Model<Delegations>,
     @InjectModel(Elections.name)
@@ -20,50 +21,50 @@ export class DelegationsService {
     @InjectModel(ElectionDocuments.name)
     private readonly documentModel: Model<ElectionDocuments>,
 
-  ) {}
+  ) { }
 
   async getByElectionId(id: string) {
     try {
       const delegation = await this.delegationModel
-         .findOne({ electionId: id })
-         .populate([
-          {path:'electionId', select:"title startDate endDate delegationStart delegationEnd status statusData decisionNumber decisionName"},
-          {path:'delegatorId', select:"username fullName email position"}, 
-          {path:'delegateId', select:"username fullName email position"},
-          {path:'confirmedBy', select:"username fullName email position"},
-          {path:'documentId', select:"title file_url status"},
-        ]) .exec();
+        .findOne({ electionId: id })
+        .populate([
+          { path: 'electionId', select: "title startDate endDate delegationStart delegationEnd status statusData decisionNumber decisionName" },
+          { path: 'delegatorId', select: "username fullName email position" },
+          { path: 'delegateId', select: "username fullName email position" },
+          { path: 'confirmedBy', select: "username fullName email position" },
+          { path: 'documentId', select: "title file_url status" },
+        ]).exec();
       return delegation;
     } catch (error) {
       throw error;
     }
   }
 
-   async getById(id: string) {
+  async getById(id: string) {
     try {
       console.log("id: ", id);
       const delegation = await this.delegationModel
-         .findById(new Types.ObjectId(id))
-          .populate('delegatorId', 'username fullName email position') 
-          .populate('delegateId', 'username fullName email position')
-          .populate('confirmedBy', 'username fullName email position')
-          .populate('documentId', 'title file_url status')
-          .exec();
+        .findById(new Types.ObjectId(id))
+        .populate('delegatorId', 'username fullName email position')
+        .populate('delegateId', 'username fullName email position')
+        .populate('confirmedBy', 'username fullName email position')
+        .populate('documentId', 'title file_url status')
+        .exec();
       return delegation;
     } catch (error) {
       throw error;
     }
   }
 
-   async getDeletaionsPending() {
+  async getDeletaionsPending() {
     try {
       const delegation = await this.delegationModel
-         .findOne({ status:'pending'})
-          .populate('delegatorId', 'username fullName email position') 
-          .populate('delegateId', 'username fullName email position')
-          .populate('confirmedBy', 'username fullName email position')
-          .populate('documentId', 'title file_url status')
-          .exec();
+        .findOne({ status: 'pending' })
+        .populate('delegatorId', 'username fullName email position')
+        .populate('delegateId', 'username fullName email position')
+        .populate('confirmedBy', 'username fullName email position')
+        .populate('documentId', 'title file_url status')
+        .exec();
       return delegation;
     } catch (error) {
       throw error;
@@ -73,21 +74,21 @@ export class DelegationsService {
   async create(createDelegation: CreateDelegationDto) {
     try {
       //Check if the election is exist
-      const electionExist = await this.electionModel.exists({_id:createDelegation.electionId});
-      if(!electionExist){
-        throw new Error("Election is not found");
+      const electionExist = await this.electionModel.exists({ _id: createDelegation.electionId });
+      if (!electionExist) {
+        throw new Error(MESSAGE.ELECTION_NOT_FOUND);
       }
       //Check if the user is exist
-      const userExist = await this.userModel.exists({_id:createDelegation.delegatorId});
-      if(!userExist){
-        throw new Error("User is not found");
+      const userExist = await this.userModel.exists({ _id: createDelegation.delegatorId });
+      if (!userExist) {
+        throw new Error(MESSAGE.USER_IS_NOT_FOUND);
       }
       //Check electionDocument is exist
-      if(createDelegation.documentId){
-          const documentExist = await this.documentModel.exists({_id:createDelegation.documentId});
-          if(!documentExist){
-            throw new Error("Document is not found");
-          }
+      if (createDelegation.documentId) {
+        const documentExist = await this.documentModel.exists({ _id: createDelegation.documentId });
+        if (!documentExist) {
+          throw new Error(MESSAGE.DOCUMENT_IS_NOT_FOUND);
+        }
       }
       const delegation = await this.delegationModel.create(createDelegation);
       return delegation;
@@ -101,7 +102,7 @@ export class DelegationsService {
       //Check if the delegation is exist
       const delegationExist = await this.delegationModel.exists({ _id: id });
       if (!delegationExist) {
-        throw new Error('Delegation not found');
+        throw new Error(MESSAGE.DELEGATION_NOT_FOUND);
       }
       const delegation = await this.delegationModel
         .findByIdAndUpdate(new Types.ObjectId(id), updateDelegation, { new: true })

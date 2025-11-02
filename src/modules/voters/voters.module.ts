@@ -5,6 +5,7 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { Voters, VotersSchema } from 'src/database/schemas/voters.schema';
 import { Elections, ElectionsSchema } from 'src/database/schemas/elections.schema';
 import { User, UserSchema } from 'src/database/schemas/users.schema';
+import { VotingRights, VotingRightsSchema } from 'src/database/schemas/votingRights.schema';
 
 @Module({
   imports: [
@@ -12,9 +13,10 @@ import { User, UserSchema } from 'src/database/schemas/users.schema';
       { name: Voters.name, schema: VotersSchema },
       { name: Elections.name, schema: ElectionsSchema },
       { name: User.name, schema: UserSchema },
+      { name: VotingRights.name, schema: VotingRightsSchema },
     ]),
   ],
   controllers: [VotersController],
   providers: [VotersService],
 })
-export class VotersModule {}
+export class VotersModule { }

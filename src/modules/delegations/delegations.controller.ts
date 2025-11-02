@@ -4,6 +4,7 @@ import { CreateDelegationDto } from './dto/create-delegation.dto';
 import { UpdateDelegationDto } from './dto/update-delegation.dto';
 import { ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { BaseResponse } from 'src/common/dto/base-response.dto';
+import { MESSAGE } from 'src/common/enums/message.enum';
 
 @Controller('delegations')
 export class DelegationsController {
@@ -18,7 +19,7 @@ export class DelegationsController {
   async getDelegationsByElectionId(@Param('electionId') electionId: string): Promise<BaseResponse> {
     try {
       const resData = await this.delegationsService.getByElectionId(electionId);
-      return BaseResponse.success(resData, 'Lấy thông tin ủy quyền theo cuộc bầu cử thành công', HttpStatus.OK);
+      return BaseResponse.success(resData, MESSAGE.DELEGATION_GET_BY_ELECTION_SUCCESS, HttpStatus.OK);
     } catch (error) {
       throw new HttpException(
         { message: error.message },
@@ -36,7 +37,7 @@ export class DelegationsController {
   async getDelegationsStatusPending(): Promise<BaseResponse> {
     try {
       const resData = await this.delegationsService.getDeletaionsPending();
-      return BaseResponse.success(resData, 'Lấy danh sách ủy quyền cần xác minh', HttpStatus.OK);
+      return BaseResponse.success(resData, MESSAGE.DELEGATION_GET_PENDING_SUCCESS, HttpStatus.OK);
     } catch (error) {
       throw new HttpException(
         { message: error.message },
@@ -55,7 +56,7 @@ export class DelegationsController {
     try {
 
       const resData = await this.delegationsService.getById(id);
-      return BaseResponse.success(resData, 'Lấy thông tin ủy quyền theo ID thành công.', HttpStatus.OK);
+      return BaseResponse.success(resData, MESSAGE.DELEGATION_GET_BY_ID_SUCCESS, HttpStatus.OK);
     } catch (error) {
       throw new HttpException(
         { message: error.message },
@@ -72,7 +73,7 @@ export class DelegationsController {
   async create(@Body() createDelegation: CreateDelegationDto): Promise<BaseResponse> {
     try {
       const resData = await this.delegationsService.create(createDelegation);
-      return BaseResponse.success(resData, 'Tạo ủy quyền thành công', HttpStatus.CREATED);
+      return BaseResponse.success(resData, MESSAGE.DELEGATION_CREATE_SUCCESS, HttpStatus.CREATED);
     } catch (error) {
       throw new HttpException(
         { message: error.message },
@@ -93,7 +94,7 @@ export class DelegationsController {
   ): Promise<BaseResponse> {
     try {
       const resData = await this.delegationsService.update(id, updateDelegation);
-      return BaseResponse.success(resData, 'Cập nhật ủy quyền thành công', HttpStatus.OK);
+      return BaseResponse.success(resData, MESSAGE.DELEGATION_UPDATE_SUCCESS, HttpStatus.OK);
     } catch (error) {
       throw new HttpException(
         { message: error.message },

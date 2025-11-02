@@ -4,6 +4,7 @@ import { CreateResultDto } from './dto/create-result.dto';
 import { UpdateResultDto } from './dto/update-result.dto';
 import { ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { BaseResponse } from 'src/common/dto/base-response.dto';
+import { MESSAGE } from 'src/common/enums/message.enum';
 
 @Controller('results')
 export class ResultsController {
@@ -18,7 +19,7 @@ export class ResultsController {
   async getByElectionId(@Param('electionId') electionId: string): Promise<BaseResponse> {
     try {
       const resData = await this.resultsService.getByElectionId(electionId);
-      return BaseResponse.success(resData, 'Lấy danh sách phiếu bầu theo ID cử tri thành công', HttpStatus.OK);
+      return BaseResponse.success(resData, MESSAGE.RESULT_GET_BY_VOTER_SUCCESS, HttpStatus.OK);
     } catch (error) {
       throw new HttpException(
         { message: error.message },
@@ -35,7 +36,7 @@ export class ResultsController {
   async getAll(): Promise<BaseResponse> {
     try {
       const resData = await this.resultsService.findAll();
-      return BaseResponse.success(resData, 'Lấy danh sách kết quả của cuộc bầu cử thành công', HttpStatus.OK);
+      return BaseResponse.success(resData, MESSAGE.RESULT_GET_BY_ELECTION_SUCCESS, HttpStatus.OK);
     } catch (error) {
       throw new HttpException(
         { message: error.message },
@@ -52,7 +53,7 @@ export class ResultsController {
   async getById(@Param('id') id: string): Promise<BaseResponse> {
     try {
       const resData = await this.resultsService.getById(id);
-      return BaseResponse.success(resData, 'Lấy kết quả theo ID thành công', HttpStatus.OK);
+      return BaseResponse.success(resData, MESSAGE.RESULT_GET_BY_ID_SUCCESS, HttpStatus.OK);
     } catch (error) {
       throw new HttpException(
         { message: error.message },
@@ -69,7 +70,7 @@ export class ResultsController {
   async create(@Body() createResult: CreateResultDto): Promise<BaseResponse> {
     try {
       const resData = await this.resultsService.create(createResult);
-      return BaseResponse.success(resData, 'Tạo kết quả thành công', HttpStatus.CREATED);
+      return BaseResponse.success(resData, MESSAGE.RESULT_CREATE_SUCCESS, HttpStatus.CREATED);
     } catch (error) {
       throw new HttpException(
         { message: error.message },
@@ -86,7 +87,7 @@ export class ResultsController {
   async update(@Param('id') id: string, @Body() updateResult: UpdateResultDto): Promise<BaseResponse> {
     try {
       const resData = await this.resultsService.update(id, updateResult);
-      return BaseResponse.success(resData, 'Cập nhật kết quả thành công', HttpStatus.OK);
+      return BaseResponse.success(resData, MESSAGE.RESULT_UPDATE_SUCCESS, HttpStatus.OK);
     } catch (error) {
       throw new HttpException(
         { message: error.message },

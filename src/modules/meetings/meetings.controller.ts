@@ -4,10 +4,11 @@ import { CreateMeetingDto } from './dto/create-meeting.dto';
 import { UpdateMeetingDto } from './dto/update-meeting.dto';
 import { ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { BaseResponse } from 'src/common/dto/base-response.dto';
+import { MESSAGE } from 'src/common/enums/message.enum';
 
 @Controller('meetings')
 export class MeetingsController {
-  constructor(private readonly meetingsService: MeetingsService) {}
+  constructor(private readonly meetingsService: MeetingsService) { }
 
   @Post()
   @ApiOperation({ summary: 'Tạo một cuộc họp mới' })
@@ -17,28 +18,28 @@ export class MeetingsController {
   async create(@Body() createMeeting: CreateMeetingDto): Promise<BaseResponse> {
     try {
       const resData = await this.meetingsService.create(createMeeting);
-      return BaseResponse.success(resData, 'Tạo cuộc họp thành công', HttpStatus.CREATED);
+      return BaseResponse.success(resData, MESSAGE.MEETING_CREATE_SUCCESS, HttpStatus.CREATED);
     } catch (error) {
       throw new HttpException(
-        {message:error.message},
+        { message: error.message },
         HttpStatus.INTERNAL_SERVER_ERROR
       )
     }
   }
 
-  
+
   @Put(':id')
-  @ApiOperation({summary: "Cập nhật cuộc họp"})
-   @ApiResponse({ status: 201, description: 'Cuộc họp đã được cập nhật thành công.' })
+  @ApiOperation({ summary: "Cập nhật cuộc họp" })
+  @ApiResponse({ status: 201, description: 'Cuộc họp đã được cập nhật thành công.' })
   @ApiResponse({ status: 400, description: 'Dữ liệu không hợp lệ.' })
   @ApiResponse({ status: 500, description: 'Lỗi server' })
-  async update(@Param('id') id:string, @Body() updateMeeting:UpdateMeetingDto):Promise<BaseResponse>{
+  async update(@Param('id') id: string, @Body() updateMeeting: UpdateMeetingDto): Promise<BaseResponse> {
     try {
       const resData = await this.meetingsService.update(id, updateMeeting);
-      return BaseResponse.success(resData, 'Cập nhật cuộc họp thành công', HttpStatus.OK);
+      return BaseResponse.success(resData, MESSAGE.MEETING_UPDATE_SUCCESS, HttpStatus.OK);
     } catch (error) {
       throw new HttpException(
-        {message:error.message},
+        { message: error.message },
         HttpStatus.INTERNAL_SERVER_ERROR
       )
     }
