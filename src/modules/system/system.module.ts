@@ -4,13 +4,15 @@ import { SystemService } from './system.service';
 import { MongooseModule } from '@nestjs/mongoose';
 import { SystemLog, SystemLogSchema } from 'src/database/schemas/systemLog.schema';
 import { AuditLogs, AuditLogsSchema } from 'src/database/schemas/auditLogs.schema';
+import { RoleModule } from './role/role.module';
 
 @Module({
   imports: [
     MongooseModule.forFeature([
       { name: SystemLog.name, schema: SystemLogSchema},
       { name: AuditLogs.name, schema: AuditLogsSchema}
-    ])
+    ]),
+    RoleModule
   ],
   controllers: [SystemController],
   providers: [SystemService]

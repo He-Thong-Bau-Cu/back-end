@@ -16,12 +16,12 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { SystemLog, SystemLogSchema } from './database/schemas/systemLog.schema';
 
 import { Roles } from './database/schemas/roles.schema';
-import { RolesModule } from './modules/role/roles.module';
 
 import { AuditLogsMiddleware } from './common/middleware/audit-logs.middleware';
 import { AuditLogs, AuditLogsSchema } from './database/schemas/auditLogs.schema';
 import { SystemModule } from './modules/system/system.module';
 import { ENDPOINT, METHOD } from './common/enums/method.enum';
+import { MailModule } from './modules/mail/mail.module';
 
 
 @Module({
@@ -47,10 +47,8 @@ import { ENDPOINT, METHOD } from './common/enums/method.enum';
     SignatureModule,
     CaModule,
     AuthModule,
-
-    RolesModule,
-
     SystemModule,
+    MailModule,
 
   ],
   controllers: [],
@@ -73,6 +71,7 @@ export class AppModule {
         { path: `system/${ENDPOINT.SYSTEM_LOG}/${METHOD.SEARCH}`, method: RequestMethod.POST },
         { path: "api/docs", method: RequestMethod.GET },
         { path: "api/*", method: RequestMethod.GET },
+        { path: "/system/roles/create", method: RequestMethod.POST },
 
       )
       .forRoutes("*");
