@@ -28,7 +28,7 @@ export class CreateResultDto {
     votesCount: number
 
     @ApiProperty({
-        description: "Đây có phải là bản kết quả final chưa?",
+        description: "Đây có phải là bản kết quả cuối cùng chưa?",
         example: "true"
     })
     @IsNotEmpty()

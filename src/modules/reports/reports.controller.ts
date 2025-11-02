@@ -7,7 +7,7 @@ import { BaseResponse } from 'src/common/dto/base-response.dto';
 
 @Controller('reports')
 export class ReportsController {
-  constructor(private readonly reportsService: ReportsService) {}
+  constructor(private readonly reportsService: ReportsService) { }
 
   @Post()
   @ApiOperation({ summary: 'Tạo báo cáo mới' })
@@ -60,12 +60,12 @@ export class ReportsController {
 
   @Put(':id')
   @ApiOperation({ summary: 'Cập nhật báo cáo theo ID' })
-  @ApiResponse({ status: 200, description: 'Cập nhật báo cáo theo ID thanh cong' })
+  @ApiResponse({ status: 200, description: 'Cập nhật báo cáo theo ID thành công' })
   @ApiResponse({ status: 500, description: 'Lỗi server' })
   async update(@Param('id') id: string, @Body() updateReport: UpdateReportDto): Promise<BaseResponse> {
     try {
       const resData = await this.reportsService.update(id, updateReport);
-      return BaseResponse.success(resData, 'Cập nhật báo cáo theo ID thanh cong', HttpStatus.OK);
+      return BaseResponse.success(resData, 'Cập nhật báo cáo theo ID thành công', HttpStatus.OK);
     } catch (error) {
       throw new HttpException(
         { message: error.message },

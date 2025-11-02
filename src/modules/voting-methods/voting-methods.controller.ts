@@ -8,16 +8,16 @@ import { ApiOperation, ApiResponse } from '@nestjs/swagger';
 
 @Controller('voting-methods')
 export class VotingMethodsController {
-  constructor(private readonly votingMethodsService: VotingMethodsService) {}
+  constructor(private readonly votingMethodsService: VotingMethodsService) { }
 
   @Get(':methodCode')
-  @ApiOperation({ summary: 'Lấy thông tin phương thức bầu cử thông qua bởi code' })
-  @ApiResponse({ status: 200, description: 'Lấy thông tin phương thức bầu cử thông qua thành công' })
+  @ApiOperation({ summary: 'Lấy thông tin phương thức bầu cử thông qua mã' })
+  @ApiResponse({ status: 200, description: 'Lấy thông tin phương thức bầu cử thông qua mã thành công' })
   @ApiResponse({ status: 500, description: 'Lỗi server' })
-  async getVotingMethodByCode(@Param('methodCode') methodCode: string):Promise<BaseResponse>{
+  async getVotingMethodByCode(@Param('methodCode') methodCode: string): Promise<BaseResponse> {
     try {
       const resData = await this.votingMethodsService.findOne(methodCode);
-      return BaseResponse.success(resData, 'Lấy thông tin phương thức bầu cử theo code thành công', HttpStatus.OK);
+      return BaseResponse.success(resData, 'Lấy thông tin phương thức bầu cử theo mã thành công', HttpStatus.OK);
     } catch (error) {
       throw new HttpException(
         { message: error.message },
@@ -25,5 +25,5 @@ export class VotingMethodsController {
       );
     }
   }
- 
+
 }

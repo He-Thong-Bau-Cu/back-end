@@ -8,16 +8,16 @@ import { ApiOperation, ApiResponse } from '@nestjs/swagger';
 
 @Controller('thresholds')
 export class ThresholdsController {
-  constructor(private readonly thresholdsService: ThresholdsService) {}
+  constructor(private readonly thresholdsService: ThresholdsService) { }
 
   @Get(':thresholdCode')
-  @ApiOperation({ summary: 'Lấy thông tin ngưỡng thông qua bởi code' })
-  @ApiResponse({ status: 200, description: 'Lấy thông tin ngưỡng thông qua thành công' })
+  @ApiOperation({ summary: 'Lấy thông tin ngưỡng thông qua mã' })
+  @ApiResponse({ status: 200, description: 'Lấy thông tin ngưỡng thông qua mã thành công' })
   @ApiResponse({ status: 500, description: 'Lỗi server' })
-  async getThresholdByCode(@Param('thresholdCode') thresholdCode: string):Promise<BaseResponse>{
+  async getThresholdByCode(@Param('thresholdCode') thresholdCode: string): Promise<BaseResponse> {
     try {
       const resData = await this.thresholdsService.findOne(thresholdCode);
-      return BaseResponse.success(resData, 'Lấy thông tin ngưỡng thông qua theo code thành công', HttpStatus.OK);
+      return BaseResponse.success(resData, 'Lấy thông tin ngưỡng thông qua theo mã thành công', HttpStatus.OK);
     } catch (error) {
       throw new HttpException(
         { message: error.message },

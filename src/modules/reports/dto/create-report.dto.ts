@@ -25,7 +25,7 @@ export class CreateReportDto {
   electionId: string;
 
   @ApiPropertyOptional({
-    description: 'Người phê duyệt báo cáo (reviewedBy)',
+    description: 'Người phê duyệt báo cáo',
     example: '6903a0eda315db370563b13a',
   })
   @IsOptional()
@@ -33,7 +33,7 @@ export class CreateReportDto {
   reviewedBy: string;
 
   @ApiProperty({
-    description: 'Người ký số báo cáo (signedBy)',
+    description: 'Người ký số báo cáo ',
     example: '6903a0eda315db370563b13b',
   })
   @IsString()
