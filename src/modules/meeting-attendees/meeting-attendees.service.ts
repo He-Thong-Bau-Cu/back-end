@@ -16,14 +16,14 @@ export class MeetingAttendeesService {
     private readonly meetingsModel: Model<Meetings>,
     @InjectModel(ElectionsParticipants.name)
     private readonly electionParticipantsModel: Model<ElectionsParticipants>,
-  ) {}
+  ) { }
 
-  async findAll(){
+  async findAll() {
     try {
       return await this.meetingAttendeesModel.find()
-      .populate('meetingId')
-      .populate('participantId')
-      .exec();
+        .populate('meetingId')
+        .populate('participantId')
+        .exec();
     } catch (error) {
       throw error;
     }
@@ -32,9 +32,9 @@ export class MeetingAttendeesService {
   async findOne(id: string) {
     try {
       return await this.meetingAttendeesModel.findById(id)
-      .populate('meetingId')
-      .populate('participantId')
-      .exec();
+        .populate('meetingId')
+        .populate('participantId')
+        .exec();
     } catch (error) {
       throw error;
     }
@@ -45,12 +45,12 @@ export class MeetingAttendeesService {
       //Check if meetingId is exist or IsNotEmpty
       const meetingExist = await this.meetingsModel.exists({ _id: createMeetingAttendee.meetingId });
       if (!meetingExist) {
-        throw new Error('Meeting not found');
+        throw new Error('Không tìm thấy cuộc họp');
       }
       //Check if participantId is exist or IsNotEmpty
       const participantExist = await this.electionParticipantsModel.exists({ _id: createMeetingAttendee.participantId });
       if (!participantExist) {
-        throw new Error('Participant not found');
+        throw new Error('Không tìm thấy người tham dự cuộc họp');
       }
       return await this.meetingAttendeesModel.create(createMeetingAttendee);
     } catch (error) {
@@ -58,38 +58,38 @@ export class MeetingAttendeesService {
     }
   }
 
-  async updateStatusAttendance(meetingId:string, participantId:string, attended:boolean) {
+  async updateStatusAttendance(meetingId: string, participantId: string, attended: boolean) {
     try {
       //Check if meetingId is exist or IsNotEmpty
       const meetingExist = await this.meetingsModel.exists({ _id: meetingId });
       if (!meetingExist) {
-        throw new Error('Meeting not found');
+        throw new Error('Không tìm thấy cuộc họp');
       }
       //Check if participantId is exist or IsNotEmpty
       const participantExist = await this.electionParticipantsModel.exists({ _id: participantId });
       if (!participantExist) {
-        throw new Error('Participant not found');
+        throw new Error('Không tìm thấy người tham dự cuộc họp');
       }
-     return await this.meetingAttendeesModel.findOneAndUpdate(
-      {meetingId:meetingId, participantId:participantId},
-      {attended:attended},
-      {new: true}).exec();
-      
+      return await this.meetingAttendeesModel.findOneAndUpdate(
+        { meetingId: meetingId, participantId: participantId },
+        { attended: attended },
+        { new: true }).exec();
+
     } catch (error) {
       throw error;
     }
   }
 
-  async update(meetingAttendeeId:string, updateMeetingAttendee: UpdateMeetingAttendeeDto) {
+  async update(meetingAttendeeId: string, updateMeetingAttendee: UpdateMeetingAttendeeDto) {
     try {
       //Check if meetingAttendeeId is exist or IsNotEmpty
       const meetingAttendeeExist = await this.meetingAttendeesModel.exists({ _id: meetingAttendeeId });
       if (!meetingAttendeeExist) {
-        throw new Error('Meeting Attendee not found');
+        throw new Error('Không tìm thấy người tham dự cuộc họp ');
       }
       return await this.meetingAttendeesModel
-      .findByIdAndUpdate(new Types.ObjectId(meetingAttendeeId), updateMeetingAttendee,{ new: true })
-      .exec();
+        .findByIdAndUpdate(new Types.ObjectId(meetingAttendeeId), updateMeetingAttendee, { new: true })
+        .exec();
     } catch (error) {
       throw error;
     }

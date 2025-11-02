@@ -17,21 +17,21 @@ export class VotersService {
     private readonly electionsModel: Model<Elections>,
     @InjectModel(User.name)
     private readonly userModel: Model<User>,
-    
-    
-  ) {}
+
+
+  ) { }
 
   async create(createVoter: CreateVoterDto) {
     try {
       // Kiểm tra electionId có tồn tại không
       const electionExists = await this.electionsModel.exists({ _id: createVoter.electionId });
       if (!electionExists) {
-        throw new Error('Election not found');
+        throw new Error('Không tìm thấy cuộc bầu cử');
       }
       // Kiểm tra userId có tồn tại không
       const userExists = await this.userModel.exists({ _id: createVoter.userId });
       if (!userExists) {
-        throw new Error('User not found');
+        throw new Error('Không tìm thấy người dùng');
       }
       const voter = await this.voterModel.create(createVoter);
       return voter;
@@ -45,7 +45,7 @@ export class VotersService {
       //Check if the voter exists
       const voterExists = await this.voterModel.exists({ _id: id });
       if (!voterExists) {
-        throw new Error('Voter not found');
+        throw new Error('Không tìm thấy cử tri');
       }
       const voter = await this.voterModel
         .findByIdAndUpdate(new Types.ObjectId(id), updateVoter, { new: true })
@@ -53,7 +53,7 @@ export class VotersService {
       return voter;
     } catch (error) {
       throw error;
-    }  
+    }
   }
 
 }

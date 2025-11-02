@@ -11,52 +11,52 @@ import { ElectionsParticipants } from 'src/database/schemas/electionParticipants
 
 @Injectable()
 export class ElectionEntitiesService {
- constructor(
-  @InjectModel(ElectionEntities.name)
-  private readonly electionEntityModel: Model<ElectionEntities>,
-  @InjectModel(Elections.name)
-  private readonly electionsModel: Model<Elections>,
-  @InjectModel(ElectionTypes.name)
-  private readonly electionTypesModel: Model<ElectionTypes>,
-  @InjectModel(ElectionsParticipants.name)
-  private readonly electionParticipants: Model<ElectionsParticipants>,
- ) {}
+  constructor(
+    @InjectModel(ElectionEntities.name)
+    private readonly electionEntityModel: Model<ElectionEntities>,
+    @InjectModel(Elections.name)
+    private readonly electionsModel: Model<Elections>,
+    @InjectModel(ElectionTypes.name)
+    private readonly electionTypesModel: Model<ElectionTypes>,
+    @InjectModel(ElectionsParticipants.name)
+    private readonly electionParticipants: Model<ElectionsParticipants>,
+  ) { }
 
- async create(electionEntity: CreateElectionEntityDto) {
-  try {
-    // Kiểm tra electionId có tồn tại không
-    const electionExists = await this.electionsModel.exists({ _id: electionEntity.electionId });
-    if (!electionExists) {
-      throw new Error('Election not found');
+  async create(electionEntity: CreateElectionEntityDto) {
+    try {
+      // Kiểm tra electionId có tồn tại không
+      const electionExists = await this.electionsModel.exists({ _id: electionEntity.electionId });
+      if (!electionExists) {
+        throw new Error('Không tìm thấy cuộc bầu cử');
+      }
+
+      // Kiểm tra electionTypeId có tồn tại không
+      const electionTypeExists = await this.electionTypesModel.exists({ _id: electionEntity.electionTypeId });
+      if (!electionTypeExists) {
+        throw new Error('Không tìm thấy loại bầu cử');
+      }
+
+      //Kiểm tra xem có participant nào liên kết với electionId không
+      const participantExists = await this.electionParticipants.exists({ electionId: electionEntity.electionId });
+      if (!participantExists) {
+        throw new Error('Không có người tham gia nào liên kết với cuộc bầu cử này');
+      }
+
+      const entity = await this.electionEntityModel.create(electionEntity);
+      return entity;
+    } catch (error) {
+      throw error;
     }
-
-    // Kiểm tra electionTypeId có tồn tại không
-    const electionTypeExists = await this.electionTypesModel.exists({ _id: electionEntity.electionTypeId });
-    if (!electionTypeExists) {
-      throw new Error('Election Type not found');
-    }
-
-    //Kiểm tra xem có participant nào liên kết với electionId không
-    const participantExists = await this.electionParticipants.exists({ electionId: electionEntity.electionId });    
-    if (!participantExists) {
-      throw new Error('No participants linked to this election');
-    }
-
-    const entity = await this.electionEntityModel.create(electionEntity);
-    return entity;
-  } catch (error) {
-    throw error;
   }
- }
 
- async update(id: string, electionEntity: UpdateElectionEntityDto) {
-  try {
-    const updateElectionsEntity = await this.electionEntityModel
-    .findByIdAndUpdate( new Types.ObjectId(id), electionEntity, { new: true })
-    .exec();
-    return updateElectionsEntity;
-  } catch (error) {
-    throw error;
-  }
+  async update(id: string, electionEntity: UpdateElectionEntityDto) {
+    try {
+      const updateElectionsEntity = await this.electionEntityModel
+        .findByIdAndUpdate(new Types.ObjectId(id), electionEntity, { new: true })
+        .exec();
+      return updateElectionsEntity;
+    } catch (error) {
+      throw error;
+    }
   }
 }

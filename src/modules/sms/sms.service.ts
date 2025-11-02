@@ -34,7 +34,7 @@ export class SmsService {
       ],
     };
 
-      console.log('URL gửi:', `${this.baseUrl}/sms/2/text/advanced`);
+    console.log('URL gửi:', `${this.baseUrl}/sms/2/text/advanced`);
 
     try {
       const { data } = await axios.post<SmsResponse>(
@@ -48,20 +48,20 @@ export class SmsService {
           },
         },
       );
-    
+
 
 
       this.logger.log(`✅ SMS sent successfully: ${JSON.stringify(data)}`);
       return data;
     } catch (error: unknown) {
-      if(!(error instanceof axios.AxiosError)) {
+      if (!(error instanceof axios.AxiosError)) {
         this.logger.error(` Unexpected error type: ${String(error)}`);
-       
-        throw new Error('Unexpected error occurred while sending SMS');
-      }else {
+
+        throw new Error('Đã xảy ra lỗi không mong muốn khi gửi tin nhắn SMS');
+      } else {
         this.logger.error(` Axios error: ${error.message}, Response data: ${JSON.stringify(error.response?.data)}`);
       }
-      
+
       throw new Error(error.message);
     }
   }
@@ -76,7 +76,7 @@ export class SmsService {
   //   this.apiKey = this.configService.get<string>('SPEEDSMS_API_KEY') || '';
   // }
 
- // Gửi OTP hoặc SMS
+  // Gửi OTP hoặc SMS
   // async sendSMS(to: string, content: string) {
   //   try {
   //     const response = await axios.post(
@@ -95,7 +95,7 @@ export class SmsService {
   //     );
 
   //     this.logger.log('SMS gửi thành công: ' + JSON.stringify(response.data));
-     
+
   //   } catch (error:unknown) {
   //    if (error instanceof Error) {
   //         this.logger.error(`Failed to send SMS: ${error.message}`);
@@ -106,5 +106,5 @@ export class SmsService {
   //   }
   // }
 
- 
+
 }

@@ -52,7 +52,7 @@ export class BallotsService {
       //Check if the ballot is exist
       const ballotExist = await this.ballotsModel.exists({ _id: id });
       if (!ballotExist) {
-        throw new Error('Ballot not found');
+        throw new Error('Không tìm thấy phiếu bầu');
       }
 
       const ballot = await this.ballotsModel
@@ -79,7 +79,7 @@ export class BallotsService {
       //Check if the election is exist
       const electionExist = await this.electionsModel.exists({ _id: electionId });
       if (!electionExist) {
-        throw new Error('Election not found');
+        throw new Error('Không tìm thấy cuộc bầu cử');
       }
 
       const ballots = await this.ballotsModel.find({ electionId })
@@ -107,40 +107,40 @@ export class BallotsService {
       const electionExists = await this.electionsModel.findOne({ _id: createBallot.electionId });
       if (electionExists) {
         if (electionExists.status && electionExists.status !== STATUS.ACTIVE) {
-          throw new Error('Election is not active');
+          throw new Error('Cuộc bầu cử không đang hoạt động');
         }
       } else {
-        throw new Error('Election not found');
+        throw new Error('Không tìm thấy cuộc bầu cử');
       }
 
       //Check voter exists
       const voterExists = await this.votersModel.findOne({ _id: createBallot.voterId });
       if (voterExists) {
         if (voterExists.status && voterExists.status !== STATUS.ACTIVE) {
-          throw new Error('Voter is not active');
+          throw new Error('Cử tri không đang hoạt động');
         }
       } else {
-        throw new Error('Voter not found');
+        throw new Error('Không tìm thấy cử tri');
       }
 
       //Check votingRight shares and count > 0
       const votingRight = await this.votingRightsModel.findOne({ voterId: createBallot.voterId, electionId: createBallot.electionId });
       if (votingRight) {
         if (votingRight.shares <= 0 || votingRight.votes <= 0) {
-          throw new Error('Voting right is not eligible. Voter has shares or votes greater than 0');
+          throw new Error('Quyền bầu cử không hợp lệ. Cử tri phải có số cổ phần hoặc số phiếu lớn hơn 0');
         }
       } else {
-        throw new Error('Voter has not voting right for this election');
+        throw new Error('Cử tri không có quyền bầu cử cho cuộc bầu cử này');
       }
 
       //Check electionEntity exists
       const electionEntityExists = await this.electionEntitiesModel.findOne({ _id: createBallot.entityId });
       if (electionEntityExists) {
         if (electionEntityExists.status && electionEntityExists.status !== STATUS.ACTIVE) {
-          throw new Error('Election entity is not active');
+          throw new Error('Thực thể bầu cử không đang hoạt động');
         }
       } else {
-        throw new Error('Election entity not found');
+        throw new Error('Không tìm thấy thực thể bầu cử');
       }
       const ballot = await this.ballotsModel.create(createBallot);
       return ballot;
@@ -154,7 +154,7 @@ export class BallotsService {
       //Check if the ballot is exist
       const ballotExist = await this.ballotsModel.exists({ _id: id });
       if (!ballotExist) {
-        throw new Error('Ballot not found');
+        throw new Error('Không tìm thấy phiếu bầu');
       }
       const ballot = await this.ballotsModel
         .findByIdAndUpdate(new Types.ObjectId(id), updateBalllot, { new: true })

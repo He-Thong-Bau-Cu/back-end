@@ -18,19 +18,19 @@ export class VotingRightsService {
     private readonly electionsModel: Model<Elections>,
     @InjectModel(Voters.name)
     private readonly votersModel: Model<Voters>,
-  ) {}
+  ) { }
 
   async create(createVotingRightDto: CreateVotingRightDto) {
     try {
       // Kiểm tra electionId có tồn tại không
       const electionExists = await this.electionsModel.exists({ _id: createVotingRightDto.electionId });
       if (!electionExists) {
-        throw new Error('Election not found');
+        throw new Error('Không tìm thấy cuộc bầu cử');
       }
       // Kiểm tra voterId có tồn tại không
       const voterExists = await this.votersModel.exists({ _id: createVotingRightDto.voterId });
       if (!voterExists) {
-        throw new Error('Voter not found');
+        throw new Error('Không tìm thấy cử tri');
       }
       const votingRight = await this.votingRightModel.create(createVotingRightDto);
       return votingRight;
@@ -44,16 +44,16 @@ export class VotingRightsService {
       //Check if the voting right exists
       const votingRightExists = await this.votingRightModel.exists({ _id: id });
       if (!votingRightExists) {
-        throw new Error('Voting right not found');
+        throw new Error('Không tìm thấy quyền bầu cử');
       }
 
       const votingRight = await this.votingRightModel
-      .findByIdAndUpdate(new Types.ObjectId(id), updateVotingRightDto, { new: true })
-      .exec();
+        .findByIdAndUpdate(new Types.ObjectId(id), updateVotingRightDto, { new: true })
+        .exec();
       return votingRight;
     } catch (error) {
       throw error;
-    }  
+    }
   }
 
 

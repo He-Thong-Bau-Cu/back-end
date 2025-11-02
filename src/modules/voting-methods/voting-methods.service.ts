@@ -10,19 +10,19 @@ export class VotingMethodsService {
   constructor(
     @InjectModel(VotingMethods.name)
     private readonly votingMethodsModel: Model<VotingMethods>
-  ) {}
+  ) { }
 
   async findOne(methodCode: string) {
     try {
       const votingMethod = await this.votingMethodsModel.findOne
-      ({ methodCode }).exec();
+        ({ methodCode }).exec();
       if (!votingMethod) {
-        throw new Error('Voting Method Code not found');
-      }   
+        throw new Error('Không tìm thấy mã phương thức bầu cử thông qua');
+      }
       return votingMethod;
     } catch (error) {
       throw error;
-    } 
+    }
   }
 
 }

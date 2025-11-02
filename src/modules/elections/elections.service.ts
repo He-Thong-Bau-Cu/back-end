@@ -18,7 +18,7 @@ export class ElectionsService {
     private readonly electionsModel: Model<ElectionsDocument>,
     @InjectModel(ElectionDocuments.name)
     private readonly electionDocumentsModel: Model<ElectionDocuments>,
-  ) {}
+  ) { }
 
   async searchElections(req: ElectionsDto) {
     try {
@@ -69,7 +69,7 @@ export class ElectionsService {
         .findById(new Types.ObjectId(id))
         .exec();
       if (!election) {
-        throw new Error('Election not found');
+        throw new Error('Không tìm thấy cuộc bầu cử để xóa');
       }
       election.status = STATUS.CLOSED;
       return election.save();

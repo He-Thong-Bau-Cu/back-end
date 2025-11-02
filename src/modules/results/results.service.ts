@@ -35,7 +35,7 @@ export class ResultsService {
       //Check if the result is exist
       const resultExist = await this.resultsModel.exists({ _id: id });
       if (!resultExist) {
-        throw new Error('Result not found');
+        throw new Error('Không tìm thấy kết quả');
       }
       const result = await this.resultsModel.findById(id)
         .populate('electionId', 'title startDate endDate delegationStart delegationEnd status decisionNumber decisionName')
@@ -54,7 +54,7 @@ export class ResultsService {
       //Check if the election is exist
       const electionExist = await this.electionsModel.exists({ _id: electionId });
       if (!electionExist) {
-        throw new Error('Election not found');
+        throw new Error('Không tìm thấy kết quả');
       }
       const result = await this.resultsModel.find({ electionId })
         .populate('electionId', 'title startDate endDate delegationStart delegationEnd status decisionNumber decisionName')
@@ -71,13 +71,13 @@ export class ResultsService {
       //Check if elections is exists
       const electionExist = await this.electionsModel.exists({ _id: createResultDto.electionId });
       if (!electionExist) {
-        throw new Error('Election not found');
+        throw new Error('Không tìm thấy cuộc bầu cử');
       }
 
       //Check if entity is exists
       const entityExist = await this.electionEntitiesModel.exists({ _id: createResultDto.entityId });
       if (!entityExist) {
-        throw new Error('Entity not found');
+        throw new Error('Không tìm thấy thực thể');
       }
 
       const result = await this.resultsModel.create(createResultDto);
@@ -92,7 +92,7 @@ export class ResultsService {
       //Check if the result is exist
       const resultExist = await this.resultsModel.exists({ _id: id });
       if (!resultExist) {
-        throw new Error('Result not found');
+        throw new Error('Không tìm thấy kết quả');
       }
       const result = await this.resultsModel
         .findByIdAndUpdate(new Types.ObjectId(id), updateResultDto, { new: true })

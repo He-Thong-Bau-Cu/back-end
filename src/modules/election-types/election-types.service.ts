@@ -10,13 +10,13 @@ export class ElectionTypesService {
   constructor(
     @InjectModel(ElectionTypes.name)
     private readonly electionTypesModel: Model<ElectionTypes>,
-  ){}
+  ) { }
 
-  async findOne(typeCode:string){
+  async findOne(typeCode: string) {
     try {
-      const electionType = await this.electionTypesModel.findOne({typeCode}).exec();
-      if(!electionType){
-        throw new Error('ElectionType Code not found');
+      const electionType = await this.electionTypesModel.findOne({ typeCode }).exec();
+      if (!electionType) {
+        throw new Error('Không tìm thấy mã loại bầu cử');
       }
       return electionType;
     } catch (error) {

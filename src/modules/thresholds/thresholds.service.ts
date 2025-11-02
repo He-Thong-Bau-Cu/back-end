@@ -7,19 +7,19 @@ import { Model } from 'mongoose';
 
 @Injectable()
 export class ThresholdsService {
-  constructor( 
+  constructor(
     @InjectModel(Thresholds.name)
-    private readonly thresholdsModel: Model<Thresholds>) {}
+    private readonly thresholdsModel: Model<Thresholds>) { }
 
-    async findOne(thresholdCode:string){
-      try {
-        const threshold = await this.thresholdsModel.findOne({thresholdCode}).exec();
-        if(!threshold){
-          throw new Error('Threshold Code not found');
-        }
-        return threshold;
-      } catch (error) {
-        throw error;
+  async findOne(thresholdCode: string) {
+    try {
+      const threshold = await this.thresholdsModel.findOne({ thresholdCode }).exec();
+      if (!threshold) {
+        throw new Error('Không tìm thấy mã ngưỡng thông qua');
       }
+      return threshold;
+    } catch (error) {
+      throw error;
     }
+  }
 }
