@@ -6,6 +6,7 @@ import { MeetingAttendees } from 'src/database/schemas/meetingAttendees.schema';
 import { Model, Types } from 'mongoose';
 import { Meetings } from 'src/database/schemas/meetings.schema';
 import { ElectionsParticipants } from 'src/database/schemas/electionParticipants.schema';
+import { MESSAGE } from 'src/common/enums/message.enum';
 
 @Injectable()
 export class MeetingAttendeesService {
@@ -45,12 +46,12 @@ export class MeetingAttendeesService {
       //Check if meetingId is exist or IsNotEmpty
       const meetingExist = await this.meetingsModel.exists({ _id: createMeetingAttendee.meetingId });
       if (!meetingExist) {
-        throw new Error('Không tìm thấy cuộc họp');
+        throw new Error(MESSAGE.MEETING_NOT_FOUND);
       }
       //Check if participantId is exist or IsNotEmpty
       const participantExist = await this.electionParticipantsModel.exists({ _id: createMeetingAttendee.participantId });
       if (!participantExist) {
-        throw new Error('Không tìm thấy người tham dự cuộc họp');
+        throw new Error(MESSAGE.PARTICIPANT_NOT_FOUND);
       }
       return await this.meetingAttendeesModel.create(createMeetingAttendee);
     } catch (error) {
@@ -63,12 +64,12 @@ export class MeetingAttendeesService {
       //Check if meetingId is exist or IsNotEmpty
       const meetingExist = await this.meetingsModel.exists({ _id: meetingId });
       if (!meetingExist) {
-        throw new Error('Không tìm thấy cuộc họp');
+        throw new Error(MESSAGE.MEETING_NOT_FOUND);
       }
       //Check if participantId is exist or IsNotEmpty
       const participantExist = await this.electionParticipantsModel.exists({ _id: participantId });
       if (!participantExist) {
-        throw new Error('Không tìm thấy người tham dự cuộc họp');
+        throw new Error(MESSAGE.PARTICIPANT_NOT_FOUND);
       }
       return await this.meetingAttendeesModel.findOneAndUpdate(
         { meetingId: meetingId, participantId: participantId },
@@ -85,7 +86,7 @@ export class MeetingAttendeesService {
       //Check if meetingAttendeeId is exist or IsNotEmpty
       const meetingAttendeeExist = await this.meetingAttendeesModel.exists({ _id: meetingAttendeeId });
       if (!meetingAttendeeExist) {
-        throw new Error('Không tìm thấy người tham dự cuộc họp ');
+        throw new Error(MESSAGE.MEETING_ATTENDEE_NOT_FOUND);
       }
       return await this.meetingAttendeesModel
         .findByIdAndUpdate(new Types.ObjectId(meetingAttendeeId), updateMeetingAttendee, { new: true })

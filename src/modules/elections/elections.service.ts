@@ -10,6 +10,7 @@ import {
 import { ElectionsDto } from './dto/elections.dto';
 import { STATUS } from 'src/common/enums/status.enum';
 import { ElectionsDocumentDto } from './dto/electionsDocument.dto';
+import { MESSAGE } from 'src/common/enums/message.enum';
 
 @Injectable()
 export class ElectionsService {
@@ -69,7 +70,7 @@ export class ElectionsService {
         .findById(new Types.ObjectId(id))
         .exec();
       if (!election) {
-        throw new Error('Không tìm thấy cuộc bầu cử để xóa');
+        throw new Error(MESSAGE.ELECTION_NOT_FOUND);
       }
       election.status = STATUS.CLOSED;
       return election.save();

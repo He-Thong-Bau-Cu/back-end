@@ -5,6 +5,7 @@ import * as forge from 'node-forge';
 import { SignPdf, plainAddPlaceholder } from 'node-signpdf';
 import PizZip from 'pizzip';
 import { createHash } from 'crypto';
+import { MESSAGE } from 'src/common/enums/message.enum';
 
 const UPLOADS = path.join(process.cwd(), 'uploads');
 if (!fs.existsSync(UPLOADS)) fs.mkdirSync(UPLOADS, { recursive: true });
@@ -73,7 +74,7 @@ export class SigningService {
     }
 
     if (!keyObj || !certObj)
-      throw new Error('Không thể trích xuất key/certificate từ file p12');
+      throw new Error(MESSAGE.CANNOT_EXTRACT_KEY_CERT);
 
     const privateKey = keyObj.key;
     const cert = certObj.cert;
@@ -147,7 +148,7 @@ export class SigningService {
     const relsEntry = zip.file('_rels/.rels');
     const documentEntry = zip.file('word/document.xml');
     if (!contentTypesEntry || !relsEntry || !documentEntry) {
-      throw new Error('File DOCX thiếu các phần bắt buộc');
+      throw new Error(MESSAGE.DOCX_MISSING_PARTS);
     }
 
     // 3️⃣ Hash nội dung chính (word/document.xml)
@@ -284,13 +285,13 @@ export class SigningService {
       const pdfString = pdfBuffer.toString('binary');
 
       const byteRangeMatch = /\/ByteRange\s*\[\s*(\d+)\s+(\d+)\s+(\d+)\s+(\d+)/.exec(pdfString);
-      if (!byteRangeMatch) throw new Error('Không tìm thấy ByteRange trong file PDF');
+      if (!byteRangeMatch) throw new Error(MESSAGE.NO_BYTE_RANGE_IN_PDF);
 
       const [_, start1, len1, start2, len2] = byteRangeMatch.map(Number);
 
       // (PKCS#7) /Contents
       const contentsMatch = /\/Contents\s*<([0-9A-Fa-f]+)>/.exec(pdfString);
-      if (!contentsMatch) throw new Error('Không tìm thấy Contents trong file PDF');
+      if (!contentsMatch) throw new Error(MESSAGE.NO_CONTENTS_IN_PDF);
 
       let signatureHex = contentsMatch[1].replace(/>$/, '');
       let signatureBytes = Buffer.from(signatureHex, 'hex');
@@ -310,7 +311,7 @@ export class SigningService {
 
       // certificate signer
       const signerCert = p7.certificates[0];
-      if (!signerCert) throw new Error('Không tìm thấy certificate trong chữ ký.');
+      if (!signerCert) throw new Error(MESSAGE.NO_CERTIFICATE_IN_SIGNATURE);
 
       const md = forge.md.sha256.create();
       md.update(signedData.toString('binary'));

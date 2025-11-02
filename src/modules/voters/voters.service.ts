@@ -7,6 +7,8 @@ import { Model, Types } from 'mongoose';
 import { Elections } from 'src/database/schemas/elections.schema';
 import { User } from 'src/database/schemas/users.schema';
 import { VotingRights } from 'src/database/schemas/votingRights.schema';
+import { STATUS } from 'src/common/enums/status.enum';
+import { MESSAGE } from 'src/common/enums/message.enum';
 
 @Injectable()
 export class VotersService {
@@ -17,7 +19,8 @@ export class VotersService {
     private readonly electionsModel: Model<Elections>,
     @InjectModel(User.name)
     private readonly userModel: Model<User>,
-
+    @InjectModel(VotingRights.name)
+    private readonly votingRightsModel: Model<VotingRights>,
 
   ) { }
 
@@ -26,12 +29,12 @@ export class VotersService {
       // Kiểm tra electionId có tồn tại không
       const electionExists = await this.electionsModel.exists({ _id: createVoter.electionId });
       if (!electionExists) {
-        throw new Error('Không tìm thấy cuộc bầu cử');
+        throw new Error(MESSAGE.ELECTION_NOT_FOUND);
       }
       // Kiểm tra userId có tồn tại không
       const userExists = await this.userModel.exists({ _id: createVoter.userId });
       if (!userExists) {
-        throw new Error('Không tìm thấy người dùng');
+        throw new Error(MESSAGE.USER_NOT_FOUND);
       }
       const voter = await this.voterModel.create(createVoter);
       return voter;
@@ -45,7 +48,7 @@ export class VotersService {
       //Check if the voter exists
       const voterExists = await this.voterModel.exists({ _id: id });
       if (!voterExists) {
-        throw new Error('Không tìm thấy cử tri');
+        throw new Error(MESSAGE.VOTER_NOT_FOUND);
       }
       const voter = await this.voterModel
         .findByIdAndUpdate(new Types.ObjectId(id), updateVoter, { new: true })
@@ -56,4 +59,26 @@ export class VotersService {
     }
   }
 
+  //Kiểm tra những cử tri đủ điều kiện phát hành phiếu
+  async getEligibleVoters(electionId: string) {
+    try {
+      //Check election exists
+      const electionExists = await this.electionsModel.findOne({ _id: electionId });
+      if (electionExists) {
+        if (electionExists.status && electionExists.status !== STATUS.ACTIVE) {
+          throw new Error(MESSAGE.ELECTION_IS_NOT_ACTIVE);
+        }
+      } else {
+        throw new Error(MESSAGE.ELECTION_NOT_FOUND);
+      }
+
+      //Check voters exists
+      const votersExists = await this.voterModel.find({ electionId: electionId, status: STATUS.ACTIVE });
+
+
+      return votersExists;
+    } catch (error) {
+      throw error;
+    }
+  }
 }

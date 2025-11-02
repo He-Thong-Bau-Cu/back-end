@@ -5,6 +5,7 @@ import { UpdateVotingRightDto } from './dto/update-voting-right.dto';
 import Api from 'twilio/lib/rest/Api';
 import { ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { BaseResponse } from 'src/common/dto/base-response.dto';
+import { MESSAGE } from 'src/common/enums/message.enum';
 
 @Controller('voting-rights')
 export class VotingRightsController {
@@ -18,7 +19,7 @@ export class VotingRightsController {
   async create(@Body() createVotingRight: CreateVotingRightDto): Promise<BaseResponse> {
     try {
       const votingRight = await this.votingRightsService.create(createVotingRight);
-      return BaseResponse.success(votingRight, 'Tạo quyền bầu cử thành công', HttpStatus.CREATED);
+      return BaseResponse.success(votingRight, MESSAGE.VOTING_RIGHT_CREATE_SUCCESS, HttpStatus.CREATED);
     } catch (error) {
       throw new HttpException(
         { message: error.message },
@@ -35,7 +36,7 @@ export class VotingRightsController {
   async update(@Param('id') id: string, @Body() updateVotingRight: UpdateVotingRightDto): Promise<BaseResponse> {
     try {
       const votingRight = await this.votingRightsService.update(id, updateVotingRight);
-      return BaseResponse.success(votingRight, 'Cập nhật quyền bầu cử thành công', HttpStatus.OK);
+      return BaseResponse.success(votingRight, MESSAGE.VOTING_RIGHT_UPDATE_SUCCESS, HttpStatus.OK);
     } catch (error) {
       throw new HttpException(
         { message: error.message },

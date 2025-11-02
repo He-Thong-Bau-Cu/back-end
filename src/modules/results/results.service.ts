@@ -6,6 +6,7 @@ import { Results } from 'src/database/schemas/results.schema';
 import { Model, Types } from 'mongoose';
 import { Elections } from 'src/database/schemas/elections.schema';
 import { ElectionEntities } from 'src/database/schemas/electionEntities.schema';
+import { MESSAGE } from 'src/common/enums/message.enum';
 
 @Injectable()
 export class ResultsService {
@@ -35,7 +36,7 @@ export class ResultsService {
       //Check if the result is exist
       const resultExist = await this.resultsModel.exists({ _id: id });
       if (!resultExist) {
-        throw new Error('Không tìm thấy kết quả');
+        throw new Error(MESSAGE.RESULT_NOT_FOUND);
       }
       const result = await this.resultsModel.findById(id)
         .populate('electionId', 'title startDate endDate delegationStart delegationEnd status decisionNumber decisionName')
@@ -54,7 +55,7 @@ export class ResultsService {
       //Check if the election is exist
       const electionExist = await this.electionsModel.exists({ _id: electionId });
       if (!electionExist) {
-        throw new Error('Không tìm thấy kết quả');
+        throw new Error(MESSAGE.ELECTION_NOT_FOUND);
       }
       const result = await this.resultsModel.find({ electionId })
         .populate('electionId', 'title startDate endDate delegationStart delegationEnd status decisionNumber decisionName')
@@ -71,13 +72,13 @@ export class ResultsService {
       //Check if elections is exists
       const electionExist = await this.electionsModel.exists({ _id: createResultDto.electionId });
       if (!electionExist) {
-        throw new Error('Không tìm thấy cuộc bầu cử');
+        throw new Error(MESSAGE.ELECTION_NOT_FOUND);
       }
 
       //Check if entity is exists
       const entityExist = await this.electionEntitiesModel.exists({ _id: createResultDto.entityId });
       if (!entityExist) {
-        throw new Error('Không tìm thấy thực thể');
+        throw new Error(MESSAGE.ENTITY_NOT_FOUND);
       }
 
       const result = await this.resultsModel.create(createResultDto);
@@ -92,7 +93,7 @@ export class ResultsService {
       //Check if the result is exist
       const resultExist = await this.resultsModel.exists({ _id: id });
       if (!resultExist) {
-        throw new Error('Không tìm thấy kết quả');
+        throw new Error(MESSAGE.RESULT_NOT_FOUND);
       }
       const result = await this.resultsModel
         .findByIdAndUpdate(new Types.ObjectId(id), updateResultDto, { new: true })

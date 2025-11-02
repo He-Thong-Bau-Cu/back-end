@@ -8,6 +8,7 @@ import { BaseRequest } from 'src/common/dto/base-request.dto';
 import { RolesDto } from './dto/roles.dto';
 import { STATUS } from 'src/common/enums/status.enum';
 import { CreateRoleDTO } from './dto/create-role-dto';
+import { MESSAGE } from 'src/common/enums/message.enum';
 
 
 @Injectable()
@@ -35,7 +36,6 @@ export class RolesService {
 
   async createRole(req: CreateRoleDTO) {
     try {
-      console.log('👉 DTO nhận được:', req);
       const role = await this.rolesModel.create(req);
       return role;
     } catch (error) {
@@ -57,7 +57,7 @@ export class RolesService {
     try {
       const role = await this.rolesModel.findById(new Types.ObjectId(id)).exec();
       if (!role) {
-        throw new Error('Không tìm thấy vai trò');
+        throw new Error(MESSAGE.ROLE_NOT_FOUND);
       }
       role.status = STATUS.DELETED;
       await role.save();

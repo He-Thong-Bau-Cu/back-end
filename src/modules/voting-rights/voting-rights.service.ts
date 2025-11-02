@@ -8,6 +8,7 @@ import { Elections } from 'src/database/schemas/elections.schema';
 import { Voters } from 'src/database/schemas/voters.schema';
 import e from 'express';
 import { STATUS } from 'src/common/enums/status.enum';
+import { MESSAGE } from 'src/common/enums/message.enum';
 
 @Injectable()
 export class VotingRightsService {
@@ -25,12 +26,12 @@ export class VotingRightsService {
       // Kiểm tra electionId có tồn tại không
       const electionExists = await this.electionsModel.exists({ _id: createVotingRightDto.electionId });
       if (!electionExists) {
-        throw new Error('Không tìm thấy cuộc bầu cử');
+        throw new Error(MESSAGE.ELECTION_NOT_FOUND);
       }
       // Kiểm tra voterId có tồn tại không
       const voterExists = await this.votersModel.exists({ _id: createVotingRightDto.voterId });
       if (!voterExists) {
-        throw new Error('Không tìm thấy cử tri');
+        throw new Error(MESSAGE.VOTER_NOT_FOUND);
       }
       const votingRight = await this.votingRightModel.create(createVotingRightDto);
       return votingRight;
@@ -44,7 +45,7 @@ export class VotingRightsService {
       //Check if the voting right exists
       const votingRightExists = await this.votingRightModel.exists({ _id: id });
       if (!votingRightExists) {
-        throw new Error('Không tìm thấy quyền bầu cử');
+        throw new Error(MESSAGE.VOTING_RIGHT_NOT_FOUND);
       }
 
       const votingRight = await this.votingRightModel

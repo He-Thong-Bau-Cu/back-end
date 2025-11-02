@@ -5,6 +5,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Meetings } from 'src/database/schemas/meetings.schema';
 import { Model, Types } from 'mongoose';
 import { Elections } from 'src/database/schemas/elections.schema';
+import { MESSAGE } from 'src/common/enums/message.enum';
 @Injectable()
 export class MeetingsService {
   constructor(
@@ -14,14 +15,15 @@ export class MeetingsService {
     private readonly electionsModel: Model<Elections>,
   ) { }
 
+
+
   async create(createMeeting: CreateMeetingDto) {
     try {
       // Check if the electionId exists in the database
       const electionExists = await this.electionsModel.exists({ _id: createMeeting.electionId });
-      console.log("createMeeting", createMeeting);
-      console.log("electionExists", electionExists);
+
       if (!electionExists) {
-        throw new Error('Không tìm thấy cuộc bầu cử');
+        throw new Error(MESSAGE.ELECTION_NOT_FOUND);
       }
       const meeting = await this.meetingsModel.create(createMeeting);
       return meeting;
@@ -35,11 +37,12 @@ export class MeetingsService {
       // Check if the meeting exists
       const meetingExists = await this.meetingsModel.exists({ _id: id });
       if (!meetingExists) {
-        throw new Error('Không tìm thấy cuộc họp');
+        throw new Error(MESSAGE.MEETING_NOT_FOUND);
       }
       const updatedMeeting = await this.meetingsModel
         .findByIdAndUpdate(new Types.ObjectId(id), updateMeeting, { new: true })
         .exec();
+
       return updatedMeeting;
     }
     catch (error) {

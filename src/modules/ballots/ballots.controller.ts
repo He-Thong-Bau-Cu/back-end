@@ -4,6 +4,7 @@ import { CreateBallotDto } from './dto/create-ballot.dto';
 import { UpdateBallotDto } from './dto/update-ballot.dto';
 import { ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { BaseResponse } from 'src/common/dto/base-response.dto';
+import { MESSAGE } from 'src/common/enums/message.enum';
 
 @Controller('ballots')
 export class BallotsController {
@@ -17,7 +18,7 @@ export class BallotsController {
   async getBallotsByElectionId(@Param('electionId') electionId: string): Promise<BaseResponse> {
     try {
       const resData = await this.ballotsService.getByElectionId(electionId);
-      return BaseResponse.success(resData, 'Lấy danh sách phiếu bầu theo ID cuộc bầu cử thành công', HttpStatus.OK);
+      return BaseResponse.success(resData, MESSAGE.BALLOT_GET_BY_ELECTION_SUCCESS, HttpStatus.OK);
     } catch (error) {
       throw new HttpException(
         { message: error.message },
@@ -35,7 +36,7 @@ export class BallotsController {
   async getAll(): Promise<BaseResponse> {
     try {
       const resData = await this.ballotsService.findAll();
-      return BaseResponse.success(resData, 'Lấy danh sách phiếu bầu cử thành công', HttpStatus.OK);
+      return BaseResponse.success(resData, MESSAGE.BALLOT_GET_ALL_SUCCESS, HttpStatus.OK);
     } catch (error) {
       throw new HttpException(
         { message: error.message },
@@ -52,7 +53,7 @@ export class BallotsController {
   async getById(@Param('id') id: string): Promise<BaseResponse> {
     try {
       const resData = await this.ballotsService.getById(id);
-      return BaseResponse.success(resData, 'Lấy phiếu bầu theo ID thành công', HttpStatus.OK);
+      return BaseResponse.success(resData, MESSAGE.BALLOT_GET_BY_ID_SUCCESS, HttpStatus.OK);
     } catch (error) {
       throw new HttpException(
         { message: error.message },
@@ -69,7 +70,7 @@ export class BallotsController {
   async create(@Body() createBallotDto: CreateBallotDto): Promise<BaseResponse> {
     try {
       const resData = await this.ballotsService.create(createBallotDto);
-      return BaseResponse.success(resData, 'Tạo phiếu bầu thành công', HttpStatus.CREATED);
+      return BaseResponse.success(resData, MESSAGE.BALLOT_CREATE_SUCCESS, HttpStatus.CREATED);
     } catch (error) {
       throw new HttpException(
         { message: error.message },
@@ -86,7 +87,7 @@ export class BallotsController {
   async update(@Param('id') id: string, @Body() updateBallot: UpdateBallotDto): Promise<BaseResponse> {
     try {
       const resData = await this.ballotsService.update(id, updateBallot);
-      return BaseResponse.success(resData, 'Cập nhật phiếu bầu thành công', HttpStatus.OK);
+      return BaseResponse.success(resData, MESSAGE.BALLOT_UPDATE_SUCCESS, HttpStatus.OK);
     } catch (error) {
       throw new HttpException(
         { message: error.message },

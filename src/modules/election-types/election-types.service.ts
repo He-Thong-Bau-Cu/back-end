@@ -4,6 +4,7 @@ import { UpdateElectionTypeDto } from './dto/update-election-type.dto';
 import { ElectionTypes } from 'src/database/schemas/electionTypes.schema';
 import { Model } from 'mongoose';
 import { InjectModel } from '@nestjs/mongoose';
+import { MESSAGE } from 'src/common/enums/message.enum';
 
 @Injectable()
 export class ElectionTypesService {
@@ -12,11 +13,12 @@ export class ElectionTypesService {
     private readonly electionTypesModel: Model<ElectionTypes>,
   ) { }
 
+
   async findOne(typeCode: string) {
     try {
       const electionType = await this.electionTypesModel.findOne({ typeCode }).exec();
       if (!electionType) {
-        throw new Error('Không tìm thấy mã loại bầu cử');
+        throw new Error(MESSAGE.ELECTION_TYPE_CODE_NOT_FOUND);
       }
       return electionType;
     } catch (error) {

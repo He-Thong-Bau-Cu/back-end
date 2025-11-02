@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import axios from 'axios';
+import { MESSAGE } from 'src/common/enums/message.enum';
 export interface SmsResponse {
   messages: {
     to: string;
@@ -57,7 +58,7 @@ export class SmsService {
       if (!(error instanceof axios.AxiosError)) {
         this.logger.error(` Unexpected error type: ${String(error)}`);
 
-        throw new Error('Đã xảy ra lỗi không mong muốn khi gửi tin nhắn SMS');
+        throw new Error(MESSAGE.SMS_SEND_ERROR);
       } else {
         this.logger.error(` Axios error: ${error.message}, Response data: ${JSON.stringify(error.response?.data)}`);
       }

@@ -4,6 +4,7 @@ import { CreateReportDto } from './dto/create-report.dto';
 import { UpdateReportDto } from './dto/update-report.dto';
 import { ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { BaseResponse } from 'src/common/dto/base-response.dto';
+import { MESSAGE } from 'src/common/enums/message.enum';
 
 @Controller('reports')
 export class ReportsController {
@@ -17,7 +18,7 @@ export class ReportsController {
   async create(@Body() createReport: CreateReportDto): Promise<BaseResponse> {
     try {
       const resData = await this.reportsService.create(createReport);
-      return BaseResponse.success(resData, 'Tạo báo cáo thành công', HttpStatus.CREATED);
+      return BaseResponse.success(resData, MESSAGE.REPORT_CREATE_SUCCESS, HttpStatus.CREATED);
     } catch (error) {
       throw new HttpException(
         { message: error.message },
@@ -33,7 +34,7 @@ export class ReportsController {
   async findAll(): Promise<BaseResponse> {
     try {
       const resData = await this.reportsService.findAll();
-      return BaseResponse.success(resData, 'Lấy danh sách báo cáo thành công', HttpStatus.OK);
+      return BaseResponse.success(resData, MESSAGE.REPORT_GET_ALL_SUCCESS, HttpStatus.OK);
     } catch (error) {
       throw new HttpException(
         { message: error.message },
@@ -49,7 +50,7 @@ export class ReportsController {
   async getById(@Param('id') id: string): Promise<BaseResponse> {
     try {
       const resData = await this.reportsService.getById(id);
-      return BaseResponse.success(resData, 'Lấy báo cáo theo ID thành công', HttpStatus.OK);
+      return BaseResponse.success(resData, MESSAGE.REPORT_GET_BY_ID_SUCCESS, HttpStatus.OK);
     } catch (error) {
       throw new HttpException(
         { message: error.message },
@@ -65,7 +66,7 @@ export class ReportsController {
   async update(@Param('id') id: string, @Body() updateReport: UpdateReportDto): Promise<BaseResponse> {
     try {
       const resData = await this.reportsService.update(id, updateReport);
-      return BaseResponse.success(resData, 'Cập nhật báo cáo theo ID thành công', HttpStatus.OK);
+      return BaseResponse.success(resData, MESSAGE.REPORT_UPDATE_SUCCESS, HttpStatus.OK);
     } catch (error) {
       throw new HttpException(
         { message: error.message },

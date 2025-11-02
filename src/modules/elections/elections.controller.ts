@@ -11,6 +11,7 @@ import {
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiParam } from '@nestjs/swagger';
 import { BaseResponse } from 'src/common/dto/base-response.dto';
+import { MESSAGE } from 'src/common/enums/message.enum';
 import { ElectionsService } from './elections.service';
 import { METHOD } from 'src/common/enums/method.enum';
 import { ElectionsDto } from './dto/elections.dto';
@@ -19,7 +20,7 @@ import { ElectionsDocumentDto } from './dto/electionsDocument.dto';
 @ApiTags('Elections')
 @Controller('elections')
 export class ElectionsController {
-  constructor(private readonly electionsService: ElectionsService) {}
+  constructor(private readonly electionsService: ElectionsService) { }
 
   @Post(METHOD.SEARCH)
   @ApiOperation({ summary: 'Tìm kiếm danh sách kỳ bầu cử' })
@@ -31,7 +32,7 @@ export class ElectionsController {
   async searchElections(@Body() req: ElectionsDto): Promise<BaseResponse> {
     try {
       const resData = await this.electionsService.searchElections(req);
-      return BaseResponse.success(resData, 'Tìm kiếm kỳ bầu cử thành công', HttpStatus.OK);
+      return BaseResponse.success(resData, MESSAGE.ELECTION_SEARCH_SUCCESS, HttpStatus.OK);
     } catch (e) {
       throw new HttpException(
         { message: e.message },
@@ -48,7 +49,7 @@ export class ElectionsController {
   async getElectionById(@Param('id') id: string): Promise<BaseResponse> {
     try {
       const resData = await this.electionsService.getElectionById(id);
-      return BaseResponse.success(resData, 'Lấy thông tin kỳ bầu cử  thành công', HttpStatus.OK);
+      return BaseResponse.success(resData, MESSAGE.ELECTION_GET_BY_ID_SUCCESS, HttpStatus.OK);
     } catch (e) {
       throw new HttpException(
         { message: e.message },
@@ -85,7 +86,7 @@ export class ElectionsController {
     try {
       const resData =
         await this.electionsService.searchElectionDocumentsByElectionId(id);
-      return BaseResponse.success(resData, 'Lấy danh sách tài liệu theo electionId thành công', HttpStatus.OK);
+      return BaseResponse.success(resData, MESSAGE.ELECTION_DOCUMENT_GET_SUCCESS, HttpStatus.OK);
     } catch (e) {
       throw new HttpException(
         { message: e.message },
@@ -105,7 +106,7 @@ export class ElectionsController {
   ): Promise<BaseResponse> {
     try {
       const resData = await this.electionsService.updateElections(id, req);
-      return BaseResponse.success(resData, 'Cập nhật kỳ bầu cử thành công', HttpStatus.OK);
+      return BaseResponse.success(resData, MESSAGE.ELECTION_UPDATE_SUCCESS, HttpStatus.OK);
     } catch (e) {
       throw new HttpException(
         { message: e.message },
@@ -122,7 +123,7 @@ export class ElectionsController {
   async deleteElection(@Param('id') id: string): Promise<BaseResponse> {
     try {
       const resData = await this.electionsService.deleteElection(id);
-      return BaseResponse.success(resData, 'Xóa kỳ bầu cử thành công', HttpStatus.OK);
+      return BaseResponse.success(resData, MESSAGE.ELECTION_DELETE_SUCCESS, HttpStatus.OK);
     } catch (e) {
       throw new HttpException(
         { message: e.message },
@@ -140,7 +141,7 @@ export class ElectionsController {
   ): Promise<BaseResponse> {
     try {
       const resData = await this.electionsService.createElectionDocuments(req);
-      return BaseResponse.success(resData, 'Tạo tài liệu kỳ bầu cử thành công', HttpStatus.OK);
+      return BaseResponse.success(resData, MESSAGE.ELECTION_DOCUMENT_CREATE_SUCCESS, HttpStatus.OK);
     } catch (e) {
       throw new HttpException(
         { message: e.message },
@@ -164,7 +165,7 @@ export class ElectionsController {
     try {
       const resData =
         await this.electionsService.deleteDocumentByElectionId(electionId);
-      return BaseResponse.success(resData, 'Xóa tài liệu theo electionId thành công', HttpStatus.OK);
+      return BaseResponse.success(resData, MESSAGE.ELECTION_DOCUMENT_DELETE_SUCCESS, HttpStatus.OK);
     } catch (e) {
       throw new HttpException(
         { message: e.message },

@@ -7,6 +7,7 @@ import { Model } from 'mongoose';
 import { JwtService } from '@nestjs/jwt';
 import { Voters } from 'src/database/schemas/voters.schema';
 import { Elections } from 'src/database/schemas/elections.schema';
+import { MESSAGE } from 'src/common/enums/message.enum';
 
 @Injectable()
 export class VoterInvitationsService {
@@ -31,12 +32,12 @@ export class VoterInvitationsService {
       // Check if the voterId exists in the database
       const voterExists = await this.votersModel.exists({ _id: voterInvitation.voterId });
       if (!voterExists) {
-        throw new Error('Không tìm thấy cử tri');
+        throw new Error(MESSAGE.VOTER_NOT_FOUND);
       }
       // Check if the electionId exists in the database
       const electionExists = await this.electionsModel.exists({ _id: voterInvitation.electionId });
       if (!electionExists) {
-        throw new Error('Không tìm thấy cuộc bầu cử');
+        throw new Error(MESSAGE.ELECTION_NOT_FOUND);
       }
       const createdInvitation = await this.voterInvitationsModel.create(voterInvitation);
       return createdInvitation;

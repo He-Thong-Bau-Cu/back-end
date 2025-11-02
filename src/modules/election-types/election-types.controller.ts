@@ -4,6 +4,7 @@ import { CreateElectionTypeDto } from './dto/create-election-type.dto';
 import { UpdateElectionTypeDto } from './dto/update-election-type.dto';
 import { ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { BaseResponse } from 'src/common/dto/base-response.dto';
+import { MESSAGE } from 'src/common/enums/message.enum';
 
 @Controller('election-types')
 export class ElectionTypesController {
@@ -16,7 +17,7 @@ export class ElectionTypesController {
   async getElectionTypeByCode(@Param('typeCode') typeCode: string): Promise<BaseResponse> {
     try {
       const resData = await this.electionTypesService.findOne(typeCode);
-      return BaseResponse.success(resData, "Lấy thông tin loại bầu cử theo mã thành công", HttpStatus.OK);
+      return BaseResponse.success(resData, MESSAGE.ELECTION_TYPE_GET_BY_CODE_SUCCESS, HttpStatus.OK);
     } catch (error) {
       throw new HttpException(
         { message: error.message },

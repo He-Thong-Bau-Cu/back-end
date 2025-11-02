@@ -4,6 +4,7 @@ import { UpdateThresholdDto } from './dto/update-threshold.dto';
 import { InjectModel } from '@nestjs/mongoose';
 import { Thresholds } from 'src/database/schemas/thresholds.schema';
 import { Model } from 'mongoose';
+import { MESSAGE } from 'src/common/enums/message.enum';
 
 @Injectable()
 export class ThresholdsService {
@@ -15,7 +16,7 @@ export class ThresholdsService {
     try {
       const threshold = await this.thresholdsModel.findOne({ thresholdCode }).exec();
       if (!threshold) {
-        throw new Error('Không tìm thấy mã ngưỡng thông qua');
+        throw new Error(MESSAGE.THRESHOLD_CODE_NOT_FOUND);
       }
       return threshold;
     } catch (error) {

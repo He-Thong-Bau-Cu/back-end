@@ -4,6 +4,7 @@ import { UpdateVotingMethodDto } from './dto/update-voting-method.dto';
 import { VotingMethods } from 'src/database/schemas/votingMethods.schema';
 import { Model } from 'mongoose';
 import { InjectModel } from '@nestjs/mongoose';
+import { MESSAGE } from 'src/common/enums/message.enum';
 
 @Injectable()
 export class VotingMethodsService {
@@ -17,7 +18,7 @@ export class VotingMethodsService {
       const votingMethod = await this.votingMethodsModel.findOne
         ({ methodCode }).exec();
       if (!votingMethod) {
-        throw new Error('Không tìm thấy mã phương thức bầu cử thông qua');
+        throw new Error(MESSAGE.VOTING_METHOD_CODE_NOT_FOUND);
       }
       return votingMethod;
     } catch (error) {

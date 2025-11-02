@@ -5,6 +5,7 @@ import { METHOD } from 'src/common/enums/method.enum';
 import { ApiOperation, ApiParam, ApiResponse } from '@nestjs/swagger';
 
 import { BaseResponse } from 'src/common/dto/base-response.dto';
+import { MESSAGE } from 'src/common/enums/message.enum';
 import { BaseRequest } from 'src/common/dto/base-request.dto';
 import Api from 'twilio/lib/rest/Api';
 import { RolesDto } from './dto/roles.dto';
@@ -25,7 +26,7 @@ export class RolesController {
   async getRoles(@Query() query: BaseRequest): Promise<BaseResponse> {
     try {
       const resData = await this.rolesService.findAll(query);
-      return BaseResponse.success(resData, "Lấy danh sách vai trò thành công", HttpStatus.OK);
+      return BaseResponse.success(resData, MESSAGE.ROLE_GET_ALL_SUCCESS, HttpStatus.OK);
     } catch (error) {
       throw new HttpException(
         { message: error.message },
@@ -43,7 +44,7 @@ export class RolesController {
   async getRoleById(@Param('id') id: string): Promise<BaseResponse> {
     try {
       const resData = await this.rolesService.getRoleById(id);
-      return BaseResponse.success(resData, "Lấy thông tin vai trò theo ID thành công", HttpStatus.OK);
+      return BaseResponse.success(resData, MESSAGE.ROLE_GET_BY_ID_SUCCESS, HttpStatus.OK);
     } catch (error) {
       throw new HttpException(
         { message: error.message },
@@ -59,7 +60,7 @@ export class RolesController {
   async createRole(@Body() req: CreateRoleDTO): Promise<BaseResponse> {
     try {
       const resData = await this.rolesService.createRole(req);
-      return BaseResponse.success(resData, 'Tạo vai trò thành công', HttpStatus.OK);
+      return BaseResponse.success(resData, MESSAGE.ROLE_CREATE_SUCCESS, HttpStatus.OK);
     } catch (error) {
       throw new HttpException(
         { message: error.message },
@@ -76,7 +77,7 @@ export class RolesController {
   async deleteRole(@Param('id') id: string): Promise<BaseResponse> {
     try {
       const resData = await this.rolesService.deleteRole(id);
-      return BaseResponse.success(resData, "Xóa vai trò thành công", HttpStatus.OK);
+      return BaseResponse.success(resData, MESSAGE.ROLE_DELETE_SUCCESS, HttpStatus.OK);
     } catch (error) {
       throw new HttpException(
         { message: error.message },
@@ -93,7 +94,7 @@ export class RolesController {
   async updateRole(@Param('id') id: string, @Body() req: RolesDto): Promise<BaseResponse> {
     try {
       const resData = await this.rolesService.updateRole(id, req);
-      return BaseResponse.success(resData, "Cập nhật vai trò thành công", HttpStatus.OK);
+      return BaseResponse.success(resData, MESSAGE.ROLE_UPDATE_SUCCESS, HttpStatus.OK);
     } catch (error) {
       throw new HttpException(
         { message: error.message },

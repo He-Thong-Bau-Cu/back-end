@@ -6,6 +6,7 @@ import { Model, Types } from 'mongoose';
 import { Reports, ReportsDocument } from 'src/database/schemas/reports.schema';
 import { Elections } from 'src/database/schemas/elections.schema';
 import { ElectionsParticipants } from 'src/database/schemas/electionParticipants.schema';
+import { MESSAGE } from 'src/common/enums/message.enum';
 
 @Injectable()
 export class ReportsService {
@@ -23,7 +24,7 @@ export class ReportsService {
       //Check if elctions is exists
       const eletionExist = await this.electionsModel.exists({ _id: createReport.electionId });
       if (!eletionExist)
-        throw new Error("Không tìm thấy cuộc bầu cử trong báo cáo");
+        throw new Error(MESSAGE.ELECTION_NOT_FOUND);
 
       const report = await this.reportModel.create(createReport);
       return report;
@@ -63,7 +64,7 @@ export class ReportsService {
       //Check if the report is exist
       const reportExist = await this.reportModel.exists({ _id: id });
       if (!reportExist) {
-        throw new Error('Không tìm thấy báo cáo');
+        throw new Error(MESSAGE.REPORT_NOT_FOUND);
       }
       return await this.reportModel
         .findByIdAndUpdate(new Types.ObjectId(id), updateReport, { new: true })
