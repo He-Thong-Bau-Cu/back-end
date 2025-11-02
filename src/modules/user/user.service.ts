@@ -4,12 +4,18 @@ import {Model} from 'mongoose';
 import {User, UserDocument} from 'src/database/schemas/users.schema';
 import {Roles, RolesDocument} from "../../database/schemas/roles.schema";
 import {UserDto} from "../../common/dto/user.dto";
+import * as bcrypt from 'bcrypt';
+import {MailService} from "../mail/mail.service";
+import {STATUS} from "../../common/enums/status.enum";
+import {USER_ROLE} from "../../common/enums/config.enum";
+
 
 @Injectable()
 export class UserService {
     constructor(
         @InjectModel(User.name) private readonly userModel: Model<UserDocument>,
         @InjectModel(Roles.name) private readonly roleModel: Model<RolesDocument>,
+        private readonly mailService: MailService
     ) {
     }
 
@@ -40,9 +46,26 @@ export class UserService {
 
             const username = await this.generateUserName(req.fullName);
             const password = this.generateRandomPassword(8);
+            const passwordHash = await bcrypt.hash(password, 10);
 
+            let roleData = await this.roleModel.findOne({roleCode: USER_ROLE.USER})
 
-
+            const newUser = new this.userModel({
+                username: username,
+                password: passwordHash,
+                fullName: req.fullName,
+                dateOfBirth: req.dateOfBirth,
+                citizenId: req.citizenId,
+                email: req.email,
+                phone: req.phone,
+                address: req.address,
+                roleId: req.roleId,
+                position: req.position,
+                department: req.department,
+                isTempPassword: true,
+                status: STATUS.ACTIVE,
+                image: req.image,
+            });
         } catch (e) {
             throw e;
         }

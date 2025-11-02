@@ -78,6 +78,14 @@ export class UserDto extends BaseRequest {
     roleId: string;
 
     @ApiPropertyOptional({
+        description: 'Mã vai trò người dùng',
+        example: 'ADMIN_USER',
+    })
+    @IsOptional()
+    @IsString()
+    roleCode: string;
+
+    @ApiPropertyOptional({
         description: 'Chức vụ',
         example: 'Nhân viên kinh doanh',
     })
