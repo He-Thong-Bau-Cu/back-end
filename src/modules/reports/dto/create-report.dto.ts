@@ -65,8 +65,8 @@ export class CreateReportDto {
   status: string;
 
   @ApiPropertyOptional({
-    description: 'Mức độ nghiêm trọng (Severity)',
-    example: 'High / Medium / Low',
+    description: 'Mức độ nghiêm trọng',
+    example: 'low / medium / high',
   })
   @IsString()
   @IsOptional()

@@ -15,12 +15,13 @@ export class MeetingsService {
     private readonly electionsModel: Model<Elections>,
   ) { }
 
+
+
   async create(createMeeting: CreateMeetingDto) {
     try {
       // Check if the electionId exists in the database
       const electionExists = await this.electionsModel.exists({ _id: createMeeting.electionId });
-      console.log("createMeeting", createMeeting);
-      console.log("electionExists", electionExists);
+
       if (!electionExists) {
         throw new Error(MESSAGE.ELECTION_NOT_FOUND);
       }
@@ -41,6 +42,7 @@ export class MeetingsService {
       const updatedMeeting = await this.meetingsModel
         .findByIdAndUpdate(new Types.ObjectId(id), updateMeeting, { new: true })
         .exec();
+
       return updatedMeeting;
     }
     catch (error) {

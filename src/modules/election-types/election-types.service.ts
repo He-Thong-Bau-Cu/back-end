@@ -13,6 +13,7 @@ export class ElectionTypesService {
     private readonly electionTypesModel: Model<ElectionTypes>,
   ) { }
 
+
   async findOne(typeCode: string) {
     try {
       const electionType = await this.electionTypesModel.findOne({ typeCode }).exec();
