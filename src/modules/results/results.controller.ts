@@ -11,14 +11,14 @@ export class ResultsController {
 
 
   @Get('elections/:electionId')
-  @ApiOperation({ summary: 'Lấy danh sách phiếu bầu theo Id cử' })
-  @ApiResponse({ status: 200, description: 'Lấy danh sách phiếu bầu theo Id cử thanh cong' })
+  @ApiOperation({ summary: 'Lấy danh sách phiếu bầu theo ID cử tri' })
+  @ApiResponse({ status: 200, description: 'Lấy danh sách phiếu bầu theo ID cử tri thành công' })
   @ApiResponse({ status: 400, description: 'Dữ liệu không hợp lệ' })
   @ApiResponse({ status: 500, description: 'Lỗi server' })
   async getByElectionId(@Param('electionId') electionId: string): Promise<BaseResponse> {
     try {
       const resData = await this.resultsService.getByElectionId(electionId);
-      return BaseResponse.success(resData, 'Lấy danh sách phiếu bầu theo Id cử thanh cong', HttpStatus.OK);
+      return BaseResponse.success(resData, 'Lấy danh sách phiếu bầu theo ID cử tri thành công', HttpStatus.OK);
     } catch (error) {
       throw new HttpException(
         { message: error.message },

@@ -8,7 +8,7 @@ import { BaseResponse } from 'src/common/dto/base-response.dto';
 
 @Controller('voting-rights')
 export class VotingRightsController {
-  constructor(private readonly votingRightsService: VotingRightsService) {}
+  constructor(private readonly votingRightsService: VotingRightsService) { }
 
   @Post()
   @ApiOperation({ summary: 'Tạo mới quyền bầu cử' })

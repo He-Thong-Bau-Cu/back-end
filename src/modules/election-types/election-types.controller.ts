@@ -7,16 +7,16 @@ import { BaseResponse } from 'src/common/dto/base-response.dto';
 
 @Controller('election-types')
 export class ElectionTypesController {
-  constructor(private readonly electionTypesService: ElectionTypesService) {}
+  constructor(private readonly electionTypesService: ElectionTypesService) { }
 
   @Get(':typeCode')
-  @ApiOperation({ summary: 'Lấy thông tin electionType by code' })
-  @ApiResponse({ status: 200, description: 'Thông tin electionType trả về thành công.' })
+  @ApiOperation({ summary: 'Lấy thông tin loại bầu cử theo mã' })
+  @ApiResponse({ status: 200, description: 'Thông tin loại bầu cử trả về thành công.' })
   @ApiResponse({ status: 500, description: 'Lỗi server' })
-  async getElectionTypeByCode(@Param('typeCode') typeCode:string):Promise<BaseResponse>{
+  async getElectionTypeByCode(@Param('typeCode') typeCode: string): Promise<BaseResponse> {
     try {
-      const resData  = await this.electionTypesService.findOne(typeCode);
-      return BaseResponse.success(resData, "Lấy thông tin electionType theo code thành công", HttpStatus.OK);
+      const resData = await this.electionTypesService.findOne(typeCode);
+      return BaseResponse.success(resData, "Lấy thông tin loại bầu cử theo mã thành công", HttpStatus.OK);
     } catch (error) {
       throw new HttpException(
         { message: error.message },

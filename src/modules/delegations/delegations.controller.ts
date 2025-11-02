@@ -7,21 +7,21 @@ import { BaseResponse } from 'src/common/dto/base-response.dto';
 
 @Controller('delegations')
 export class DelegationsController {
-  constructor(private readonly delegationsService: DelegationsService) {}
+  constructor(private readonly delegationsService: DelegationsService) { }
 
   //Get By ElectionId
   @Get('election/:electionId')
-  @ApiOperation({summary:"Lấy thông tin ủy quyển theo electionId"})
-  @ApiResponse({status:200, description:"Lấy thông tin ủy quyển theo electionId thành công"})
-   @ApiResponse({ status: 400, description: 'Dữ liệu không hợp lệ.' })
+  @ApiOperation({ summary: "Lấy thông tin ủy quyền theo ID cuộc bầu cử" })
+  @ApiResponse({ status: 200, description: "Lấy thông tin ủy quyền theo ID cuộc bầu cử thành công" })
+  @ApiResponse({ status: 400, description: 'Dữ liệu không hợp lệ.' })
   @ApiResponse({ status: 500, description: 'Lỗi server' })
-  async getDelegationsByElectionId(@Param('electionId') electionId:string):Promise<BaseResponse>{
+  async getDelegationsByElectionId(@Param('electionId') electionId: string): Promise<BaseResponse> {
     try {
       const resData = await this.delegationsService.getByElectionId(electionId);
       return BaseResponse.success(resData, 'Lấy thông tin ủy quyền theo cuộc bầu cử thành công', HttpStatus.OK);
     } catch (error) {
       throw new HttpException(
-        {message:error.message},
+        { message: error.message },
         HttpStatus.INTERNAL_SERVER_ERROR
       )
     }
@@ -29,17 +29,17 @@ export class DelegationsController {
 
   //Get Delegations has status=pending
   @Get('pending')
-  @ApiOperation({summary:"Lấy danh sách ủy quyền cấn xác minh "})
-  @ApiResponse({status:200, description:"Lấy danh sách ủy quyền cấn xác minh thành công"})
-   @ApiResponse({ status: 400, description: 'Dữ liệu không hợp lệ.' })
+  @ApiOperation({ summary: "Lấy danh sách ủy quyền cần xác minh " })
+  @ApiResponse({ status: 200, description: "Lấy danh sách ủy quyền cần xác minh thành công" })
+  @ApiResponse({ status: 400, description: 'Dữ liệu không hợp lệ.' })
   @ApiResponse({ status: 500, description: 'Lỗi server' })
-  async getDelegationsStatusPending():Promise<BaseResponse>{
+  async getDelegationsStatusPending(): Promise<BaseResponse> {
     try {
       const resData = await this.delegationsService.getDeletaionsPending();
-      return BaseResponse.success(resData, 'Lấy danh sách ủy quyền cấn xác minh', HttpStatus.OK);
+      return BaseResponse.success(resData, 'Lấy danh sách ủy quyền cần xác minh', HttpStatus.OK);
     } catch (error) {
       throw new HttpException(
-        {message:error.message},
+        { message: error.message },
         HttpStatus.INTERNAL_SERVER_ERROR
       )
     }
@@ -47,24 +47,24 @@ export class DelegationsController {
 
   //Get by DelegationId
   @Get(':id')
-  @ApiOperation({summary:"Lấy thông tin ủy quyển theo ID"})
-  @ApiResponse({status:200, description:"Lấy thông tin ủy quyển theo ID thành công"})
-   @ApiResponse({ status: 400, description: 'Dữ liệu không hợp lệ.' })
+  @ApiOperation({ summary: "Lấy thông tin ủy quyền theo ID" })
+  @ApiResponse({ status: 200, description: "Lấy thông tin ủy quyền theo ID thành công" })
+  @ApiResponse({ status: 400, description: 'Dữ liệu không hợp lệ.' })
   @ApiResponse({ status: 500, description: 'Lỗi server' })
-  async getDelegationsById(@Param('id') id:string):Promise<BaseResponse>{
+  async getDelegationsById(@Param('id') id: string): Promise<BaseResponse> {
     try {
-      console.log("id controller: ", id);
+
       const resData = await this.delegationsService.getById(id);
-      return BaseResponse.success(resData, 'Lấy thông tin ủy quyền theo ID thành công', HttpStatus.OK);
+      return BaseResponse.success(resData, 'Lấy thông tin ủy quyền theo ID thành công.', HttpStatus.OK);
     } catch (error) {
       throw new HttpException(
-        {message:error.message},
+        { message: error.message },
         HttpStatus.INTERNAL_SERVER_ERROR
       )
     }
   }
 
- @Post()
+  @Post()
   @ApiOperation({ summary: 'Tạo mới ủy quyền' })
   @ApiResponse({ status: 201, description: 'Tạo ủy quyền thành công' })
   @ApiResponse({ status: 400, description: 'Dữ liệu không hợp lệ' })
@@ -101,5 +101,5 @@ export class DelegationsController {
       );
     }
   }
-  
+
 }

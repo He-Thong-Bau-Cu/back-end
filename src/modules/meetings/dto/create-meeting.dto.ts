@@ -36,7 +36,7 @@ export class CreateMeetingDto {
 
     @ApiProperty({
         description: 'Mô tả chi tiết về cuộc họp',
-        example: 'Cuộc họp này sẽ thảo luận về các vấn đề liên quan đến cuộc bầu cử sắp tới.'   
+        example: 'Cuộc họp này sẽ thảo luận về các vấn đề liên quan đến cuộc bầu cử sắp tới.'
     })
     @IsOptional()
     @IsString()
