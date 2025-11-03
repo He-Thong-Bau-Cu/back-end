@@ -27,7 +27,7 @@ export class CaService {
     cert.validity.notBefore = new Date();
     cert.validity.notAfter = new Date();
     cert.validity.notAfter.setFullYear(
-      cert.validity.notBefore.getFullYear() + 10,
+        cert.validity.notBefore.getFullYear() + 10,
     );
 
     const attrs = [
@@ -56,9 +56,9 @@ export class CaService {
 
     // write to files (PEM)
     fs.writeFileSync(
-      this.rootKeyPath,
-      forge.pki.privateKeyToPem(keys.privateKey),
-      { mode: 0o600 },
+        this.rootKeyPath,
+        forge.pki.privateKeyToPem(keys.privateKey),
+        { mode: 0o600 },
     );
     fs.writeFileSync(this.rootCertPath, forge.pki.certificateToPem(cert));
 
@@ -90,7 +90,7 @@ export class CaService {
     cert.validity.notBefore = new Date();
     cert.validity.notAfter = new Date();
     cert.validity.notAfter.setFullYear(
-      cert.validity.notBefore.getFullYear() + 2,
+        cert.validity.notBefore.getFullYear() + 2,
     );
     cert.publicKey = csr.publicKey;
     cert.setSubject(csr.subject.attributes);
@@ -112,10 +112,10 @@ export class CaService {
     const chain = [signerCertPem, rootCertPem].join('\n');
 
     const newPkcs12Asn1 = forge.pkcs12.toPkcs12Asn1(
-      keys.privateKey,
-      [cert],
-      password,
-      { friendlyName: signerInfo.commonName, algorithm: '3des' },
+        keys.privateKey,
+        [cert],
+        password,
+        { friendlyName: signerInfo.commonName, algorithm: '3des' },
     );
     const p12Der = forge.asn1.toDer(newPkcs12Asn1).getBytes();
     const p12Buffer = Buffer.from(p12Der, 'binary');
@@ -125,13 +125,13 @@ export class CaService {
     fs.writeFileSync(p12Path, p12Buffer);
 
     fs.writeFileSync(
-      path.join(CERTS_DIR, `${baseName}.key.pem`),
-      signerKeyPem,
-      { mode: 0o600 },
+        path.join(CERTS_DIR, `${baseName}.key.pem`),
+        signerKeyPem,
+        { mode: 0o600 },
     );
     fs.writeFileSync(
-      path.join(CERTS_DIR, `${baseName}.crt.pem`),
-      signerCertPem,
+        path.join(CERTS_DIR, `${baseName}.crt.pem`),
+        signerCertPem,
     );
     fs.writeFileSync(path.join(CERTS_DIR, `${baseName}.chain.pem`), chain);
 
