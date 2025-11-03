@@ -22,16 +22,7 @@ export class ElectionEntitiesService {
     @InjectModel(ElectionsParticipants.name)
     private readonly electionParticipants: Model<ElectionsParticipants>,
   ) { }
-  constructor(
-    @InjectModel(ElectionEntities.name)
-    private readonly electionEntityModel: Model<ElectionEntities>,
-    @InjectModel(Elections.name)
-    private readonly electionsModel: Model<Elections>,
-    @InjectModel(ElectionTypes.name)
-    private readonly electionTypesModel: Model<ElectionTypes>,
-    @InjectModel(ElectionsParticipants.name)
-    private readonly electionParticipants: Model<ElectionsParticipants>,
-  ) { }
+
 
   async create(electionEntity: CreateElectionEntityDto) {
     try {
@@ -59,22 +50,9 @@ export class ElectionEntitiesService {
       throw error;
     }
   }
-  const entity = await this.electionEntityModel.create(electionEntity);
-      return entity;
-    } catch (error) {
-  throw error;
-}
-  }
 
-  async update(id: string, electionEntity: UpdateElectionEntityDto) {
-  try {
-    const updateElectionsEntity = await this.electionEntityModel
-      .findByIdAndUpdate(new Types.ObjectId(id), electionEntity, { new: true })
-      .exec();
-    return updateElectionsEntity;
-  } catch (error) {
-    throw error;
-  }
+
+
   async update(id: string, electionEntity: UpdateElectionEntityDto) {
     try {
       const updateElectionsEntity = await this.electionEntityModel
@@ -85,4 +63,5 @@ export class ElectionEntitiesService {
       throw error;
     }
   }
+
 }
