@@ -11,8 +11,6 @@ import { MESSAGE } from 'src/common/enums/message.enum';
 
 @Injectable()
 export class ElectionParticipantsService {
-
-
         constructor(
                 @InjectModel(ElectionsParticipants.name)
                 private readonly electionParticipantsModel: Model<ElectionsParticipants>,
@@ -27,8 +25,6 @@ export class ElectionParticipantsService {
 
         async create(electionParticipants: CreateElectionParticipantDto) {
                 try {
-                        console.log('Incoming DTO:', electionParticipants);
-
                         //Kiểm tra electionId có tồn tại không
                         const electionExists = await this.electionsModel.exists({ _id: electionParticipants.electionId });
                         if (!electionExists) {
