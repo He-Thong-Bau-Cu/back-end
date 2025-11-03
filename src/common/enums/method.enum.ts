@@ -15,4 +15,5 @@ export enum ENDPOINT {
   ROLE = 'roles',
   PERMISSION = 'permissions',
   ROLE_PERMISSION = 'role-permissions',
+  USER = 'users',
 }

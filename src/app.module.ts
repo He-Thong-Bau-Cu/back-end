@@ -137,6 +137,9 @@ export class AppModule {
         { path: "results/:id", method: RequestMethod.GET },
         { path: "results/:id", method: RequestMethod.PUT },
         { path: "results", method: RequestMethod.POST },
+        { path: "signing/doc", method: RequestMethod.POST },
+        { path: "ca/init", method: RequestMethod.POST },
+        { path: "ca/issue", method: RequestMethod.POST },
 
       )
       .forRoutes("*");

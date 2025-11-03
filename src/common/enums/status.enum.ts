@@ -87,6 +87,12 @@ export enum MESSAGE_STATUS {
     PERMISSION_DELETE = 'Quyền được xóa thành công!',
     PERMISSION_VIEW = 'Lấy dữ liệu quyền thành công!',
     SYSTEM_LOGS_VIEW = 'Dữ liệu system log trả về thành công!',
+    USER_CREATE = 'Tạo người dùng thành công!',
+    USER_UPDATE = 'Cập nhật người dùng thành công!',
+    USER_DELETE = 'Xóa người dùng thành công!',
+    USER_VIEW = 'Lấy dữ liệu người dùng thành công!',
+    USER_ROLE_UPDATE = 'Cập nhật vai trò cho người dùng thành công!',
+    
 }
 
 export enum DELEGATION_TYPE{
