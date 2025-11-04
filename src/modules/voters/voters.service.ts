@@ -63,7 +63,7 @@ export class VotersService {
   async getEligibleVoters(electionId: string) {
     try {
       //Check election exists
-      const electionExists = await this.electionsModel.findOne({ _id: electionId });
+      const electionExists = await this.electionsModel.findOne({ _id: electionId }).exec();
       if (electionExists) {
         if (electionExists.status && electionExists.status !== STATUS.ACTIVE) {
           throw new Error(MESSAGE.ELECTION_IS_NOT_ACTIVE);
@@ -73,7 +73,11 @@ export class VotersService {
       }
 
       //Check voters exists
-      const votersExists = await this.voterModel.find({ electionId: electionId, status: STATUS.ACTIVE });
+      const votersExists = await this.voterModel
+        .find({ electionId: electionId, status: STATUS.ACTIVE })
+        .populate('electionId')
+        .populate('userId', 'fullName username email phone position department')
+        .exec();
 
 
       return votersExists;

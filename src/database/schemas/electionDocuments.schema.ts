@@ -1,6 +1,8 @@
 import {Prop, Schema, SchemaFactory} from '@nestjs/mongoose';
 import { Date, Document, Types } from 'mongoose';
 import { Elections } from './elections.schema';
+import { STATUS } from 'src/common/enums/status.enum';
+import { ElectionsParticipants } from './electionParticipants.schema';
 
 export type ElectionDocument = ElectionDocuments & Document;
 
@@ -8,6 +10,9 @@ export type ElectionDocument = ElectionDocuments & Document;
 export class ElectionDocuments {
   @Prop({ type: Types.ObjectId, ref: Elections.name })
   electionId: Types.ObjectId;
+
+  @Prop({ type: Types.ObjectId, ref: ElectionsParticipants.name })
+  preparedBy: Types.ObjectId;
 
   @Prop()
   title: string;
@@ -18,14 +23,8 @@ export class ElectionDocuments {
   @Prop()
   fileUrl: string;
 
-  @Prop()
+  @Prop({default:STATUS.ACTIVE})
   status: string;
-
-  @Prop({ type: Date, default: Date.now })
-  createdAt: Date;
-
-  @Prop({ type: Date, default: Date.now })
-  updatedAt: Date;
 
   @Prop()
   remark: string;
