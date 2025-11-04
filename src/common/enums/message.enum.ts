@@ -19,6 +19,8 @@ export enum MESSAGE {
     VOTER_NOT_FOUND = 'Không tìm thấy cử tri',
     VOTER_IS_NOT_ACTIVE = 'Cử tri không hoạt động',
     VOTER_HAS_NOT_VOTING_RIGHT = 'Cử tri không có quyền bầu cử cho cuộc bầu cử này',
+    VOTER_DELETE_SUCCESS = 'Cử tri được xóa thành công',
+    VOTER_GET_BY_ELECTION_SUCCESS = 'Lấy danh sách cử tri theo cuộc bầu cử thành công',
 
 
     // Voting Rights

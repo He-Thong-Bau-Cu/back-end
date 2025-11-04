@@ -24,6 +24,8 @@ export class VotersService {
 
   ) { }
 
+  
+
   async create(createVoter: CreateVoterDto) {
     try {
       // Kiểm tra electionId có tồn tại không
@@ -81,6 +83,35 @@ export class VotersService {
 
 
       return votersExists;
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  async delete(id: string) {
+    try {
+     
+      const voter = await this.voterModel
+        .findById(new Types.ObjectId(id))
+        .exec();
+      if (!voter) {
+        throw new Error(MESSAGE.VOTER_NOT_FOUND);
+      }
+      voter.status = STATUS.INACTIVE;
+      return voter.save();
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  async getByElectionId(electionId: string) {
+    try {
+      const voters = await this.voterModel
+        .find({ electionId })
+        .populate('electionId')
+        .populate('userId', 'fullName username email phone position department')
+        .exec();
+      return voters;
     } catch (error) {
       throw error;
     }

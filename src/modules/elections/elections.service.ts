@@ -47,7 +47,7 @@ export class ElectionsService {
     }
   }
 
-  
+
   async createElection(createElection: CreateElectionDto) {
     try {
       //Kiểm tra electionType có tồn tại hay Không
@@ -146,12 +146,7 @@ export class ElectionsService {
 
   async deleteElection(id: string) {
     try {
-      //kiểm tra electionId có tồn tại không
-      const electionExist = await this.electionsModel.exists({ _id: id });
-      if (!electionExist) {
-        throw new Error(MESSAGE.ELECTION_NOT_FOUND);
-      }
-
+    
       const election = await this.electionsModel
         .findById(new Types.ObjectId(id))
         .exec();

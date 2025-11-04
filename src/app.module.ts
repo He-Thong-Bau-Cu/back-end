@@ -110,9 +110,14 @@ export class AppModule {
         { path: "election-entities", method: RequestMethod.POST },
         { path: "election-entities/:id", method: RequestMethod.PUT },
         { path: "election-participants", method: RequestMethod.POST },
+        //Voters
         { path: "voters", method: RequestMethod.POST },
         { path: "voters/:id", method: RequestMethod.PUT },
         { path: "voters/eligible/:electionId", method: RequestMethod.GET },
+        { path: "voters/elections/:electionId", method: RequestMethod.GET },
+        { path: "voters/:id", method: RequestMethod.DELETE },
+
+        //Voting Rights
         { path: "voting-rights", method: RequestMethod.POST },
         { path: "voting-rights/:id", method: RequestMethod.PUT },
         { path: "meetings", method: RequestMethod.POST },
