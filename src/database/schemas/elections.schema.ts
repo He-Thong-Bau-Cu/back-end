@@ -1,4 +1,4 @@
-import {Prop, Schema, SchemaFactory} from '@nestjs/mongoose';
+import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Types } from 'mongoose';
 import { BaseSchema } from './base.schema';
 import { ElectionTypes } from './electionTypes.schema';
@@ -9,41 +9,41 @@ import { STATUS } from 'src/common/enums/status.enum';
 export type ElectionsDocument = Elections & Document;
 
 @Schema()
-export class Elections extends BaseSchema{
-  @Prop({required: true})
+export class Elections extends BaseSchema {
+  @Prop({ required: true })
   title: string;
 
   @Prop({ type: Types.ObjectId, ref: ElectionTypes.name, required: true })
   typeId: Types.ObjectId;
 
   @Prop({ type: Types.ObjectId, ref: VotingMethods.name, required: true })
-  methodId: Types.ObjectId;
+  votingMethodId: Types.ObjectId;
 
   @Prop({ type: Types.ObjectId, ref: Thresholds.name, required: true })
   thresholdId: Types.ObjectId;
 
-  @Prop({required: true})
+  @Prop({ required: true })
   startDate: Date;
 
-  @Prop({required: true})
+  @Prop({ required: true })
   endDate: Date;
 
-  @Prop({required: true})
+  @Prop({ required: true })
   delegationStart: Date;
 
-  @Prop({required: true})
+  @Prop({ required: true })
   delegationEnd: Date;
 
-  @Prop({ default:STATUS.ACTIVE})
+  @Prop({ default: STATUS.ACTIVE })
   status: string;
 
-  @Prop({required: true})
+  @Prop()
   statusData: string;
 
-  @Prop({required: true})
+  @Prop({ required: true })
   decisionNumber: string;
 
-  @Prop({required: true})
+  @Prop({ required: true })
   decisionName: string;
 }
 

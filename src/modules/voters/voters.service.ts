@@ -24,6 +24,8 @@ export class VotersService {
 
   ) { }
 
+  
+
   async create(createVoter: CreateVoterDto) {
     try {
       // Kiểm tra electionId có tồn tại không
@@ -63,7 +65,7 @@ export class VotersService {
   async getEligibleVoters(electionId: string) {
     try {
       //Check election exists
-      const electionExists = await this.electionsModel.findOne({ _id: electionId });
+      const electionExists = await this.electionsModel.findOne({ _id: electionId }).exec();
       if (electionExists) {
         if (electionExists.status && electionExists.status !== STATUS.ACTIVE) {
           throw new Error(MESSAGE.ELECTION_IS_NOT_ACTIVE);
@@ -73,10 +75,43 @@ export class VotersService {
       }
 
       //Check voters exists
-      const votersExists = await this.voterModel.find({ electionId: electionId, status: STATUS.ACTIVE });
+      const votersExists = await this.voterModel
+        .find({ electionId: electionId, status: STATUS.ACTIVE })
+        .populate('electionId')
+        .populate('userId', 'fullName username email phone position department')
+        .exec();
 
 
       return votersExists;
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  async delete(id: string) {
+    try {
+     
+      const voter = await this.voterModel
+        .findById(new Types.ObjectId(id))
+        .exec();
+      if (!voter) {
+        throw new Error(MESSAGE.VOTER_NOT_FOUND);
+      }
+      voter.status = STATUS.INACTIVE;
+      return voter.save();
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  async getByElectionId(electionId: string) {
+    try {
+      const voters = await this.voterModel
+        .find({ electionId })
+        .populate('electionId')
+        .populate('userId', 'fullName username email phone position department')
+        .exec();
+      return voters;
     } catch (error) {
       throw error;
     }

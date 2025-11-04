@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { paginate } from 'src/common/dto/paignation';
@@ -7,10 +7,16 @@ import {
   Elections,
   ElectionsDocument,
 } from 'src/database/schemas/elections.schema';
-import { ElectionsDto } from './dto/elections.dto';
 import { STATUS } from 'src/common/enums/status.enum';
 import { ElectionsDocumentDto } from './dto/electionsDocument.dto';
 import { MESSAGE } from 'src/common/enums/message.enum';
+import { ElectionTypes } from 'src/database/schemas/electionTypes.schema';
+import { VotingMethods } from 'src/database/schemas/votingMethods.schema';
+import { Thresholds } from 'src/database/schemas/thresholds.schema';
+import { User } from 'src/database/schemas/users.schema';
+import { CreateElectionDto } from './dto/create-elections-dto';
+import { UpdateElectionDto } from './dto/update-elections-dto';
+import { SearchElectionsDto } from './dto/search-dto';
 
 @Injectable()
 export class ElectionsService {
@@ -19,12 +25,72 @@ export class ElectionsService {
     private readonly electionsModel: Model<ElectionsDocument>,
     @InjectModel(ElectionDocuments.name)
     private readonly electionDocumentsModel: Model<ElectionDocuments>,
+    @InjectModel(ElectionTypes.name)
+    private readonly electionTypeModel: Model<ElectionTypes>,
+    @InjectModel(VotingMethods.name)
+    private readonly votingMethodModel: Model<VotingMethods>,
+    @InjectModel(Thresholds.name)
+    private readonly thresholdModel: Model<Thresholds>,
+    @InjectModel(User.name)
+    private readonly userModel: Model<User>,
   ) { }
 
-  async searchElections(req: ElectionsDto) {
+  async searchElections(req: SearchElectionsDto) {
     try {
-      const elections = await this.electionsModel.find().exec();
+      const elections = await this.electionsModel.find()
+        .populate('typeId')
+        .populate('votingMethodId')
+        .populate('thresholdId').exec();
       return paginate(elections, req.page, req.limit);
+    } catch (error) {
+      throw error;
+    }
+  }
+
+
+  async createElection(createElection: CreateElectionDto) {
+    try {
+      //Kiểm tra electionType có tồn tại hay Không
+      const electionTypeExist = await this.electionTypeModel.exists({ _id: createElection.typeId });
+      if (!electionTypeExist) {
+        throw new Error(MESSAGE.ELECTION_TYPE_NOT_FOUND);
+      }
+
+      //Kiểm tra voting method có tồn tại hay Không
+      const votingMethodExist = await this.votingMethodModel.exists({ _id: createElection.votingMethodId });
+      if (!votingMethodExist) {
+        throw new Error(MESSAGE.VOTING_METHOD_NOT_FOUND);
+      }
+
+      //Kiểm tra electionType có tồn tại hay Không
+      const thresholdExist = await this.thresholdModel.exists({ _id: createElection.thresholdId });
+      if (!thresholdExist) {
+        throw new Error(MESSAGE.THRESHOLD_NOT_FOUND);
+      }
+
+      //Kiểm tra ngày bắt đầu phải nhỏ hơn ngày kết thúc
+      const start = new Date(createElection.startDate);
+      const end = new Date(createElection.endDate);
+      if (end <= start) {
+        throw new BadRequestException('End date must be after start date');
+      }
+
+      //Kiểm tra delegationDate có hợp lệ không
+      if (createElection.delegationStart && createElection.delegationEnd) {
+        const delStart = new Date(createElection.delegationStart);
+        const delEnd = new Date(createElection.delegationEnd);
+        if (delEnd <= delStart) {
+          throw new BadRequestException('Delegation end must be after delegation start');
+        }
+        // Nếu có delegation, đảm bảo nằm trong phạm vi election
+        if (delStart < start || delEnd > end) {
+          throw new BadRequestException('Delegation period must be within election duration');
+        }
+      }
+
+
+      const election = await this.electionsModel.create(createElection);
+      return election;
     } catch (error) {
       throw error;
     }
@@ -32,8 +98,16 @@ export class ElectionsService {
 
   async getElectionById(id: string) {
     try {
+      //kiểm tra electionId có tồn tại không
+      const electionExist = await this.electionsModel.exists({ _id: id });
+      if (!electionExist) {
+        throw new Error(MESSAGE.ELECTION_NOT_FOUND);
+      }
       const election = await this.electionsModel
         .findById(new Types.ObjectId(id))
+        .populate('typeId')
+        .populate('votingMethodId')
+        .populate('thresholdId')
         .exec();
       return election;
     } catch (error) {
@@ -41,20 +115,26 @@ export class ElectionsService {
     }
   }
 
-  async searchElectionDocumentsByElectionId(electionId: string) {
-    try {
-      const documents = await this.electionDocumentsModel
-        .find({ electionId: new Types.ObjectId(electionId) })
-        .populate('electionId')
-        .exec();
-      return documents;
-    } catch (error) {
-      throw error;
-    }
-  }
+  // async searchElectionDocumentsByElectionId(electionId: string) {
+  //   try {
+  //     const documents = await this.electionDocumentsModel
+  //       .find({ electionId: new Types.ObjectId(electionId) })
+  //       .populate('electionId')
+  //       .exec();
+  //     return documents;
+  //   } catch (error) {
+  //     throw error;
+  //   }
+  // }
 
-  async updateElections(id: string, data: ElectionsDto) {
+  async updateElections(id: string, data: UpdateElectionDto) {
     try {
+      //kiểm tra electionId có tồn tại không
+      const electionExist = await this.electionsModel.exists({ _id: id });
+      if (!electionExist) {
+        throw new Error(MESSAGE.ELECTION_NOT_FOUND);
+      }
+
       const election = await this.electionsModel
         .findByIdAndUpdate(new Types.ObjectId(id), data, { new: true })
         .exec();
@@ -66,6 +146,7 @@ export class ElectionsService {
 
   async deleteElection(id: string) {
     try {
+    
       const election = await this.electionsModel
         .findById(new Types.ObjectId(id))
         .exec();
@@ -79,34 +160,34 @@ export class ElectionsService {
     }
   }
 
-  async createElectionDocuments(req: ElectionsDocumentDto) {
-    try {
-      const election = await this.electionDocumentsModel.create(req);
-      return election;
-    } catch (error) {
-      throw error;
-    }
-  }
+  // async createElectionDocuments(req: ElectionsDocumentDto) {
+  //   try {
+  //     const election = await this.electionDocumentsModel.create(req);
+  //     return election;
+  //   } catch (error) {
+  //     throw error;
+  //   }
+  // }
 
-  async searchDocumentsByElectionId(electionId: string) {
-    try {
-      const documents = await this.electionDocumentsModel
-        .find({ electionId: new Types.ObjectId(electionId) })
-        .exec();
-      return documents;
-    } catch (error) {
-      throw error;
-    }
-  }
+  // async searchDocumentsByElectionId(electionId: string) {
+  //   try {
+  //     const documents = await this.electionDocumentsModel
+  //       .find({ electionId: new Types.ObjectId(electionId) })
+  //       .exec();
+  //     return documents;
+  //   } catch (error) {
+  //     throw error;
+  //   }
+  // }
 
-  async deleteDocumentByElectionId(electionId: string) {
-    try {
-      const documents = await this.electionDocumentsModel
-        .deleteMany({ electionId: new Types.ObjectId(electionId) })
-        .exec();
-      return documents;
-    } catch (error) {
-      throw error;
-    }
-  }
+  // async deleteDocumentByElectionId(electionId: string) {
+  //   try {
+  //     const documents = await this.electionDocumentsModel
+  //       .deleteMany({ electionId: new Types.ObjectId(electionId) })
+  //       .exec();
+  //     return documents;
+  //   } catch (error) {
+  //     throw error;
+  //   }
+  // }
 }
