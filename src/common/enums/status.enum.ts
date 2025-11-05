@@ -60,6 +60,9 @@ export enum STATUS {
   ONGOING = 'ongoing',
   POSTPONED = 'postponed',
 
+  //status data: Signed_blink, DATA_ENTERED, APPROVED_SIGNED
+
+
 }
 
 
@@ -89,8 +92,8 @@ export enum MESSAGE_STATUS {
     SYSTEM_LOGS_VIEW = 'Dữ liệu system log trả về thành công!',
 }
 
-export enum DELEGATION_TYPE{
-  ELECTION ='election',
+export enum DELEGATION_TYPE {
+  ELECTION = 'election',
   LONG_TERM = 'long_term'
 }
 

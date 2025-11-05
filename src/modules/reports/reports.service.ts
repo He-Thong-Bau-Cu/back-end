@@ -6,25 +6,26 @@ import { Model, Types } from 'mongoose';
 import { Reports, ReportsDocument } from 'src/database/schemas/reports.schema';
 import { Elections } from 'src/database/schemas/elections.schema';
 import { ElectionsParticipants } from 'src/database/schemas/electionParticipants.schema';
+import { MESSAGE } from 'src/common/enums/message.enum';
 
 @Injectable()
 export class ReportsService {
   constructor(
-    @InjectModel(Reports.name) 
+    @InjectModel(Reports.name)
     private readonly reportModel: Model<Reports>,
     @InjectModel(Elections.name)
-    private readonly electionsModel:Model<Elections>,
+    private readonly electionsModel: Model<Elections>,
     @InjectModel(ElectionsParticipants.name)
-    private readonly electionParticipantsModel:Model<ElectionsParticipants>
-  ){}
+    private readonly electionParticipantsModel: Model<ElectionsParticipants>
+  ) { }
 
   async create(createReport: CreateReportDto) {
     try {
       //Check if elctions is exists
-      const eletionExist = await this.electionsModel.exists({_id:createReport.electionId});
-      if(!eletionExist)
-        throw new Error("Election is not found");
-      
+      const eletionExist = await this.electionsModel.exists({ _id: createReport.electionId });
+      if (!eletionExist)
+        throw new Error(MESSAGE.ELECTION_NOT_FOUND);
+
       const report = await this.reportModel.create(createReport);
       return report;
     } catch (error) {
@@ -48,7 +49,7 @@ export class ReportsService {
   async getById(id: string) {
     try {
       return await this.reportModel
-        .findById(new Types.ObjectId(id)) 
+        .findById(new Types.ObjectId(id))
         .populate('electionId')
         .populate('reviewedBy', 'username fullName email position')
         .populate('signedBy', 'username fullName email position')
@@ -63,7 +64,7 @@ export class ReportsService {
       //Check if the report is exist
       const reportExist = await this.reportModel.exists({ _id: id });
       if (!reportExist) {
-        throw new Error('Report not found');
+        throw new Error(MESSAGE.REPORT_NOT_FOUND);
       }
       return await this.reportModel
         .findByIdAndUpdate(new Types.ObjectId(id), updateReport, { new: true })

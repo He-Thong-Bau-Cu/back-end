@@ -4,25 +4,26 @@ import { UpdateVotingMethodDto } from './dto/update-voting-method.dto';
 import { VotingMethods } from 'src/database/schemas/votingMethods.schema';
 import { Model } from 'mongoose';
 import { InjectModel } from '@nestjs/mongoose';
+import { MESSAGE } from 'src/common/enums/message.enum';
 
 @Injectable()
 export class VotingMethodsService {
   constructor(
     @InjectModel(VotingMethods.name)
     private readonly votingMethodsModel: Model<VotingMethods>
-  ) {}
+  ) { }
 
   async findOne(methodCode: string) {
     try {
       const votingMethod = await this.votingMethodsModel.findOne
-      ({ methodCode }).exec();
+        ({ methodCode }).exec();
       if (!votingMethod) {
-        throw new Error('Voting Method Code not found');
-      }   
+        throw new Error(MESSAGE.VOTING_METHOD_CODE_NOT_FOUND);
+      }
       return votingMethod;
     } catch (error) {
       throw error;
-    } 
+    }
   }
 
 }
