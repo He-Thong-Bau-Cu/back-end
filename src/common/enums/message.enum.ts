@@ -42,7 +42,7 @@ export enum MESSAGE {
     NO_PARTICIPANTS_LINKED = 'Không có người tham gia liên kết với cuộc bầu cử',
 
     // Participants
-    PARTICIPANT_NOT_FOUND = 'Không tìm thấy người tham gia trong cuộc bầu cử',
+    PARTICIPANT_NOT_FOUND = 'Không tìm thấy người tham gia',
     PARTICIPANT_ID_DOES_NOT_EXIST = 'ID người tham gia không tồn tại',
     ROLE_NOT_FOUND = 'Không tìm thấy vai trò',
 
@@ -62,7 +62,6 @@ export enum MESSAGE {
     THRESHOLD_NOT_FOUND = 'Ngưỡng thông qua không tồn tại',
     VOTING_METHOD_CODE_NOT_FOUND = 'Không tìm thấy mã của phương thức bầu cử',
     VOTING_METHOD_NOT_FOUND = 'Phương thức bầu cử không tồn tại',
-
 
     // SMS
     SMS_SEND_ERROR = 'Lỗi không xác định xảy ra khi gửi SMS',
@@ -117,7 +116,6 @@ export enum MESSAGE {
     ELECTION_GET_BY_ID_SUCCESS = 'Lấy thông tin kỳ bầu cử  thành công',
     ELECTION_UPDATE_SUCCESS = 'Cập nhật kỳ bầu cử thành công',
     ELECTION_DELETE_SUCCESS = 'Xóa kỳ bầu cử thành công',
-    
     ELECTION_CREATE_SUCCESS = 'Tạo mới cuộc bầu cử thành công',
 
     // Success Messages - Roles
