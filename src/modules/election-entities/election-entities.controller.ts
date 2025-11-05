@@ -5,20 +5,21 @@ import { UpdateElectionEntityDto } from './dto/update-election-entity.dto';
 import { ApiOperation, ApiResponse } from '@nestjs/swagger';
 import Api from 'twilio/lib/rest/Api';
 import { BaseResponse } from 'src/common/dto/base-response.dto';
+import { MESSAGE } from 'src/common/enums/message.enum';
 
 @Controller('election-entities')
 export class ElectionEntitiesController {
-  constructor(private readonly electionEntitiesService: ElectionEntitiesService) {}
+  constructor(private readonly electionEntitiesService: ElectionEntitiesService) { }
 
   @Post()
   @ApiOperation({ summary: 'Tạo mới một kỳ bầu cử' })
   @ApiResponse({ status: 201, description: 'Kỳ bầu cử đã được tạo thành công.' })
   @ApiResponse({ status: 400, description: 'Dữ liệu không hợp lệ.' })
   @ApiResponse({ status: 500, description: 'Lỗi server' })
-  async create(@Body() createElectionEntity: CreateElectionEntityDto):Promise<BaseResponse> {
+  async create(@Body() createElectionEntity: CreateElectionEntityDto): Promise<BaseResponse> {
     try {
       const resData = await this.electionEntitiesService.create(createElectionEntity);
-      return BaseResponse.success(resData, "Tạo entity cuộc bầu cử thành công", 201);
+      return BaseResponse.success(resData, MESSAGE.ELECTION_ENTITY_CREATE_SUCCESS, 201);
     } catch (error) {
       throw new HttpException(
         { message: error.message },
@@ -28,15 +29,15 @@ export class ElectionEntitiesController {
     }
   }
 
- @Put(':id')
+  @Put(':id')
   @ApiOperation({ summary: 'Cập nhật một entity của cuộc bầu cử' })
   @ApiResponse({ status: 200, description: 'Entity của cuộc bầu cử đã được cập nhật thành công.' })
   @ApiResponse({ status: 400, description: 'Dữ liệu không hợp lệ.' })
   @ApiResponse({ status: 500, description: 'Lỗi server' })
-  async update(@Param('id') id: string, @Body() updateElectionEntity: UpdateElectionEntityDto):Promise<BaseResponse> {
+  async update(@Param('id') id: string, @Body() updateElectionEntity: UpdateElectionEntityDto): Promise<BaseResponse> {
     try {
       const resData = await this.electionEntitiesService.update(id, updateElectionEntity);
-      return BaseResponse.success(resData, "Cập nhật entity cuộc bầu cử thành công", 200);
+      return BaseResponse.success(resData, MESSAGE.ELECTION_ENTITY_UPDATE_SUCCESS, 200);
     } catch (error) {
       throw new HttpException(
         { message: error.message },

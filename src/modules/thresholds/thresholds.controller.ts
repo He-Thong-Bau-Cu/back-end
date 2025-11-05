@@ -4,6 +4,7 @@ import { CreateThresholdDto } from './dto/create-threshold.dto';
 import { UpdateThresholdDto } from './dto/update-threshold.dto';
 import Api from 'twilio/lib/rest/Api';
 import { BaseResponse } from 'src/common/dto/base-response.dto';
+import { MESSAGE } from 'src/common/enums/message.enum';
 import { ApiOperation, ApiResponse } from '@nestjs/swagger';
 
 @Controller('thresholds')
@@ -17,7 +18,7 @@ export class ThresholdsController {
   async getThresholdByCode(@Param('thresholdCode') thresholdCode: string): Promise<BaseResponse> {
     try {
       const resData = await this.thresholdsService.findOne(thresholdCode);
-      return BaseResponse.success(resData, 'Lấy thông tin ngưỡng thông qua theo mã thành công', HttpStatus.OK);
+      return BaseResponse.success(resData, MESSAGE.THRESHOLD_GET_BY_CODE_SUCCESS, HttpStatus.OK);
     } catch (error) {
       throw new HttpException(
         { message: error.message },

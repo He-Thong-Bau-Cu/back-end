@@ -59,7 +59,10 @@ export enum STATUS {
   SCHEDULED = 'SCHEDULED',
   ONGOING = 'ONGOING',
   POSTPONED = 'POSTPONED',
+
+  //status data: Signed_blink, DATA_ENTERED, APPROVED_SIGNED
 }
+
 
 export enum STATUS_SYSTEM {
   SUCCESS = 'SUCCESS',
@@ -68,7 +71,6 @@ export enum STATUS_SYSTEM {
   CLIENT_ERROR = 'CLIENT_ERROR',
   SERVER_ERROR = 'SERVER_ERROR',
 }
-
 
 export enum MESSAGE_STATUS {
     SUCCESS = 'Thành công!',
@@ -94,8 +96,8 @@ export enum MESSAGE_STATUS {
 
 }
 
-export enum DELEGATION_TYPE{
-  ELECTION ='election',
+export enum DELEGATION_TYPE {
+  ELECTION = 'election',
   LONG_TERM = 'long_term'
 }
 

@@ -1,10 +1,11 @@
 import { Body, Controller, Post } from '@nestjs/common';
 import { CaService } from './ca.service';
 import { SignerInfo } from 'src/common/dto/singerInfo.dot';
+import { MESSAGE } from 'src/common/enums/message.enum';
 
 @Controller('ca')
 export class CaController {
-  constructor(private readonly caService: CaService) {}
+  constructor(private readonly caService: CaService) { }
 
   @Post('init')
   initRootCA() {
@@ -16,7 +17,7 @@ export class CaController {
     const signerInfo = body.signerInfo;
     const password = body.password;
     if (!signerInfo || !password) {
-      throw new Error('Thiếu thông tin signer hoặc password');
+      throw new Error(MESSAGE.MISSING_SIGNER_OR_PASSWORD);
     }
     const resData = this.caService.issueSigner(signerInfo, password);
     return {

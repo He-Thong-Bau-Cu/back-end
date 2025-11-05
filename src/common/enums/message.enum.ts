@@ -4,6 +4,13 @@ export enum MESSAGE {
     ELECTION_NOT_FOUND = 'Không tìm thấy cuộc bầu cử',
     ELECTION_IS_NOT_ACTIVE = 'Cuộc bầu cử không hoạt động',
 
+    // Election Documents
+    ELECTION_DOCUMENT_NOT_FOUND = 'Không tìm thấy tài liệu kỳ bầu cử',
+    ELECTION_DOCUMENT_CREATE_SUCCESS = 'Tạo tài liệu kỳ bầu cử thành công',
+    ELECTION_DOCUMENT_GET_SUCCESS = 'Lấy danh sách tài liệu theo electionId thành công',
+    ELECTION_DOCUMENT_DELETE_SUCCESS = 'Xóa tài liệu theo electionId thành công',
+    ELECTION_DOCUMENT_UPDATE_SUCCESS = 'Cập nhật tài liệu theo electionId thành công',
+
     // User
     USER_NOT_FOUND = 'Không tìm thấy người dùng',
     USER_IS_NOT_FOUND = 'Người dùng không hoạt động',
@@ -12,6 +19,8 @@ export enum MESSAGE {
     VOTER_NOT_FOUND = 'Không tìm thấy cử tri',
     VOTER_IS_NOT_ACTIVE = 'Cử tri không hoạt động',
     VOTER_HAS_NOT_VOTING_RIGHT = 'Cử tri không có quyền bầu cử cho cuộc bầu cử này',
+    VOTER_DELETE_SUCCESS = 'Cử tri được xóa thành công',
+    VOTER_GET_BY_ELECTION_SUCCESS = 'Lấy danh sách cử tri theo cuộc bầu cử thành công',
 
 
     // Voting Rights
@@ -50,7 +59,9 @@ export enum MESSAGE {
 
     // Thresholds & Voting Methods
     THRESHOLD_CODE_NOT_FOUND = 'Không tìm thấy mã của ngưỡng thông qua',
+    THRESHOLD_NOT_FOUND = 'Ngưỡng thông qua không tồn tại',
     VOTING_METHOD_CODE_NOT_FOUND = 'Không tìm thấy mã của phương thức bầu cử',
+    VOTING_METHOD_NOT_FOUND = 'Phương thức bầu cử không tồn tại',
 
     // SMS
     SMS_SEND_ERROR = 'Lỗi không xác định xảy ra khi gửi SMS',
@@ -105,9 +116,7 @@ export enum MESSAGE {
     ELECTION_GET_BY_ID_SUCCESS = 'Lấy thông tin kỳ bầu cử  thành công',
     ELECTION_UPDATE_SUCCESS = 'Cập nhật kỳ bầu cử thành công',
     ELECTION_DELETE_SUCCESS = 'Xóa kỳ bầu cử thành công',
-    ELECTION_DOCUMENT_GET_SUCCESS = 'Lấy danh sách tài liệu theo electionId thành công',
-    ELECTION_DOCUMENT_CREATE_SUCCESS = 'Tạo tài liệu kỳ bầu cử thành công',
-    ELECTION_DOCUMENT_DELETE_SUCCESS = 'Xóa tài liệu theo electionId thành công',
+    ELECTION_CREATE_SUCCESS = 'Tạo mới cuộc bầu cử thành công',
 
     // Success Messages - Roles
     ROLE_GET_ALL_SUCCESS = 'Lấy danh sách vai trò thành công',

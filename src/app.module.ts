@@ -37,6 +37,7 @@ import { MeetingAttendeesModule } from './modules/meeting-attendees/meeting-atte
 import { BallotsModule } from './modules/ballots/ballots.module';
 import { ResultsModule } from './modules/results/results.module';
 import { MailModule } from './modules/mail/mail.module';
+import { ElectionDocumentsModule } from './modules/election-documents/election-documents.module';
 
 
 @Module({
@@ -79,6 +80,7 @@ import { MailModule } from './modules/mail/mail.module';
     MeetingAttendeesModule,
     BallotsModule,
     ResultsModule,
+    ElectionDocumentsModule,
   ],
   controllers: [],
   providers: [
@@ -143,6 +145,10 @@ export class AppModule {
         { path: "ca/issue", method: RequestMethod.POST },
         { path: "user/create", method: RequestMethod.POST },
         { path: "user/detail/:id", method: RequestMethod.GET },
+        { path: "election-documents/elections/:electionId", method: RequestMethod.GET },
+        { path: "election-documents/:id", method: RequestMethod.GET },
+        { path: "election-documents/:id", method: RequestMethod.PUT },
+        { path: "election-documents", method: RequestMethod.POST },
 
       )
       .forRoutes("*");
