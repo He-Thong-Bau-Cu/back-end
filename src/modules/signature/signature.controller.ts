@@ -83,8 +83,8 @@ export class SigningController {
     @Res() res: Response,
   ) {
     const p12Buffer = fs.readFileSync(body.p12Path);
-    const signed = await this.signingService.signDocWithP12(file.buffer, p12Buffer, body.password);
-    const outputPath = path.join('uploads', `${file.originalname}.p7s`);
+    const signed = await this.signingService.signDocxXml(file.buffer, p12Buffer, body.password);
+    const outputPath = path.join('uploads', `${file.originalname}`);
     fs.writeFileSync(outputPath, signed);
     return res.download(outputPath);
   }

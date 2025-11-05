@@ -140,6 +140,9 @@ export class AppModule {
         { path: "signing/doc", method: RequestMethod.POST },
         { path: "ca/init", method: RequestMethod.POST },
         { path: "ca/issue", method: RequestMethod.POST },
+        { path: "ca/issue", method: RequestMethod.POST },
+        { path: "user/create", method: RequestMethod.POST },
+        { path: "user/detail/:id", method: RequestMethod.GET },
 
       )
       .forRoutes("*");

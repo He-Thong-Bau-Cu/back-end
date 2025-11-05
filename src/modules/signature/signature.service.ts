@@ -239,6 +239,7 @@ export class SigningService {
   zip.file('_xmlsignatures/_rels/sig1.xml.rels', sigRels);
 
   // ✅ Trả về file DOCX đã ký
+  console.log('run')
   return zip.generate({ type: 'nodebuffer' });
 }
 

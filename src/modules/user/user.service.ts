@@ -8,6 +8,7 @@ import * as bcrypt from 'bcrypt';
 import { MailService } from '../mail/mail.service';
 import { STATUS } from '../../common/enums/status.enum';
 import { USER_ROLE } from '../../common/enums/config.enum';
+import { paginate } from 'src/common/dto/paignation';
 
 @Injectable()
 export class UserService {
@@ -16,6 +17,22 @@ export class UserService {
     @InjectModel(Roles.name) private readonly roleModel: Model<RolesDocument>,
     private readonly mailService: MailService,
   ) {}
+
+  async search(req: UserDto){
+    try {
+      const userData = await this.userModel.find({
+        $or: [
+          { fullName: { $regex: req.fullName ? req.fullName : '', $options: 'i' } },
+          { email: { $regex: req.email ? req.email : '', $options: 'i' } },
+          { phone: { $regex: req.phone ? req.phone : '', $options: 'i' } },
+          { citizenId: { $regex: req.citizenId ? req.citizenId : '', $options: 'i' } },
+        ],
+      }).exec();
+      return paginate(userData.length > 0 ? userData : [], req.page, req.limit);
+    } catch (error) {
+      throw error;
+    }
+  }
 
   async create(req: UserDto) {
     try {
@@ -73,6 +90,75 @@ export class UserService {
       return newUser;
     } catch (e) {
       throw e;
+    }
+  }
+
+  async updateUser(userId: string, req: UserDto){
+    try {
+      const userData = await this.userModel.findById(new Types.ObjectId(userId)).exec();
+      if(!userData){
+        throw new Error('Người dùng không tồn tại !');
+      }
+      const checkEmail = await this.userModel.find({
+        $or: [{ email: req.email }],
+        _id: { $ne: new Types.ObjectId(userId) },
+      }).exec();
+      if(checkEmail.length > 0){
+        throw new Error('Gmail đã tồn tại !');
+      }
+      const checkPhone = await this.userModel.find({
+        $or: [{ phone: req.phone }],
+        _id: { $ne: new Types.ObjectId(userId) },
+      }).exec();
+      if(checkPhone.length > 0){
+        throw new Error('Số điện thoại đã tồn tại !');
+      }
+      const checkCitizenId = await this.userModel.find({
+        $or: [{ citizenId: req.citizenId }],
+        _id: { $ne: new Types.ObjectId(userId) },
+      }).exec();
+      if(checkCitizenId.length > 0){
+        throw new Error('Số căn cước công dân đã tồn tại !');
+      }
+      userData.fullName = req.fullName ? req.fullName : userData.fullName;
+      userData.dateOfBirth = req.dateOfBirth ? req.dateOfBirth : userData.dateOfBirth;
+      userData.citizenId = req.citizenId ? req.citizenId : userData.citizenId;
+      userData.email = req.email ? req.email : userData.email;
+      userData.phone = req.phone ? req.phone : userData.phone;
+      userData.address = req.address ? req.address : userData.address;
+      userData.roleId = req.roleId ? new Types.ObjectId(req.roleId) : userData.roleId;
+      userData.position = req.position ? req.position : userData.position;
+      userData.department = req.department ? req.department : userData.department;
+      userData.image = req.image ? req.image : userData.image;
+      await userData.save();
+      return userData;
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  async detail (userId: string) {
+    try {
+      const userData = await this.userModel.findById(new Types.ObjectId(userId)).exec();
+      if(!userData){
+        throw new Error('Người dùng không tồn tại !');
+      }
+      return userData;
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  async delete (userId: string){
+    try{
+      const userData = await this.userModel.findById(new Types.ObjectId(userId)).exec();
+      if(!userData){
+        throw new Error('Người dùng không tồn tại !');
+      }
+      userData.status = STATUS.INACTIVE;
+      return await userData.save();
+    }catch(error){
+      throw error;
     }
   }
 
