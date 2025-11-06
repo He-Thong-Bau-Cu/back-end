@@ -28,7 +28,7 @@ export class DelegationsService {
   async getByElectionId(id: string) {
     try {
       const delegation = await this.delegationModel
-        .findOne({ electionId: id })
+        .findOne({ electionId: new Types.ObjectId(id) })
         .populate([
           { path: 'electionId', select: "title startDate endDate delegationStart delegationEnd status statusData decisionNumber decisionName" },
           { path: 'delegatorId', select: "username fullName email position" },

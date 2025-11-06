@@ -27,4 +27,21 @@ export class UsersController {
      }
    }
 
+   @Get()
+   @ApiOperation({ summary: 'Lấy danh sách thông tin người dùng' })
+   @ApiResponse({ status: 200, description: 'Lấy danh sách thông tin người dùng thành công.' })
+   @ApiResponse({ status: 400, description: 'Dữ liệu không hợp lệ.' })
+   @ApiResponse({ status: 500, description: 'Lỗi server' })
+   async getAll(): Promise<BaseResponse> {
+     try {
+       const resData = await this.usersService.getAll();
+       return BaseResponse.success(resData, MESSAGE.USER_GET_ALL_SUCCESS, HttpStatus.OK);
+     } catch (error) {
+       throw new HttpException(
+         { message: error.message },
+         HttpStatus.INTERNAL_SERVER_ERROR
+       )
+     }
+   }
+
 }

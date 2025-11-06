@@ -77,7 +77,7 @@ export class VoterInvitationsService {
         throw new Error(MESSAGE.ELECTION_NOT_FOUND);
       }
       const invitations = await this.voterInvitationsModel
-      .find({ electionId })
+      .find({ electionId: new Types.ObjectId(electionId) })
       .populate('voterId')
       .populate('electionId')
       .exec();
@@ -100,7 +100,7 @@ export class VoterInvitationsService {
         throw new Error(MESSAGE.VOTER_NOT_FOUND);
       }
       const invitations = await this.voterInvitationsModel
-      .find({ voterId })
+      .find({ voterId: new Types.ObjectId(voterId) })
       .populate('voterId')
       .populate('electionId')
       .exec();
