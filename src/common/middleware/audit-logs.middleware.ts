@@ -18,11 +18,19 @@ export class AuditLogsMiddleware implements NestMiddleware {
         const { method, originalUrl, ip, body, headers } = req;
         const { statusCode } = res;
 
+        // Chỉ log các write operations
         const isWriteOperation = ['POST', 'PUT', 'PATCH', 'DELETE'].includes(method);
         if (!isWriteOperation) return;
 
-        const user = (req as any).user || {};
-        const userId = user.userId ? new Types.ObjectId(user.userId) : null;
+        // Chỉ log khi có token (có req.user từ AuthMiddleware)
+        const user = (req as any).user;
+        if (!user || !user.sub) {
+          // Không có token, bỏ qua audit log
+          return;
+        }
+
+        // Lấy userId từ JWT payload (sub field)
+        const userId = new Types.ObjectId(user.sub);
 
         const moduleName = originalUrl.split('/').filter(Boolean)[1]?.toUpperCase() || 'UNKNOWN';
 
@@ -42,9 +50,10 @@ export class AuditLogsMiddleware implements NestMiddleware {
         await auditLog.save();
 
         const duration = Date.now() - start;
-        console.log(`✅ [AUDIT] ${method} ${originalUrl} (${duration}ms)`);
+        console.log(`✅ [AUDIT] ${method} ${originalUrl} - User: ${user.sub} (${duration}ms)`);
 
       } catch (error) {
+        // Log error nhưng không throw để không ảnh hưởng đến response
         console.error('❌ Error saving audit log:', error);
       }
     });

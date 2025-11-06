@@ -10,9 +10,11 @@ import rateLimit from 'express-rate-limit';
 import * as cookieParser from 'cookie-parser';
 import * as csurf from 'csurf';
 import compression from 'compression';
+import * as dotenv from 'dotenv';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+  dotenv.config();
   app.enableCors({
     origin: ['http://localhost:5173', 'http://127.0.0.1:5173', 'https://hethongbaucu.netlify.app/'],
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',

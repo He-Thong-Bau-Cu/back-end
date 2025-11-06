@@ -38,6 +38,7 @@ import { BallotsModule } from './modules/ballots/ballots.module';
 import { ResultsModule } from './modules/results/results.module';
 import { MailModule } from './modules/mail/mail.module';
 import { ElectionDocumentsModule } from './modules/election-documents/election-documents.module';
+import { RedisModule } from './modules/redis/redis.module';
 
 
 @Module({
@@ -81,6 +82,7 @@ import { ElectionDocumentsModule } from './modules/election-documents/election-d
     BallotsModule,
     ResultsModule,
     ElectionDocumentsModule,
+    RedisModule,
   ],
   controllers: [],
   providers: [
@@ -101,57 +103,30 @@ export class AppModule {
         { path: `system/${ENDPOINT.SYSTEM_LOG}/${METHOD.SEARCH}`, method: RequestMethod.POST },
         { path: "api/docs", method: RequestMethod.GET },
         { path: "api/*", method: RequestMethod.GET },
-        { path: "/system/roles/create", method: RequestMethod.POST },
-        { path: "election-types/:code", method: RequestMethod.GET },
-        { path: "thresholds/:code", method: RequestMethod.GET },
-        { path: "voting-methods/:code", method: RequestMethod.GET },
-        { path: "election-entities", method: RequestMethod.POST },
-        { path: "election-entities/:id", method: RequestMethod.PUT },
-        { path: "election-participants", method: RequestMethod.POST },
-        { path: "voters", method: RequestMethod.POST },
-        { path: "voters/:id", method: RequestMethod.PUT },
-        { path: "voting-rights", method: RequestMethod.POST },
-        { path: "voting-rights/:id", method: RequestMethod.PUT },
-        { path: "meetings", method: RequestMethod.POST },
-        { path: "meetings/:id", method: RequestMethod.PUT },
-        { path: "delegations/:id", method: RequestMethod.GET },
-        { path: "delegations/pending", method: RequestMethod.GET },
-        { path: "delegations/election/:electionId", method: RequestMethod.GET },
-        { path: "delegations", method: RequestMethod.POST },
-        { path: "delegations/:id", method: RequestMethod.PUT },
-        { path: "reports/:id", method: RequestMethod.GET },
-        { path: "reports", method: RequestMethod.GET },
-        { path: "reports", method: RequestMethod.POST },
-        { path: "reports/:id", method: RequestMethod.PUT },
-        { path: "delegate-cards/active", method: RequestMethod.GET },
-        { path: "meeting-attendees/:id", method: RequestMethod.PUT },
-        { path: "meeting-attendees/meetings/:meetingId/participants/:participantId/attendance", method: RequestMethod.PATCH },
-        { path: "meeting-attendees", method: RequestMethod.GET },
-        { path: "meeting-attendees/:id", method: RequestMethod.GET },
-        { path: "meeting-attendees", method: RequestMethod.POST },
-        { path: "ballots", method: RequestMethod.GET },
-        { path: "ballots/elections/:electionId", method: RequestMethod.GET },
-        { path: "ballots/:id", method: RequestMethod.GET },
-        { path: "ballots/:id", method: RequestMethod.PUT },
-        { path: "ballots", method: RequestMethod.POST },
-        { path: "results", method: RequestMethod.GET },
-        { path: "results/elections/:electionId", method: RequestMethod.GET },
-        { path: "results/:id", method: RequestMethod.GET },
-        { path: "results/:id", method: RequestMethod.PUT },
-        { path: "results", method: RequestMethod.POST },
-        { path: "signing/doc", method: RequestMethod.POST },
-        { path: "ca/init", method: RequestMethod.POST },
-        { path: "ca/issue", method: RequestMethod.POST },
-        { path: "ca/issue", method: RequestMethod.POST },
-        { path: "user/create", method: RequestMethod.POST },
-        { path: "user/detail/:id", method: RequestMethod.GET },
-        { path: "election-documents/elections/:electionId", method: RequestMethod.GET },
-        { path: "election-documents/:id", method: RequestMethod.GET },
-        { path: "election-documents/:id", method: RequestMethod.PUT },
-        { path: "election-documents", method: RequestMethod.POST },
+        { path: "auth/2fa/setup", method: RequestMethod.POST },
+        { path: "auth/2fa/login", method: RequestMethod.POST },
+        { path: "auth/2fa/verify", method: RequestMethod.POST },
+        { path: "auth/send-otp", method: RequestMethod.POST },
+        { path: "auth/verify-otp", method: RequestMethod.POST },
+        { path: "auth/forward-password", method: RequestMethod.POST },
 
       )
       .forRoutes("*");
-    consumer.apply(AuditLogsMiddleware).forRoutes("*");
+
+    // AuditLogsMiddleware chỉ exclude các route auth (không cần log các action auth)
+    consumer
+      .apply(AuditLogsMiddleware)
+      .exclude(
+        { path: "auth/login", method: RequestMethod.POST },
+        { path: "auth/register", method: RequestMethod.POST },
+        { path: "auth/2fa/setup", method: RequestMethod.POST },
+        { path: "auth/2fa/login", method: RequestMethod.POST },
+        { path: "auth/2fa/verify", method: RequestMethod.POST },
+        { path: "auth/send-otp", method: RequestMethod.POST },
+        { path: "auth/verify-otp", method: RequestMethod.POST },
+        { path: "auth/forward-password", method: RequestMethod.POST },
+        { path: "auth/change-password", method: RequestMethod.POST },
+      )
+      .forRoutes("*");
   }
 }
