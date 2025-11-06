@@ -4,7 +4,7 @@ import { VotersController } from './voters.controller';
 import { MongooseModule } from '@nestjs/mongoose';
 import { Voters, VotersSchema } from 'src/database/schemas/voters.schema';
 import { Elections, ElectionsSchema } from 'src/database/schemas/elections.schema';
-import { User, UserSchema } from 'src/database/schemas/users.schema';
+import { Users, UsersSchema } from 'src/database/schemas/users.schema';
 import { VotingRights, VotingRightsSchema } from 'src/database/schemas/votingRights.schema';
 
 @Module({
@@ -12,7 +12,7 @@ import { VotingRights, VotingRightsSchema } from 'src/database/schemas/votingRig
     MongooseModule.forFeature([
       { name: Voters.name, schema: VotersSchema },
       { name: Elections.name, schema: ElectionsSchema },
-      { name: User.name, schema: UserSchema },
+      { name: Users.name, schema: UsersSchema },
       { name: VotingRights.name, schema: VotingRightsSchema },
     ]),
   ],

@@ -69,12 +69,12 @@ export class ReportsService {
   async getByElectionId(electionId: string) {
     try {
       //Check if electionId is exist or IsNotEmpty
-      const electionExist = await this.electionsModel.exists({ _id: electionId });
+      const electionExist = await this.electionsModel.exists({ _id: new Types.ObjectId(electionId) });
       if (!electionExist)
         throw new Error(MESSAGE.ELECTION_NOT_FOUND);
 
       const report = await this.reportModel
-        .find({ electionId })
+        .find({ electionId: new Types.ObjectId(electionId) })
         .populate('electionId')
         .populate('reviewedBy', 'username fullName email position')
         .populate('signedBy', 'username fullName email position')

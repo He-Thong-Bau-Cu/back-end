@@ -47,7 +47,8 @@ export class VotingRightsService {
       if (!electionExists) {
         throw new Error(MESSAGE.ELECTION_NOT_FOUND);
       }
-      const votingRights = await this.votingRightModel.find({ electionId })
+      const votingRights = await this.votingRightModel
+      .find({ electionId: new Types.ObjectId(electionId) })
       .populate('electionId')
       .populate('voterId')
       .exec();
@@ -69,7 +70,8 @@ export class VotingRightsService {
       if (!voterExists) {
         throw new Error(MESSAGE.VOTER_NOT_FOUND);
       }
-      const votingRights = await this.votingRightModel.find({ voterId })
+      const votingRights = await this.votingRightModel
+      .find({ voterId: new Types.ObjectId(voterId) })
       .populate('electionId')
       .populate('voterId')
       .exec();

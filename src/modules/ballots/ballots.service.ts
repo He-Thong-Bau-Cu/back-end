@@ -86,7 +86,8 @@ export class BallotsService {
         throw new Error(MESSAGE.ELECTION_NOT_FOUND);
       }
 
-      const ballots = await this.ballotsModel.find({ electionId })
+      const ballots = await this.ballotsModel
+      .find({ electionId: new Types.ObjectId(electionId) })
         .populate('electionId', 'title startDate endDate delegationStart delegationEnd status statusData decisionNumber decisionName')
         .populate({
           path: 'voterId',
@@ -118,7 +119,7 @@ export class BallotsService {
         throw new Error(MESSAGE.VOTER_NOT_FOUND);
       }
 
-      const ballots = await this.ballotsModel.find({ voterId })
+      const ballots = await this.ballotsModel.find({ voterId: new Types.ObjectId(voterId) })
         .populate('electionId', 'title startDate endDate delegationStart delegationEnd status statusData decisionNumber decisionName')
         .populate({
           path: 'voterId',

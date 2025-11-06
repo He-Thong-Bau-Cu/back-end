@@ -63,7 +63,7 @@ export class MeetingAttendeesService {
       //Check if participantId is exist or IsNotEmpty
       const participantExist = await this.electionParticipantsModel.exists({ _id: createMeetingAttendee.participantId });
       if (!participantExist) {
-        throw new Error(MESSAGE.PARTICIPANT_NOT_FOUND);
+        throw new Error(MESSAGE.ELECTION_PARTICIPANT_NOT_FOUND);
       }
       return await this.meetingAttendeesModel.create(createMeetingAttendee);
     } catch (error) {
@@ -81,7 +81,7 @@ export class MeetingAttendeesService {
       //Check if participantId is exist or IsNotEmpty
       const participantExist = await this.electionParticipantsModel.exists({ _id: participantId });
       if (!participantExist) {
-        throw new Error(MESSAGE.PARTICIPANT_NOT_FOUND);
+        throw new Error(MESSAGE.ELECTION_PARTICIPANT_NOT_FOUND);
       }
       return await this.meetingAttendeesModel.findOneAndUpdate(
         { meetingId: meetingId, participantId: participantId },
@@ -118,7 +118,8 @@ export class MeetingAttendeesService {
 
       //
 
-      const meetingAttendees = await this.meetingAttendeesModel.find({ meetingId })
+      const meetingAttendees = await this.meetingAttendeesModel
+      .find({ meetingId: new Types.ObjectId(meetingId) })
         .populate('meetingId')
         .populate({
           path: 'participantId',
@@ -140,17 +141,18 @@ export class MeetingAttendeesService {
       throw error;
     }
 
+  }
+
+  async getByParticipantId(participantId: string) {
+    try {
+      //Check if participantId is exist or IsNotEmpty
+      const participantExist = await this.electionParticipantsModel.exists({ _id: participantId });
+      if (!participantExist) {
+        throw new Error(MESSAGE.ELECTION_PARTICIPANT_NOT_FOUND);
       }
 
-    async getByParticipantId(participantId:string){
-      try {
-        //Check if participantId is exist or IsNotEmpty
-        const participantExist = await this.electionParticipantsModel.exists({ _id: participantId });
-        if (!participantExist) {
-          throw new Error(MESSAGE.PARTICIPANT_NOT_FOUND);
-        }
-
-        const meetingAttendees = await this.meetingAttendeesModel.find({ participantId })
+      const meetingAttendees = await this.meetingAttendeesModel
+      .find({ participantId: new Types.ObjectId(participantId) })
         .populate('meetingId')
         .populate({
           path: 'participantId',
@@ -162,15 +164,15 @@ export class MeetingAttendeesService {
         })
         .exec();
 
-        //Check if meetingAttendees is exist or IsNotEmpty
-        if (!meetingAttendees) {
-          throw new Error(MESSAGE.MEETING_ATTENDEE_NOT_FOUND);
-        }
-
-        return meetingAttendees;
-        
-      } catch (error) {
-        throw error;
+      //Check if meetingAttendees is exist or IsNotEmpty
+      if (!meetingAttendees) {
+        throw new Error(MESSAGE.MEETING_ATTENDEE_NOT_FOUND);
       }
+
+      return meetingAttendees;
+
+    } catch (error) {
+      throw error;
     }
+  }
 }

@@ -16,10 +16,23 @@ export class UsersService {
     private roleModel: Model<Roles>,
   ){}
 
+  async getAll(){
+    try {
+      const users = await this.userModel.find().populate('roleId').exec();
+      return users;
+    } catch (error) {
+      throw error;
+    }
+  }
+
   async getById(id: string){
     try {
 
-      const user = await this.userModel.findById(new Types.ObjectId(id)).populate('roleId').exec();
+      const user = await this.userModel
+      .findById(new Types.ObjectId(id))
+      .populate('roleId')
+      .exec();
+      
       if (!user) {
         throw new Error(MESSAGE.USER_NOT_FOUND);
       }

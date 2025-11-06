@@ -114,8 +114,9 @@ export class AppModule {
 
         //electionParticipants
         { path: "election-participants", method: RequestMethod.POST },
-        { path: "election-participants/:id", method: RequestMethod.GET },
+        { path: "election-participants/users/:userId", method: RequestMethod.GET },
         { path: "election-participants/elections/:electionId", method: RequestMethod.GET },
+        { path: "election-participants/:id", method: RequestMethod.GET },
 
         { path: "voters", method: RequestMethod.POST },
         { path: "voters/:id", method: RequestMethod.PUT },
@@ -177,7 +178,10 @@ export class AppModule {
         { path: "ca/init", method: RequestMethod.POST },
         { path: "ca/issue", method: RequestMethod.POST },
         { path: "ca/issue", method: RequestMethod.POST },
+
+        //Users
         { path: "users/:id", method: RequestMethod.GET },
+        { path: "users", method: RequestMethod.GET },
         // { path: "user/create", method: RequestMethod.POST },
         // { path: "user/detail/:id", method: RequestMethod.GET },
 

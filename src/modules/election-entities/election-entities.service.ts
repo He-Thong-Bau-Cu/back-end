@@ -51,7 +51,7 @@ export class ElectionEntitiesService {
       }
 
       const entities = await this.electionEntityModel
-        .find({ electionId })
+        .find({ electionId: new Types.ObjectId(electionId) })
         .populate('electionId')
         .populate('electionTypeId')
         .populate('proposerId')

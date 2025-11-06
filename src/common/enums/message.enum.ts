@@ -74,11 +74,7 @@ export enum MESSAGE {
     ELECTION_TYPE_CODE_NOT_FOUND = 'Không tìm thấy loại bầu cử',
     NO_PARTICIPANTS_LINKED = 'Không có người tham gia liên kết với cuộc bầu cử',
 
-    // Participants
-    PARTICIPANT_NOT_FOUND = 'Không tìm thấy người tham gia',
-    PARTICIPANT_ID_DOES_NOT_EXIST = 'ID người tham gia không tồn tại',
-    ROLE_NOT_FOUND = 'Không tìm thấy vai trò',
-
+    
     // Meetings
     MEETING_NOT_FOUND = 'Không tìm thấy cuộc họp',
     MEETING_GET_ID_SUCCESS = "Lấy thông tin cuộc họp theo ID thành công",
@@ -165,6 +161,7 @@ export enum MESSAGE {
     ELECTION_CREATE_SUCCESS = 'Tạo mới cuộc bầu cử thành công',
 
     // Success Messages - Roles
+    ROLE_NOT_FOUND = 'Không tìm thấy vai trò',
     ROLE_GET_ALL_SUCCESS = 'Lấy danh sách vai trò thành công',
     ROLE_GET_BY_ID_SUCCESS = 'Lấy thông tin vai trò theo ID thành công',
     ROLE_CREATE_SUCCESS = 'Tạo vai trò thành công',
@@ -182,13 +179,15 @@ export enum MESSAGE {
 
 
 
-    // Success Messages - Election Participants
+    // Election Participants
     ELECTION_PARTICIPANT_CREATE_SUCCESS = 'Tạo người tham gia cuộc bầu cử thành công',
     ELECTION_PARTICIPANT_NOT_FOUND = 'Không tìm thấy người tham gia',
     ELECTION_PARTICIPANT_GET_BY_ID = 'Lấy thông tin của người tham gia theo ID thành công',
     ELECTION_PARTICIPANT_GET_BY_ELECTION = 'Lấy danh sách người tham gia theo cuộc bầu cử thành công',
     ELECTION_PARTICIPANT_UPDATE_SUCCESS = 'Cập nhật người tham gia thành công',
-    ELECTION_PARTICIPANT_GET_BY_USER = 'Lấy thông tin của người tham gia theo người dùng thành công thành công',
+    ELECTION_PARTICIPANT_GET_BY_USER_SUCCESS = 'Lấy danh sách cuộc bầu cử người dùng tham gia thành công',
+    ELECTION_PARTICIPANT_ID_DOES_NOT_EXIST = 'ID người tham gia không tồn tại',
+    ELECTION_PARTICIPANT_ROLE_NOT_FOUND = 'Không tìm thấy vai trò',
 
 
 

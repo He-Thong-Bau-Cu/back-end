@@ -49,7 +49,8 @@ export class MeetingsService {
       if (!electionExists) {
         throw new Error(MESSAGE.ELECTION_NOT_FOUND);
       }
-      const meetings = await this.meetingsModel.find({ electionId })
+      const meetings = await this.meetingsModel
+      .find({ electionId:new Types.ObjectId(electionId) })
         .populate({
           path: 'electionId',
           select: 'title startDate endDate delegationStart delegationEnd status statusData decisionNumber decisionName',
