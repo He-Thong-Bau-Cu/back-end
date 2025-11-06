@@ -5,7 +5,7 @@ import { ElectionTypes } from './electionTypes.schema';
 import { VotingMethods } from './votingMethods.schema';
 import { Thresholds } from './thresholds.schema';
 import { Elections } from './elections.schema';
-import { User } from './users.schema';
+import { Users } from './users.schema';
 import { SEVERITY, STATUS } from 'src/common/enums/status.enum';
 
 export type ReportsDocument = Reports & Document;
@@ -18,10 +18,10 @@ export class Reports extends BaseSchema{
   @Prop({type: Types.ObjectId, ref: Elections.name, required: true})
   electionId: Types.ObjectId;
 
-  @Prop({type: Types.ObjectId, ref: User.name})
+  @Prop({type: Types.ObjectId, ref: Users.name})
   reviewedBy: Types.ObjectId;
 
-  @Prop({type: Types.ObjectId, ref: User.name, required: true})
+  @Prop({type: Types.ObjectId, ref: Users.name, required: true})
   signedBy: Types.ObjectId;
 
   @Prop()

@@ -2,7 +2,7 @@
 import { IsOptional, IsString, IsInt, Min } from 'class-validator';
 import { Type } from 'class-transformer';
 
-export class SearchElectionsDto {
+export class SearchDto {
     @IsOptional()
     @IsString()
     keyword?: string;

@@ -3,7 +3,7 @@ import { CreateVoterInvitationDto } from './dto/create-voter-invitation.dto';
 import { UpdateVoterInvitationDto } from './dto/update-voter-invitation.dto';
 import { InjectModel } from '@nestjs/mongoose';
 import { VoterInvitations } from 'src/database/schemas/voterInvitations.schema';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import { JwtService } from '@nestjs/jwt';
 import { Voters } from 'src/database/schemas/voters.schema';
 import { Elections } from 'src/database/schemas/elections.schema';
@@ -39,8 +39,83 @@ export class VoterInvitationsService {
       if (!electionExists) {
         throw new Error(MESSAGE.ELECTION_NOT_FOUND);
       }
-      const createdInvitation = await this.voterInvitationsModel.create(voterInvitation);
+
+      const token = this.generateToken(voterInvitation.voterId, voterInvitation.electionId);
+      const sentAt = new Date();
+      const expiresAt = new Date(sentAt.getTime() + 24 * 60 * 60 * 1000);
+
+      const createdInvitation = await this.voterInvitationsModel.create({
+        ...voterInvitation,
+        token,
+        sentAt,
+        expiresAt,
+      });
       return createdInvitation;
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  async getByElectionId(electionId: string) {
+    try {
+      // Check if the electionId exists in the database
+      const electionExists = await this.electionsModel.exists({ _id: electionId });
+      if (!electionExists) {
+        throw new Error(MESSAGE.ELECTION_NOT_FOUND);
+      }
+      const invitations = await this.voterInvitationsModel
+      .find({ electionId })
+      .populate('voterId')
+      .populate('electionId')
+      .exec();
+
+      //check if voter invitation not exist
+      if (!invitations) {
+        throw new Error(MESSAGE.VOTER_INVITATION_NOT_FOUND);
+      }
+      return invitations;
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  async getByVoterId(voterId: string) {
+    try {
+      // Check if the voterId exists in the database
+      const voterExists = await this.votersModel.exists({ _id: voterId });
+      if (!voterExists) {
+        throw new Error(MESSAGE.VOTER_NOT_FOUND);
+      }
+      const invitations = await this.voterInvitationsModel
+      .find({ voterId })
+      .populate('voterId')
+      .populate('electionId')
+      .exec();
+
+      //check if voter invitation not exist
+      if (!invitations) {
+        throw new Error(MESSAGE.VOTER_INVITATION_NOT_FOUND);
+      }
+      return invitations;
+    } catch (error) {
+      throw error;
+    }
+  }
+
+
+  async getById(id: string) {
+    try {
+      const invitation = await this.voterInvitationsModel
+      .findById(new Types.ObjectId(id))
+      .populate('voterId')
+      .populate('electionId')
+      .exec();
+      
+      //check if voter invitation not exist
+      if (!invitation) {
+        throw new Error(MESSAGE.VOTER_INVITATION_NOT_FOUND);
+      }
+      return invitation;
     } catch (error) {
       throw error;
     }

@@ -10,6 +10,44 @@ import { MESSAGE } from 'src/common/enums/message.enum';
 export class MeetingsController {
   constructor(private readonly meetingsService: MeetingsService) { }
 
+  @Get(':id')
+  @ApiOperation({ summary: 'Lấy thông tin cuộc họp theo ID' })
+  @ApiResponse({ status: 200, description: 'Thông tin cuộc họp đã được lấy thành công.' })
+  @ApiResponse({ status: 404, description: 'Không tìm thấy cuộc họp.' })
+  @ApiResponse({ status: 400, description: 'Dữ liệu không hợp lệ.' })
+  @ApiResponse({ status: 500, description: 'Lỗi server' })
+  async getById(@Param('id') id: string): Promise<BaseResponse> {
+    try {
+      const resData = await this.meetingsService.getById(id);
+      return BaseResponse.success(resData, MESSAGE.MEETING_GET_SUCCESS, HttpStatus.OK);
+    } catch (error) {
+      throw new HttpException(
+        { message: error.message },
+        HttpStatus.INTERNAL_SERVER_ERROR
+      )
+    }
+  }
+
+  @Get('elections/:electionId')
+  @ApiOperation({ summary: 'Lấy danh sách cuộc họp theo ID cuộc bầu cử' })
+  @ApiResponse({ status: 200, description: 'Danh sách cuộc họp đã được lấy thành công.' })
+  @ApiResponse({ status: 404, description: 'Không tìm thấy cuộc bầu cử.' })
+  @ApiResponse({ status: 500, description: 'Lỗi server' })
+  async getByElecionId(@Param('electionId') electionId: string): Promise<BaseResponse> {
+    try {
+      const resData = await this.meetingsService.getByElectionId(electionId);
+      return BaseResponse.success(resData, MESSAGE.MEETING_GET_BY_ELECTION_SUCCESS, HttpStatus.OK);
+    } catch (error) {
+      throw new HttpException(
+        { message: error.message },
+        HttpStatus.INTERNAL_SERVER_ERROR
+      )
+    }
+
+  }
+
+
+
   @Post()
   @ApiOperation({ summary: 'Tạo một cuộc họp mới' })
   @ApiResponse({ status: 201, description: 'Cuộc họp đã được tạo thành công.' })

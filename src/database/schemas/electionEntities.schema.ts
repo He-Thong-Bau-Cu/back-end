@@ -5,7 +5,7 @@ import { ElectionTypes } from './electionTypes.schema';
 import { VotingMethods } from './votingMethods.schema';
 import { Thresholds } from './thresholds.schema';
 import { Elections } from './elections.schema';
-import { User } from './users.schema';
+import { Users } from './users.schema';
 import { STATUS } from 'src/common/enums/status.enum';
 
 export type ElectionEntitiesDocument = ElectionEntities & Document;
@@ -30,7 +30,7 @@ export class ElectionEntities extends BaseSchema{
   @Prop()
   fileUrl: string;
 
-  @Prop({type: Types.ObjectId, ref: User.name, required: true})
+  @Prop({type: Types.ObjectId, ref: Users.name, required: true})
   proposerId: Types.ObjectId;
 
   @Prop({default:STATUS.ACTIVE})
