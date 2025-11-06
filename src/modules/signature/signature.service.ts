@@ -5,22 +5,21 @@ import * as forge from 'node-forge';
 import { SignPdf, plainAddPlaceholder } from 'node-signpdf';
 import PizZip from 'pizzip';
 import { createHash } from 'crypto';
-import { MESSAGE } from 'src/common/enums/message.enum';
 
 const UPLOADS = path.join(process.cwd(), 'uploads');
 if (!fs.existsSync(UPLOADS)) fs.mkdirSync(UPLOADS, { recursive: true });
 
 @Injectable()
 export class SigningService {
-  constructor() { }
+  constructor() {}
 
   /**
    * Ký file PDF bằng file chứng thư .p12
    */
   async signPdfWithP12(
-    pdfBuffer: Buffer,
-    p12Buffer: Buffer,
-    passphrase?: string,
+      pdfBuffer: Buffer,
+      p12Buffer: Buffer,
+      passphrase?: string,
   ): Promise<Buffer> {
     const signer = new SignPdf();
 
@@ -42,9 +41,9 @@ export class SigningService {
    * Ký file Word\
    */
   async signDocxWithP12(
-    docBuffer: Buffer,
-    p12Buffer: Buffer,
-    passphrase?: string,
+      docBuffer: Buffer,
+      p12Buffer: Buffer,
+      passphrase?: string,
   ): Promise<Buffer> {
     // Đọc và giải mã file .p12 (PKCS#12)
     const p12Der = forge.util.createBuffer(p12Buffer.toString('binary'));
@@ -55,26 +54,26 @@ export class SigningService {
     let keyObj;
     let certObj;
     const keyBags =
-      p12.getBags({ bagType: forge.pki.oids.keyBag })[forge.pki.oids.keyBag] ||
-      [];
+        p12.getBags({ bagType: forge.pki.oids.keyBag })[forge.pki.oids.keyBag] ||
+        [];
     if (keyBags.length > 0) keyObj = keyBags[0];
     const certBags =
-      p12.getBags({ bagType: forge.pki.oids.certBag })[
-      forge.pki.oids.certBag
-      ] || [];
+        p12.getBags({ bagType: forge.pki.oids.certBag })[
+            forge.pki.oids.certBag
+            ] || [];
     if (certBags.length > 0) certObj = certBags[0];
 
     // fallback: pkcs8ShroudedKeyBag
     if (!keyObj) {
       const sk =
-        p12.getBags({
-          bagType: forge.pki.oids.pkcs8ShroudedKeyBag,
-        })[forge.pki.oids.pkcs8ShroudedKeyBag];
+          p12.getBags({
+            bagType: forge.pki.oids.pkcs8ShroudedKeyBag,
+          })[forge.pki.oids.pkcs8ShroudedKeyBag];
       if (sk && sk.length > 0) keyObj = sk[0];
     }
 
     if (!keyObj || !certObj)
-      throw new Error(MESSAGE.CANNOT_EXTRACT_KEY_CERT);
+      throw new Error('Cannot extract key/cert from p12');
 
     const privateKey = keyObj.key;
     const cert = certObj.cert;
@@ -91,14 +90,14 @@ export class SigningService {
 
     // Tạo JSON metadata chữ ký
     const signatureJson = JSON.stringify(
-      {
-        signedAt: new Date().toISOString(),
-        signature: signatureBase64,
-        certificate: certPem,
-        algorithm: 'RSA-SHA256',
-      },
-      null,
-      2,
+        {
+          signedAt: new Date().toISOString(),
+          signature: signatureBase64,
+          certificate: certPem,
+          algorithm: 'RSA-SHA256',
+        },
+        null,
+        2,
     );
 
     // Thêm file vào customXml/signature.json
@@ -124,41 +123,41 @@ export class SigningService {
   }
 
   async signDocxXml(
-    docBuffer: Buffer,
-    p12Buffer: Buffer,
-    passphrase?: string,
-  ): Promise<Buffer> {
-    const zip = new PizZip(docBuffer);
+  docBuffer: Buffer,
+  p12Buffer: Buffer,
+  passphrase?: string,
+): Promise<Buffer> {
+  const zip = new PizZip(docBuffer);
 
-    // 1️⃣ Parse certificate & private key
-    const p12Der = forge.util.createBuffer(p12Buffer.toString('binary'));
-    const p12Asn1 = forge.asn1.fromDer(p12Der);
-    const p12 = forge.pkcs12.pkcs12FromAsn1(p12Asn1, passphrase);
-    const keyBag = p12.getBags({ bagType: forge.pki.oids.pkcs8ShroudedKeyBag })[forge.pki.oids.pkcs8ShroudedKeyBag][0];
-    const certBag = p12.getBags({ bagType: forge.pki.oids.certBag })[forge.pki.oids.certBag][0];
-    const privateKey = keyBag.key;
-    const cert = certBag.cert;
-    const certBase64 = Buffer.from(
-      forge.asn1.toDer(forge.pki.certificateToAsn1(cert)).getBytes(),
-      'binary'
-    ).toString('base64');
+  // 1️⃣ Parse certificate & private key
+  const p12Der = forge.util.createBuffer(p12Buffer.toString('binary'));
+  const p12Asn1 = forge.asn1.fromDer(p12Der);
+  const p12 = forge.pkcs12.pkcs12FromAsn1(p12Asn1, passphrase);
+  const keyBag = p12.getBags({ bagType: forge.pki.oids.pkcs8ShroudedKeyBag })[forge.pki.oids.pkcs8ShroudedKeyBag][0];
+  const certBag = p12.getBags({ bagType: forge.pki.oids.certBag })[forge.pki.oids.certBag][0];
+  const privateKey = keyBag.key;
+  const cert = certBag.cert;
+  const certBase64 = Buffer.from(
+    forge.asn1.toDer(forge.pki.certificateToAsn1(cert)).getBytes(),
+    'binary'
+  ).toString('base64');
 
-    // 2️⃣ Lấy các file chính
-    const contentTypesEntry = zip.file('[Content_Types].xml');
-    const relsEntry = zip.file('_rels/.rels');
-    const documentEntry = zip.file('word/document.xml');
-    if (!contentTypesEntry || !relsEntry || !documentEntry) {
-      throw new Error(MESSAGE.DOCX_MISSING_PARTS);
-    }
+  // 2️⃣ Lấy các file chính
+  const contentTypesEntry = zip.file('[Content_Types].xml');
+  const relsEntry = zip.file('_rels/.rels');
+  const documentEntry = zip.file('word/document.xml');
+  if (!contentTypesEntry || !relsEntry || !documentEntry) {
+    throw new Error('DOCX missing required parts');
+  }
 
-    // 3️⃣ Hash nội dung chính (word/document.xml)
-    const documentXml = documentEntry.asText();
-    const docDigest = createHash('sha256')
-      .update(Buffer.from(documentXml, 'utf8'))
-      .digest('base64');
+  // 3️⃣ Hash nội dung chính (word/document.xml)
+  const documentXml = documentEntry.asText();
+  const docDigest = createHash('sha256')
+    .update(Buffer.from(documentXml, 'utf8'))
+    .digest('base64');
 
-    // 4️⃣ Tạo SignedInfo — bổ sung RelationshipTransform & canonicalization
-    const signedInfo = `
+  // 4️⃣ Tạo SignedInfo — bổ sung RelationshipTransform & canonicalization
+  const signedInfo = `
   <SignedInfo xmlns="http://www.w3.org/2000/09/xmldsig#">
     <CanonicalizationMethod Algorithm="http://www.w3.org/TR/2001/REC-xml-c14n-20010315"/>
     <SignatureMethod Algorithm="http://www.w3.org/2001/04/xmldsig-more#rsa-sha256"/>
@@ -179,14 +178,14 @@ export class SigningService {
   </SignedInfo>
   `;
 
-    // 5️⃣ Ký SignedInfo (RSA-SHA256)
-    const md = forge.md.sha256.create();
-    md.update(signedInfo, 'utf8');
-    const signatureBytes = privateKey.sign(md);
-    const signatureValue = forge.util.encode64(signatureBytes);
+  // 5️⃣ Ký SignedInfo (RSA-SHA256)
+  const md = forge.md.sha256.create();
+  md.update(signedInfo, 'utf8');
+  const signatureBytes = privateKey.sign(md);
+  const signatureValue = forge.util.encode64(signatureBytes);
 
-    // 6️⃣ Tạo file sig1.xml
-    const signatureXml = `<?xml version="1.0" encoding="UTF-8"?>
+  // 6️⃣ Tạo file sig1.xml
+  const signatureXml = `<?xml version="1.0" encoding="UTF-8"?>
 <Signature xmlns="http://www.w3.org/2000/09/xmldsig#">
   ${signedInfo}
   <SignatureValue>${signatureValue}</SignatureValue>
@@ -196,52 +195,53 @@ export class SigningService {
     </X509Data>
   </KeyInfo>
 </Signature>`;
-    zip.file('_xmlsignatures/sig1.xml', signatureXml);
+  zip.file('_xmlsignatures/sig1.xml', signatureXml);
 
-    // 7️⃣ origin.sigs
-    const originXml = `<?xml version="1.0" encoding="UTF-8"?>
+  // 7️⃣ origin.sigs
+  const originXml = `<?xml version="1.0" encoding="UTF-8"?>
 <Origin xmlns="http://schemas.openxmlformats.org/package/2006/digital-signature-origin">
   <SignatureInfoV1/>
 </Origin>`;
-    zip.file('_xmlsignatures/origin.sigs', originXml);
+  zip.file('_xmlsignatures/origin.sigs', originXml);
 
-    // 8️⃣ Update [Content_Types].xml
-    let contentTypes = contentTypesEntry.asText();
-    if (!contentTypes.includes('digital-signature')) {
-      const insertAt = contentTypes.lastIndexOf('</Types>');
-      const add = `
+  // 8️⃣ Update [Content_Types].xml
+  let contentTypes = contentTypesEntry.asText();
+  if (!contentTypes.includes('digital-signature')) {
+    const insertAt = contentTypes.lastIndexOf('</Types>');
+    const add = `
   <Override PartName="/_xmlsignatures/sig1.xml" ContentType="application/vnd.openxmlformats-package.digital-signature-xmlsignature+xml"/>
   <Override PartName="/_xmlsignatures/origin.sigs" ContentType="application/vnd.openxmlformats-package.digital-signature-origin"/>
 `;
-      contentTypes = contentTypes.slice(0, insertAt) + add + contentTypes.slice(insertAt);
-      zip.file('[Content_Types].xml', contentTypes);
-    }
+    contentTypes = contentTypes.slice(0, insertAt) + add + contentTypes.slice(insertAt);
+    zip.file('[Content_Types].xml', contentTypes);
+  }
 
-    // 9️⃣ Update _rels/.rels
-    let relsXml = relsEntry.asText();
-    if (!relsXml.includes('digital-signature/origin')) {
-      const insertAt = relsXml.lastIndexOf('</Relationships>');
-      const rel = `
+  // 9️⃣ Update _rels/.rels
+  let relsXml = relsEntry.asText();
+  if (!relsXml.includes('digital-signature/origin')) {
+    const insertAt = relsXml.lastIndexOf('</Relationships>');
+    const rel = `
   <Relationship Id="rIdSign1" Type="http://schemas.openxmlformats.org/package/2006/relationships/digital-signature/origin" Target="/_xmlsignatures/origin.sigs"/>`;
-      relsXml = relsXml.slice(0, insertAt) + rel + relsXml.slice(insertAt);
-      zip.file('_rels/.rels', relsXml);
-    }
+    relsXml = relsXml.slice(0, insertAt) + rel + relsXml.slice(insertAt);
+    zip.file('_rels/.rels', relsXml);
+  }
 
-    // 🔟 Add _xmlsignatures/_rels/origin.sigs.rels
-    const originRels = `<?xml version="1.0" encoding="UTF-8"?>
+  // 🔟 Add _xmlsignatures/_rels/origin.sigs.rels
+  const originRels = `<?xml version="1.0" encoding="UTF-8"?>
 <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
   <Relationship Id="rIdSig" Type="http://schemas.openxmlformats.org/package/2006/relationships/digital-signature/signature" Target="sig1.xml"/>
 </Relationships>`;
-    zip.file('_xmlsignatures/_rels/origin.sigs.rels', originRels);
+  zip.file('_xmlsignatures/_rels/origin.sigs.rels', originRels);
 
-    // 11️⃣ Add _xmlsignatures/_rels/sig1.xml.rels (optional)
-    const sigRels = `<?xml version="1.0" encoding="UTF-8"?>
+  // 11️⃣ Add _xmlsignatures/_rels/sig1.xml.rels (optional)
+  const sigRels = `<?xml version="1.0" encoding="UTF-8"?>
 <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"/>`;
-    zip.file('_xmlsignatures/_rels/sig1.xml.rels', sigRels);
+  zip.file('_xmlsignatures/_rels/sig1.xml.rels', sigRels);
 
-    // ✅ Trả về file DOCX đã ký
-    return zip.generate({ type: 'nodebuffer' });
-  }
+  // ✅ Trả về file DOCX đã ký
+  console.log('run')
+  return zip.generate({ type: 'nodebuffer' });
+}
 
 
   // Ky bang file doc
@@ -285,13 +285,13 @@ export class SigningService {
       const pdfString = pdfBuffer.toString('binary');
 
       const byteRangeMatch = /\/ByteRange\s*\[\s*(\d+)\s+(\d+)\s+(\d+)\s+(\d+)/.exec(pdfString);
-      if (!byteRangeMatch) throw new Error(MESSAGE.NO_BYTE_RANGE_IN_PDF);
+      if (!byteRangeMatch) throw new Error('No ByteRange found in PDF');
 
       const [_, start1, len1, start2, len2] = byteRangeMatch.map(Number);
 
       // (PKCS#7) /Contents
       const contentsMatch = /\/Contents\s*<([0-9A-Fa-f]+)>/.exec(pdfString);
-      if (!contentsMatch) throw new Error(MESSAGE.NO_CONTENTS_IN_PDF);
+      if (!contentsMatch) throw new Error('No Contents found in PDF');
 
       let signatureHex = contentsMatch[1].replace(/>$/, '');
       let signatureBytes = Buffer.from(signatureHex, 'hex');
@@ -311,14 +311,14 @@ export class SigningService {
 
       // certificate signer
       const signerCert = p7.certificates[0];
-      if (!signerCert) throw new Error(MESSAGE.NO_CERTIFICATE_IN_SIGNATURE);
+      if (!signerCert) throw new Error('No certificate found in signature.');
 
       const md = forge.md.sha256.create();
       md.update(signedData.toString('binary'));
 
       const publicKey = signerCert.publicKey;
       const verifiedData =
-        p7.rawCapture.signature && publicKey.verify(md.digest().bytes(), p7.rawCapture.signature);
+          p7.rawCapture.signature && publicKey.verify(md.digest().bytes(), p7.rawCapture.signature);
 
       // CA nội bộ
       let caVerified = false;

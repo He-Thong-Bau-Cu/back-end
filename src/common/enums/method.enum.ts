@@ -7,8 +7,13 @@ export enum METHOD {
   SEARCH = 'search',
   CREATE = 'create',
   UPDATE = 'update',
+  DETAIL = 'detail',
 }
 
 export enum ENDPOINT {
-  SYSTEM_LOG = 'system-logs'
+  SYSTEM_LOG = 'system-logs',
+  ROLE = 'roles',
+  PERMISSION = 'permissions',
+  ROLE_PERMISSION = 'role-permissions',
+  USER = 'users',
 }

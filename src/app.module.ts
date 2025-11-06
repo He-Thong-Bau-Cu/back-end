@@ -15,7 +15,6 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { SystemLog, SystemLogSchema } from './database/schemas/systemLog.schema';
 
 import { Roles } from './database/schemas/roles.schema';
-import { RolesModule } from './modules/role/roles.module';
 
 import { AuditLogsMiddleware } from './common/middleware/audit-logs.middleware';
 import { AuditLogs, AuditLogsSchema } from './database/schemas/auditLogs.schema';
@@ -36,6 +35,7 @@ import { DelegateCardsModule } from './modules/delegate-cards/delegate-cards.mod
 import { MeetingAttendeesModule } from './modules/meeting-attendees/meeting-attendees.module';
 import { BallotsModule } from './modules/ballots/ballots.module';
 import { ResultsModule } from './modules/results/results.module';
+import { MailModule } from './modules/mail/mail.module';
 import { ElectionDocumentsModule } from './modules/election-documents/election-documents.module';
 import { UsersModule } from './modules/users/users.module';
 
@@ -62,11 +62,8 @@ import { UsersModule } from './modules/users/users.module';
     SignatureModule,
     CaModule,
     AuthModule,
-
-    RolesModule,
-
     SystemModule,
-
+    MailModule,
     ElectionTypesModule,
     ThresholdsModule,
     VotingMethodsModule,
@@ -104,6 +101,7 @@ export class AppModule {
         { path: `system/${ENDPOINT.SYSTEM_LOG}/${METHOD.SEARCH}`, method: RequestMethod.POST },
         { path: "api/docs", method: RequestMethod.GET },
         { path: "api/*", method: RequestMethod.GET },
+        { path: "/system/roles/create", method: RequestMethod.POST },
         { path: "election-types/:code", method: RequestMethod.GET },
         { path: "thresholds/:code", method: RequestMethod.GET },
         { path: "voting-methods/:code", method: RequestMethod.GET },
@@ -119,15 +117,9 @@ export class AppModule {
         { path: "election-participants/:id", method: RequestMethod.GET },
         { path: "election-participants/elections/:electionId", method: RequestMethod.GET },
 
-        //Voters
         { path: "voters", method: RequestMethod.POST },
         { path: "voters/:id", method: RequestMethod.PUT },
         { path: "voters/:id", method: RequestMethod.GET },
-        { path: "voters/eligible/:electionId", method: RequestMethod.GET },
-        { path: "voters/elections/:electionId", method: RequestMethod.GET },
-        { path: "voters/:id", method: RequestMethod.DELETE },
-
-        //Voting Rights
         { path: "voting-rights", method: RequestMethod.POST },
         { path: "voting-rights/:id", method: RequestMethod.PUT },
         { path: "voting-rights/elections/:electionId", method: RequestMethod.GET },
@@ -181,6 +173,12 @@ export class AppModule {
         { path: "results/:id", method: RequestMethod.GET },
         { path: "results/:id", method: RequestMethod.PUT },
         { path: "results", method: RequestMethod.POST },
+        { path: "signing/doc", method: RequestMethod.POST },
+        { path: "ca/init", method: RequestMethod.POST },
+        { path: "ca/issue", method: RequestMethod.POST },
+        { path: "ca/issue", method: RequestMethod.POST },
+        { path: "user/create", method: RequestMethod.POST },
+        { path: "user/detail/:id", method: RequestMethod.GET },
 
         //Election Documents
         { path: "election-documents/elections/:electionId", method: RequestMethod.GET },
