@@ -13,7 +13,7 @@ import { MESSAGE } from 'src/common/enums/message.enum';
 import { ElectionTypes } from 'src/database/schemas/electionTypes.schema';
 import { VotingMethods } from 'src/database/schemas/votingMethods.schema';
 import { Thresholds } from 'src/database/schemas/thresholds.schema';
-import { User } from 'src/database/schemas/users.schema';
+import { Users } from 'src/database/schemas/users.schema';
 import { CreateElectionDto } from './dto/create-elections-dto';
 import { UpdateElectionDto } from './dto/update-elections-dto';
 import { SearchElectionsDto } from './dto/search-dto';
@@ -31,8 +31,8 @@ export class ElectionsService {
     private readonly votingMethodModel: Model<VotingMethods>,
     @InjectModel(Thresholds.name)
     private readonly thresholdModel: Model<Thresholds>,
-    @InjectModel(User.name)
-    private readonly userModel: Model<User>,
+    @InjectModel(Users.name)
+    private readonly userModel: Model<Users>,
   ) { }
 
   async searchElections(req: SearchElectionsDto) {
