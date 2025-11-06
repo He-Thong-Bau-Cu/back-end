@@ -1,4 +1,4 @@
-import {Prop, Schema, SchemaFactory} from '@nestjs/mongoose';
+import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Types } from 'mongoose';
 import { BaseSchema } from './base.schema';
 import { ElectionTypes } from './electionTypes.schema';
@@ -12,7 +12,7 @@ import { STATUS } from 'src/common/enums/status.enum';
 export type VoterInvitationsDocument = VoterInvitations & Document;
 
 @Schema()
-export class VoterInvitations extends BaseSchema{
+export class VoterInvitations extends BaseSchema {
   @Prop({ type: Types.ObjectId, ref: Voters.name, required: true })
   voterId: Types.ObjectId;
 
@@ -22,13 +22,13 @@ export class VoterInvitations extends BaseSchema{
   @Prop({ required: true })
   sentAt: Date;
 
-  @Prop({required: true, default:STATUS.SENT})
+  @Prop({ required: true, default: STATUS.SENT })
   status: string;
 
-  @Prop( { required: true })
+  @Prop({ required: true })
   token: string;
 
-  @Prop({required: true})
+  @Prop({ required: true })
   expiresAt: Date;
 }
 

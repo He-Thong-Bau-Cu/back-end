@@ -11,6 +11,57 @@ import { MESSAGE } from 'src/common/enums/message.enum';
 export class VotingRightsController {
   constructor(private readonly votingRightsService: VotingRightsService) { }
 
+  @Get(':id')
+  @ApiOperation({ summary: 'Lấy thông tin quyền bầu cử theo ID' })
+  @ApiResponse({ status: 200, description: 'Quyền bầu cử được lấy thành công.' })
+  @ApiResponse({ status: 400, description: 'Dữ liệu không hợp lệ.' })
+  @ApiResponse({ status: 500, description: 'Lỗi server' })
+  async getById(@Param('id') id: string): Promise<BaseResponse> {
+    try {
+      const votingRight = await this.votingRightsService.getById(id);
+      return BaseResponse.success(votingRight, MESSAGE.VOTING_RIGHT_GET_BY_ID_SUCCESS, HttpStatus.OK);
+    } catch (error) {
+      throw new HttpException(
+        { message: error.message },
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @Get('elections/:electionId')
+  @ApiOperation({ summary: 'Lấy danh sách quyền bầu cử theo ID cuộc bầu cử' })
+  @ApiResponse({ status: 200, description: 'Lấy danh sách quyền bầu cử theo ID cuộc bầu cử thành công.' })
+  @ApiResponse({ status: 400, description: 'Dữ liệu không hợp lệ.' })
+  @ApiResponse({ status: 500, description: 'Lỗi server' })
+  async getByElectionId(@Param('electionId') electionId: string): Promise<BaseResponse> {
+    try {
+      const votingRights = await this.votingRightsService.getByElectionId(electionId);
+      return BaseResponse.success(votingRights, MESSAGE.VOTING_RIGHT_GET_BY_ELECTION_SUCCESS, HttpStatus.OK);
+    } catch (error) {
+      throw new HttpException(
+        { message: error.message },
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @Get('voters/:voterId')
+  @ApiOperation({ summary: 'Lấy danh sách quyền bầu cử theo ID cử tri' })
+  @ApiResponse({ status: 200, description: 'Lấy danh sách quyền bầu cử theo ID cử tri thành công.' })
+  @ApiResponse({ status: 400, description: 'Dữ liệu không hợp lệ.' })
+  @ApiResponse({ status: 500, description: 'Lỗi server' })
+  async getByVoterId(@Param('voterId') voterId: string): Promise<BaseResponse> {
+    try {
+      const votingRights = await this.votingRightsService.getByVoterId(voterId);
+      return BaseResponse.success(votingRights, MESSAGE.VOTING_RIGHT_GET_BY_VOTER_SUCCESS, HttpStatus.OK);
+    } catch (error) {
+      throw new HttpException(
+        { message: error.message },
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
   @Post()
   @ApiOperation({ summary: 'Tạo mới quyền bầu cử' })
   @ApiResponse({ status: 201, description: 'Quyền bầu cử được tạo thành công.' })

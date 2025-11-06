@@ -70,11 +70,14 @@ export class BallotsService {
         })
         .populate('entityId')
         .exec();
+        
       return ballot;
     } catch (error) {
       throw error;
     }
   }
+
+
   async getByElectionId(electionId: string) {
     try {
       //Check if the election is exist
@@ -96,6 +99,44 @@ export class BallotsService {
         })
         .populate('entityId')
         .exec();
+
+      //Check if the ballots is exist
+      if (!ballots) {
+        throw new Error(MESSAGE.BALLOT_NOT_FOUND);
+      }
+      return ballots;
+    } catch (error) {
+      throw error;
+    }
+  }
+
+    async getByVoterId(voterId: string) {
+    try {
+      //Check if the voter is exist
+      const voterExist = await this.votersModel.exists({ _id: voterId });
+      if (!voterExist) {
+        throw new Error(MESSAGE.VOTER_NOT_FOUND);
+      }
+
+      const ballots = await this.ballotsModel.find({ voterId })
+        .populate('electionId', 'title startDate endDate delegationStart delegationEnd status statusData decisionNumber decisionName')
+        .populate({
+          path: 'voterId',
+          populate: [
+            {
+              path: 'userId',
+              select: "username fullName email position",
+            }
+          ]
+        })
+        .populate('entityId')
+        .exec();
+
+      //Check if the ballots is exist
+      if (!ballots) {
+        throw new Error(MESSAGE.BALLOT_NOT_FOUND);
+      }
+
       return ballots;
     } catch (error) {
       throw error;

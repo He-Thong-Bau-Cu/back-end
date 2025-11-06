@@ -59,6 +59,22 @@ export class ReportsController {
     }
   }
 
+  @Get('elections/:electionId')
+  @ApiOperation({ summary: 'Lấy báo cáo theo ID cuộc bầu cử' })
+  @ApiResponse({ status: 200, description: 'Lấy báo cáo theo ID cuộc bầu cử thành công' })
+  @ApiResponse({ status: 500, description: 'Lỗi server' })
+  async getByElectionId(@Param('electionId') electionId: string): Promise<BaseResponse> {
+    try {
+      const resData = await this.reportsService.getByElectionId(electionId);
+      return BaseResponse.success(resData, MESSAGE.REPORT_GET_BY_ELECTION_ID_SUCCESS, HttpStatus.OK);
+    } catch (error) {
+      throw new HttpException(
+        { message: error.message },
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
   @Put(':id')
   @ApiOperation({ summary: 'Cập nhật báo cáo theo ID' })
   @ApiResponse({ status: 200, description: 'Cập nhật báo cáo theo ID thành công' })

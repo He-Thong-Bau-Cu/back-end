@@ -22,6 +22,46 @@ export class ElectionParticipantsService {
                 private readonly rolesModel: Model<Roles>
         ) { }
 
+        async getById(id: string) {
+                try {
+                        const electionParticipant = await this.electionParticipantsModel
+                                .findById(id)
+                                .populate([
+                                        { path: "electionId", select: "title startDate endDate delegationStart delegationEnd status statusData decisionNumber decisionName" },
+                                        { path: "roleId" },
+                                        { path: 'userId', select: "fullName username email phone position department" }]
+                                ).exec();
+                        if (!electionParticipant) {
+                                throw new NotFoundException(MESSAGE.ELECTION_PARTICIPANT_NOT_FOUND);
+                        }
+                } catch (error) {
+                        throw error;
+                }
+        }
+
+        async getByElection(electionId: string) {
+                try {
+                        //kiểm tra xem electionId có tồn tại không
+                        const electionExist = await this.electionsModel.exists({ _id: electionId });
+                        if (!electionExist) {
+                                throw new NotFoundException(MESSAGE.ELECTION_NOT_FOUND);
+                        }
+                        const electionParticipant = await this.electionParticipantsModel
+                                .find({ electionId })
+                                .populate([
+                                        { path: "electionId", select: "title startDate endDate delegationStart delegationEnd status statusData decisionNumber decisionName" },
+                                        { path: "roleId" },
+                                        { path: 'userId', select: "fullName username email phone position department" }]
+                                ).exec();
+                        if (!electionParticipant) {
+                                throw new NotFoundException(MESSAGE.ELECTION_PARTICIPANT_NOT_FOUND);
+                        }
+                } catch (error) {
+                        throw error;
+                }
+        }
+
+
 
         async create(electionParticipants: CreateElectionParticipantDto) {
                 try {

@@ -82,11 +82,29 @@ export class VotersController {
   @Get('elections/:electionId')
   @ApiOperation({ summary: 'Lấy danh sách cử tri theo cuộc bầu cử' })
   @ApiResponse({ status: 200, description: 'Lấy danh sách cử tri theo cuộc bầu cử thành công.' })
+  @ApiResponse({ status: 400, description: 'Dữ liệu không hợp lệ.' })
   @ApiResponse({ status: 500, description: 'Lỗi server' })
   async getByElectionId(@Param('electionId') electionId: string): Promise<BaseResponse> {
     try {
       const resData = await this.votersService.getByElectionId(electionId);
       return BaseResponse.success(resData, MESSAGE.VOTER_GET_BY_ELECTION_SUCCESS, HttpStatus.OK);
+    } catch (error) {
+      throw new HttpException(
+        { message: error.message },
+        HttpStatus.INTERNAL_SERVER_ERROR
+      )
+    }
+  }
+
+  @Get(':id')
+  @ApiOperation({ summary: 'Lấy thông tin cử tri' })
+  @ApiResponse({ status: 200, description: 'Lấy thông tin cử tri thành công.' })
+  @ApiResponse({ status: 400, description: 'Dữ liệu không hợp lệ.' })
+  @ApiResponse({ status: 500, description: 'Lỗi server' })
+  async getById(@Param('id') id: string): Promise<BaseResponse> {
+    try {
+      const resData = await this.votersService.getById(id);
+      return BaseResponse.success(resData, MESSAGE.VOTER_GET_BY_ID_SUCCESS, HttpStatus.OK);
     } catch (error) {
       throw new HttpException(
         { message: error.message },

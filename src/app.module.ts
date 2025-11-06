@@ -1,7 +1,6 @@
 import { MiddlewareConsumer, Module, RequestMethod } from '@nestjs/common';
 import { DatabaseModule } from './database/database.module';
 import { ConfigModule } from '@nestjs/config';
-import { UserModule } from './modules/user/user.module';
 import { MinioModule } from './modules/minio/minio.module';
 import { ElectionsModule } from './modules/elections/elections.module';
 import { SmsModule } from './modules/sms/sms.module';
@@ -38,6 +37,7 @@ import { MeetingAttendeesModule } from './modules/meeting-attendees/meeting-atte
 import { BallotsModule } from './modules/ballots/ballots.module';
 import { ResultsModule } from './modules/results/results.module';
 import { ElectionDocumentsModule } from './modules/election-documents/election-documents.module';
+import { UsersModule } from './modules/users/users.module';
 
 
 @Module({
@@ -56,7 +56,6 @@ import { ElectionDocumentsModule } from './modules/election-documents/election-d
       { name: SystemLog.name, schema: SystemLogSchema },
       { name: AuditLogs.name, schema: AuditLogsSchema }
     ]),
-    UserModule,
     MinioModule,
     ElectionsModule,
     SmsModule,
@@ -84,6 +83,7 @@ import { ElectionDocumentsModule } from './modules/election-documents/election-d
     BallotsModule,
     ResultsModule,
     ElectionDocumentsModule,
+    UsersModule,
   ],
   controllers: [],
   providers: [
@@ -107,12 +107,22 @@ export class AppModule {
         { path: "election-types/:code", method: RequestMethod.GET },
         { path: "thresholds/:code", method: RequestMethod.GET },
         { path: "voting-methods/:code", method: RequestMethod.GET },
+
+        //electionEntities
         { path: "election-entities", method: RequestMethod.POST },
         { path: "election-entities/:id", method: RequestMethod.PUT },
+        { path: "election-entities/elections/:electionId", method: RequestMethod.GET },
+        { path: "election-entities/:id", method: RequestMethod.GET },
+
+        //electionParticipants
         { path: "election-participants", method: RequestMethod.POST },
+        { path: "election-participants/:id", method: RequestMethod.GET },
+        { path: "election-participants/elections/:electionId", method: RequestMethod.GET },
+
         //Voters
         { path: "voters", method: RequestMethod.POST },
         { path: "voters/:id", method: RequestMethod.PUT },
+        { path: "voters/:id", method: RequestMethod.GET },
         { path: "voters/eligible/:electionId", method: RequestMethod.GET },
         { path: "voters/elections/:electionId", method: RequestMethod.GET },
         { path: "voters/:id", method: RequestMethod.DELETE },
@@ -120,8 +130,23 @@ export class AppModule {
         //Voting Rights
         { path: "voting-rights", method: RequestMethod.POST },
         { path: "voting-rights/:id", method: RequestMethod.PUT },
+        { path: "voting-rights/elections/:electionId", method: RequestMethod.GET },
+        { path: "voting-rights/voters/:voterId", method: RequestMethod.GET },
+        { path: "voting-rights/:id", method: RequestMethod.GET },
+
+        //Voter Invitations
+        { path: "voter-invitations", method: RequestMethod.POST },
+        { path: "voter-invitations/:id", method: RequestMethod.PUT },
+        { path: "voter-invitations/elections/:electionId", method: RequestMethod.GET },
+        { path: "voter-invitations/voters/:voterId", method: RequestMethod.GET },
+        { path: "voter-invitations/:id", method: RequestMethod.GET },
+
+        //meetings
         { path: "meetings", method: RequestMethod.POST },
         { path: "meetings/:id", method: RequestMethod.PUT },
+        { path: "meetings/:id", method: RequestMethod.GET },
+        { path: "meetings/elections/:id", method: RequestMethod.GET },
+
         { path: "delegations/:id", method: RequestMethod.GET },
         { path: "delegations/pending", method: RequestMethod.GET },
         { path: "delegations/election/:electionId", method: RequestMethod.GET },
@@ -132,21 +157,32 @@ export class AppModule {
         { path: "reports", method: RequestMethod.POST },
         { path: "reports/:id", method: RequestMethod.PUT },
         { path: "delegate-cards/active", method: RequestMethod.GET },
+
+        //meetingAttendees
         { path: "meeting-attendees/:id", method: RequestMethod.PUT },
         { path: "meeting-attendees/meetings/:meetingId/participants/:participantId/attendance", method: RequestMethod.PATCH },
         { path: "meeting-attendees", method: RequestMethod.GET },
         { path: "meeting-attendees/:id", method: RequestMethod.GET },
+        { path: "meeting-attendees/meetings/:meetingId", method: RequestMethod.GET },
+        { path: "meeting-attendees/participants/:participantId", method: RequestMethod.GET },
         { path: "meeting-attendees", method: RequestMethod.POST },
+
+        //Ballots
         { path: "ballots", method: RequestMethod.GET },
         { path: "ballots/elections/:electionId", method: RequestMethod.GET },
+        { path: "ballots/voters/:voterId", method: RequestMethod.GET },
         { path: "ballots/:id", method: RequestMethod.GET },
         { path: "ballots/:id", method: RequestMethod.PUT },
         { path: "ballots", method: RequestMethod.POST },
+
+        //Results
         { path: "results", method: RequestMethod.GET },
         { path: "results/elections/:electionId", method: RequestMethod.GET },
         { path: "results/:id", method: RequestMethod.GET },
         { path: "results/:id", method: RequestMethod.PUT },
         { path: "results", method: RequestMethod.POST },
+
+        //Election Documents
         { path: "election-documents/elections/:electionId", method: RequestMethod.GET },
         { path: "election-documents/:id", method: RequestMethod.GET },
         { path: "election-documents/:id", method: RequestMethod.PUT },

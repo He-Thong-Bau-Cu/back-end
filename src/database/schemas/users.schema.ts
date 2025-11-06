@@ -4,10 +4,10 @@ import { USER_ROLE } from 'src/common/enums/config.enum';
 import { BaseSchema } from './base.schema';
 import { Roles } from './roles.schema';
 
-export type UserDocument = User & Document;
+export type UserDocument = Users & Document;
 
 @Schema()
-export class User extends BaseSchema {
+export class Users extends BaseSchema {
   @Prop({ unique: true, required: true })
   username: string;
 
@@ -21,7 +21,7 @@ export class User extends BaseSchema {
   fullName: string;
 
   @Prop()
-  dateOfBirth: Date;
+  dob: Date;
 
   @Prop({required: true, unique: true})
   citizenId: string;
@@ -50,6 +50,12 @@ export class User extends BaseSchema {
   @Prop()
   image: string;
 
+  @Prop()
+  twoFASecret: string;
+
+  @Prop()
+  isTwoFAEnabled: boolean;
+
 }
 
-export const UserSchema = SchemaFactory.createForClass(User);
+export const UsersSchema = SchemaFactory.createForClass(Users);

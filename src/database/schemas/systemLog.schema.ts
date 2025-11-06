@@ -1,7 +1,7 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Types } from 'mongoose';
 import { BaseSchema } from './base.schema';
-import { User } from './users.schema';
+import { Users } from './users.schema';
 
 export type SystemLogDocument = SystemLog & Document;
 
@@ -21,7 +21,7 @@ export class SystemLog extends BaseSchema {
   @Prop()
   ipAddress: string;
 
-  @Prop({ type: Types.ObjectId, ref: User.name })
+  @Prop({ type: Types.ObjectId, ref: Users.name })
   userId: Types.ObjectId;
 
   @Prop({ type: Object })

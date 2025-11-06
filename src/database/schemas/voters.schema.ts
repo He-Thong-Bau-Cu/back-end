@@ -5,7 +5,7 @@ import { ElectionTypes } from './electionTypes.schema';
 import { VotingMethods } from './votingMethods.schema';
 import { Thresholds } from './thresholds.schema';
 import { Elections } from './elections.schema';
-import { User } from './users.schema';
+import { Users } from './users.schema';
 import { STATUS } from 'src/common/enums/status.enum';
 
 export type VotersDocument = Voters & Document;
@@ -15,7 +15,7 @@ export class Voters extends BaseSchema{
   @Prop({ type: Types.ObjectId, ref: Elections.name, required: true })
   electionId: Types.ObjectId;
 
-  @Prop({ type: Types.ObjectId, ref: User.name, required: true })
+  @Prop({ type: Types.ObjectId, ref: Users.name, required: true })
   userId: Types.ObjectId;
 
   @Prop({ required: true })
@@ -24,7 +24,6 @@ export class Voters extends BaseSchema{
   @Prop({required: true, default:STATUS.PENDING})
   status: string;
 
-  
 }
 
 export const VotersSchema = SchemaFactory.createForClass(Voters);

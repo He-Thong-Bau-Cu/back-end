@@ -23,6 +23,49 @@ export class ElectionEntitiesService {
     private readonly electionParticipants: Model<ElectionsParticipants>,
   ) { }
 
+  async getById(id: string) {
+    try {
+      const entity = await this.electionEntityModel
+        .findById(new Types.ObjectId(id))
+        .populate('electionId')
+        .populate('electionTypeId')
+        .populate('proposerId')
+        .exec();
+
+      // Kiểm tra entity có tồn tại không
+      if (!entity) {
+        throw new Error(MESSAGE.ELECTION_ENTITY_NOT_FOUND);
+      }
+      return entity;
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  async getByElectionId(electionId: string) {
+    try {
+      // Kiểm tra electionId có tồn tại không
+      const electionExists = await this.electionsModel.exists({ _id: electionId });
+      if (!electionExists) {
+        throw new Error(MESSAGE.ELECTION_NOT_FOUND);
+      }
+
+      const entities = await this.electionEntityModel
+        .find({ electionId })
+        .populate('electionId')
+        .populate('electionTypeId')
+        .populate('proposerId')
+        .exec();
+
+      // Kiểm tra entities có tồn tại không
+      if (!entities) {
+        throw new Error(MESSAGE.ELECTION_ENTITY_NOT_FOUND);
+      }
+      return entities;
+    } catch (error) {
+      throw error;
+    }
+  }
 
   async create(electionEntity: CreateElectionEntityDto) {
     try {
@@ -55,6 +98,11 @@ export class ElectionEntitiesService {
 
   async update(id: string, electionEntity: UpdateElectionEntityDto) {
     try {
+      // Kiểm tra entity có tồn tại không
+      const entityExists = await this.electionEntityModel.exists({ _id: id });
+      if (!entityExists) {
+        throw new Error(MESSAGE.ELECTION_ENTITY_NOT_FOUND);
+      }
       const updateElectionsEntity = await this.electionEntityModel
         .findByIdAndUpdate(new Types.ObjectId(id), electionEntity, { new: true })
         .exec();
