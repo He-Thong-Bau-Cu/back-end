@@ -6,7 +6,7 @@ import { ElectionEntities } from 'src/database/schemas/electionEntities.schema';
 import { Model, Types } from 'mongoose';
 import { Elections } from 'src/database/schemas/elections.schema';
 import { ElectionTypes } from 'src/database/schemas/electionTypes.schema';
-import { User } from 'src/database/schemas/users.schema';
+import { Users } from 'src/database/schemas/users.schema';
 import { ElectionsParticipants } from 'src/database/schemas/electionParticipants.schema';
 import { MESSAGE } from 'src/common/enums/message.enum';
 

@@ -177,8 +177,9 @@ export class AppModule {
         { path: "ca/init", method: RequestMethod.POST },
         { path: "ca/issue", method: RequestMethod.POST },
         { path: "ca/issue", method: RequestMethod.POST },
-        { path: "user/create", method: RequestMethod.POST },
-        { path: "user/detail/:id", method: RequestMethod.GET },
+        { path: "users/:id", method: RequestMethod.GET },
+        // { path: "user/create", method: RequestMethod.POST },
+        // { path: "user/detail/:id", method: RequestMethod.GET },
 
         //Election Documents
         { path: "election-documents/elections/:electionId", method: RequestMethod.GET },
