@@ -8,6 +8,7 @@ import { JwtService } from '@nestjs/jwt';
 import { Voters } from 'src/database/schemas/voters.schema';
 import { Elections } from 'src/database/schemas/elections.schema';
 import { MESSAGE } from 'src/common/enums/message.enum';
+import { MailService } from '../mail/mail.service';
 
 @Injectable()
 export class VoterInvitationsService {
@@ -19,6 +20,7 @@ export class VoterInvitationsService {
     @InjectModel(Elections.name)
     private readonly electionsModel: Model<Elections>,
     private readonly jwtService: JwtService,
+    private readonly mailService: MailService,
   ) { }
 
   generateToken(voterId: string, electionId: string): string {
@@ -30,7 +32,10 @@ export class VoterInvitationsService {
   async create(voterInvitation: CreateVoterInvitationDto) {
     try {
       // Check if the voterId exists in the database
-      const voterExists = await this.votersModel.exists({ _id: voterInvitation.voterId });
+      const voterExists = await this.votersModel
+      .findOne({ _id: voterInvitation.voterId })
+      .populate('userId')
+      .exec();
       if (!voterExists) {
         throw new Error(MESSAGE.VOTER_NOT_FOUND);
       }
@@ -43,6 +48,14 @@ export class VoterInvitationsService {
       const token = this.generateToken(voterInvitation.voterId, voterInvitation.electionId);
       const sentAt = new Date();
       const expiresAt = new Date(sentAt.getTime() + 24 * 60 * 60 * 1000);
+
+      //send email
+      // await this.mailService.sendMail(
+      //   voterExists.userId.email,
+      //   voterExists.userId.fullName,
+      //   voterExists.userId.username,
+      //   voterExists.userId.password,
+      // );
 
       const createdInvitation = await this.voterInvitationsModel.create({
         ...voterInvitation,

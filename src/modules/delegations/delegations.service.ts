@@ -5,7 +5,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Delegations } from 'src/database/schemas/delegations.schema';
 import { Model, Types } from 'mongoose';
 import { Elections } from 'src/database/schemas/elections.schema';
-import { User } from 'src/database/schemas/users.schema';
+import { Users } from 'src/database/schemas/users.schema';
 import { ElectionDocuments } from 'src/database/schemas/electionDocuments.schema';
 import { MESSAGE } from 'src/common/enums/message.enum';
 
@@ -17,8 +17,8 @@ export class DelegationsService {
     private readonly delegationModel: Model<Delegations>,
     @InjectModel(Elections.name)
     private readonly electionModel: Model<Elections>,
-    @InjectModel(User.name)
-    private readonly userModel: Model<User>,
+    @InjectModel(Users.name)
+    private readonly userModel: Model<Users>,
     @InjectModel(ElectionDocuments.name)
     private readonly documentModel: Model<ElectionDocuments>,
 
