@@ -13,7 +13,7 @@ import {
 import { ElectionTypes, ElectionTypesSchema } from 'src/database/schemas/electionTypes.schema';
 import { VotingMethods, VotingMethodsSchema } from 'src/database/schemas/votingMethods.schema';
 import { Thresholds, ThresholdsSchema } from 'src/database/schemas/thresholds.schema';
-import { User, UserSchema } from 'src/database/schemas/users.schema';
+import { Users, UsersSchema } from 'src/database/schemas/users.schema';
 
 @Module({
   imports: [
@@ -23,7 +23,7 @@ import { User, UserSchema } from 'src/database/schemas/users.schema';
       { name: ElectionTypes.name, schema: ElectionTypesSchema },
       { name: VotingMethods.name, schema: VotingMethodsSchema },
       { name: Thresholds.name, schema: ThresholdsSchema },
-      { name: User.name, schema: UserSchema },
+      { name: Users.name, schema: UsersSchema },
     ]),
   ],
   providers: [ElectionsService],

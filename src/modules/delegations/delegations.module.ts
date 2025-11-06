@@ -4,19 +4,19 @@ import { DelegationsController } from './delegations.controller';
 import { MongooseModule } from '@nestjs/mongoose';
 import { Delegations, DelegationsSchema } from 'src/database/schemas/delegations.schema';
 import { Elections, ElectionsSchema } from 'src/database/schemas/elections.schema';
-import { User, UserSchema } from 'src/database/schemas/users.schema';
-import { ElectionDocuments, ElectionDocumentSchema  } from 'src/database/schemas/electionDocuments.schema';
+import { Users, UsersSchema } from 'src/database/schemas/users.schema';
+import { ElectionDocuments, ElectionDocumentSchema } from 'src/database/schemas/electionDocuments.schema';
 
 @Module({
-  imports:[
+  imports: [
     MongooseModule.forFeature([
-      {name:Delegations.name, schema:DelegationsSchema},
-      {name:Elections.name, schema:ElectionsSchema},
-      {name:User.name, schema:UserSchema},
-      {name:ElectionDocuments.name, schema:ElectionDocumentSchema},    
+      { name: Delegations.name, schema: DelegationsSchema },
+      { name: Elections.name, schema: ElectionsSchema },
+      { name: Users.name, schema: UsersSchema },
+      { name: ElectionDocuments.name, schema: ElectionDocumentSchema },
     ])
   ],
   controllers: [DelegationsController],
   providers: [DelegationsService],
 })
-export class DelegationsModule {}
+export class DelegationsModule { }

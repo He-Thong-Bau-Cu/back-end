@@ -27,6 +27,23 @@ export class BallotsController {
     }
   }
 
+  @Get('voters/:voterId')
+  @ApiOperation({ summary: "Lấy danh sách phiếu bầu theo ID cử tri" })
+  @ApiResponse({ status: 200, description: 'Lấy danh sách phiếu bầu theo ID cử tri thành công' })
+  @ApiResponse({ status: 400, description: 'Dữ liệu không hợp lệ' })
+  @ApiResponse({ status: 500, description: 'Lỗi server' })
+  async getBallotsByVoterId(@Param('voterId') voterId: string): Promise<BaseResponse> {
+    try {
+      const resData = await this.ballotsService.getByVoterId(voterId);
+      return BaseResponse.success(resData, MESSAGE.BALLOT_GET_BY_VOTER_SUCCESS, HttpStatus.OK);
+    } catch (error) {
+      throw new HttpException(
+        { message: error.message },
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      )
+    }
+  }
+
 
   @Get()
   @ApiOperation({ summary: 'Lấy danh sách phiếu bầu cử' })

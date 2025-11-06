@@ -3,7 +3,7 @@ import { CreateElectionDocumentDto } from './dto/create-election-document.dto';
 import { UpdateElectionDocumentDto } from './dto/update-election-document.dto';
 import { InjectModel } from '@nestjs/mongoose';
 import { ElectionDocuments } from 'src/database/schemas/electionDocuments.schema';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import { Elections } from 'src/database/schemas/elections.schema';
 import { ElectionsParticipants } from 'src/database/schemas/electionParticipants.schema';
 import { MESSAGE } from 'src/common/enums/message.enum';
@@ -17,7 +17,7 @@ export class ElectionDocumentsService {
     private readonly electionsModel: Model<Elections>,
     @InjectModel(ElectionsParticipants.name)
     private readonly electionsParticipantsModel: Model<ElectionsParticipants>,
-  ) {}
+  ) { }
 
   async create(createElectionDocument: CreateElectionDocumentDto) {
     try {
@@ -29,14 +29,14 @@ export class ElectionDocumentsService {
       //check if the preparedBy exists
       const preparedBy = await this.electionsParticipantsModel.findById(createElectionDocument.preparedBy);
       if (!preparedBy) {
-        throw new Error(MESSAGE.PARTICIPANT_NOT_FOUND);
+        throw new Error(MESSAGE.ELECTION_PARTICIPANT_NOT_FOUND);
       }
       const electionDocument = await this.electionDocumentsModel.create(createElectionDocument);
       return electionDocument;
     } catch (error) {
       throw error;
     }
-    
+
   }
 
   async getById(id: string) {
@@ -47,10 +47,10 @@ export class ElectionDocumentsService {
         throw new Error(MESSAGE.ELECTION_DOCUMENT_NOT_FOUND);
       }
       const electionDocument = await this.electionDocumentsModel
-      .findById(id)
-      .populate('electionId')
-      .populate('preparedBy')
-      .exec();
+        .findById(new Types.ObjectId(id))
+        .populate('electionId')
+        .populate('preparedBy')
+        .exec();
       return electionDocument;
     } catch (error) {
       throw error;
@@ -68,10 +68,10 @@ export class ElectionDocumentsService {
 
 
       const electionDocuments = await this.electionDocumentsModel
-      .find({ electionId })
-      .populate('electionId')
-      .populate('preparedBy')
-      .exec();
+        .find({ electionId: new Types.ObjectId(electionId) })
+        .populate('electionId')
+        .populate('preparedBy')
+        .exec();
       return electionDocuments;
     } catch (error) {
       throw error;
@@ -86,10 +86,10 @@ export class ElectionDocumentsService {
         throw new Error(MESSAGE.ELECTION_DOCUMENT_NOT_FOUND);
       }
       const electionDocument = await this.electionDocumentsModel
-      .findByIdAndUpdate(id, updateElectionDocument, { new: true })
-      .populate('electionId')
-      .populate('preparedBy')
-      .exec();
+        .findByIdAndUpdate(new Types.ObjectId(id), updateElectionDocument, { new: true })
+        .populate('electionId')
+        .populate('preparedBy')
+        .exec();
       return electionDocument;
     } catch (error) {
       throw error;

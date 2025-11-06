@@ -1,7 +1,7 @@
 import { MiddlewareConsumer, Module, RequestMethod } from '@nestjs/common';
 import { DatabaseModule } from './database/database.module';
 import { ConfigModule } from '@nestjs/config';
-import { UserModule } from './modules/user/user.module';
+import { UsersModule } from './modules/users/users.module';
 import { MinioModule } from './modules/minio/minio.module';
 import { ElectionsModule } from './modules/elections/elections.module';
 import { SmsModule } from './modules/sms/sms.module';
@@ -57,7 +57,7 @@ import { RedisModule } from './modules/redis/redis.module';
       { name: SystemLog.name, schema: SystemLogSchema },
       { name: AuditLogs.name, schema: AuditLogsSchema }
     ]),
-    UserModule,
+    UsersModule,
     MinioModule,
     ElectionsModule,
     SmsModule,

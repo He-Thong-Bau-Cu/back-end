@@ -1,22 +1,53 @@
 import { Injectable } from '@nestjs/common';
+import { CreateUserDto } from './dto/create-user.dto';
+import { UpdateUserDto } from './dto/update-user.dto';
 import { InjectModel } from '@nestjs/mongoose';
+import {UserDocument, Users} from 'src/database/schemas/users.schema';
 import { Model, Types } from 'mongoose';
-import { User, UserDocument } from 'src/database/schemas/users.schema';
-import { Roles, RolesDocument } from '../../database/schemas/roles.schema';
-import { UserDto } from '../../common/dto/user.dto';
-import * as bcrypt from 'bcrypt';
+import {Roles, RolesDocument} from 'src/database/schemas/roles.schema';
+import { MESSAGE } from 'src/common/enums/message.enum';
+import {STATUS} from "../../common/enums/status.enum";
+import {UserDto} from "../../common/dto/user.dto";
 import { MailService } from '../mail/mail.service';
-import { STATUS } from '../../common/enums/status.enum';
-import { USER_ROLE } from '../../common/enums/config.enum';
-import { paginate } from 'src/common/dto/paignation';
+import {paginate} from "../../common/dto/paignation";
+import * as bcrypt from 'bcrypt';
+import {USER_ROLE} from "../../common/enums/config.enum";
 
 @Injectable()
-export class UserService {
+export class UsersService {
   constructor(
-    @InjectModel(User.name) private readonly userModel: Model<UserDocument>,
-    @InjectModel(Roles.name) private readonly roleModel: Model<RolesDocument>,
-    private readonly mailService: MailService,
-  ) {}
+    @InjectModel(Users.name) 
+    private userModel: Model<UserDocument>,
+    @InjectModel(Roles.name)
+    private roleModel: Model<RolesDocument>,
+    private mailService: MailService,
+  ){}
+
+  async getAll(){
+    try {
+      const users = await this.userModel.find().populate('roleId').exec();
+      return users;
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  async getById(id: string){
+    try {
+
+      const user = await this.userModel
+      .findById(new Types.ObjectId(id))
+      .populate('roleId')
+      .exec();
+      
+      if (!user) {
+        throw new Error(MESSAGE.USER_NOT_FOUND);
+      }
+      return user;
+    } catch (error) {
+      throw error;
+    }
+  }
 
   async search(req: UserDto){
     try {
@@ -49,10 +80,10 @@ export class UserService {
         throw new Error('Số căn cước công dân không được để trống !');
       }
       const checkValidUser = await this.userModel
-        .findOne({
-          $or: [{ email: req.email }, { phone: req.phone }],
-        })
-        .exec();
+          .findOne({
+            $or: [{ email: req.email }, { phone: req.phone }],
+          })
+          .exec();
 
       if (checkValidUser) {
         throw new Error('Gmail hoặc số điện thoại đã tồn tại !');
@@ -65,7 +96,7 @@ export class UserService {
       let roleData = await this.roleModel.findOne({ roleCode: USER_ROLE.USER }).exec();
       if (!roleData) {
         throw new Error(
-          'Vai trò người dùng không tồn tại trong hệ thống. Vui lòng tạo vai trò trước khi thêm người dùng.',
+            'Vai trò người dùng không tồn tại trong hệ thống. Vui lòng tạo vai trò trước khi thêm người dùng.',
         );
       }
 
@@ -162,49 +193,45 @@ export class UserService {
     }
   }
 
-  async findAll(): Promise<User[]> {
-    return this.userModel.find().exec();
-  }
-
   async generateUserName(fullName: string): Promise<string> {
-  const removeVietnameseTones = (str: string) => {
-    return str
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '')
-      .replace(/đ/g, 'd')
-      .replace(/Đ/g, 'D');
-  };
+    const removeVietnameseTones = (str: string) => {
+      return str
+          .normalize('NFD')
+          .replace(/[\u0300-\u036f]/g, '')
+          .replace(/đ/g, 'd')
+          .replace(/Đ/g, 'D');
+    };
 
-  const normalizedFullName = removeVietnameseTones(fullName.trim().toLowerCase());
-  const parts = normalizedFullName.split(/\s+/);
+    const normalizedFullName = removeVietnameseTones(fullName.trim().toLowerCase());
+    const parts = normalizedFullName.split(/\s+/);
 
-  if (parts.length < 2)
-    throw new Error('Tên không hợp lệ. Cần ít nhất họ và tên.');
+    if (parts.length < 2)
+      throw new Error('Tên không hợp lệ. Cần ít nhất họ và tên.');
 
-  const lastName = parts[parts.length - 1];
-  const middleAndFirst = parts.slice(0, parts.length - 1);
-  const initials = middleAndFirst.map((word) => word[0]).join('');
-  const baseUserName = lastName + initials;
+    const lastName = parts[parts.length - 1];
+    const middleAndFirst = parts.slice(0, parts.length - 1);
+    const initials = middleAndFirst.map((word) => word[0]).join('');
+    const baseUserName = lastName + initials;
 
-  const existingUsers: { username: string }[] = await this.userModel
-    .find({ username: new RegExp(`^${baseUserName}\\d*$`, 'i') })
-    .select('username')
-    .lean();
+    const existingUsers: { username: string }[] = await this.userModel
+        .find({ username: new RegExp(`^${baseUserName}\\d*$`, 'i') })
+        .select('username')
+        .lean();
 
-  const suffixes = existingUsers.map((user) => {
-    const match = user.username.match(new RegExp(`^${baseUserName}(\\d*)$`, 'i'));
-    return match ? parseInt(match[1] || '0', 10) : 0;
-  });
+    const suffixes = existingUsers.map((user) => {
+      const match = user.username.match(new RegExp(`^${baseUserName}(\\d*)$`, 'i'));
+      return match ? parseInt(match[1] || '0', 10) : 0;
+    });
 
-  const isBaseTaken = existingUsers.some(
-    (user) => user.username.toLowerCase() === baseUserName.toLowerCase(),
-  );
+    const isBaseTaken = existingUsers.some(
+        (user) => user.username.toLowerCase() === baseUserName.toLowerCase(),
+    );
 
-  const maxSuffix = suffixes.length > 0 ? Math.max(...suffixes) : 0;
-  const newUserName = isBaseTaken ? `${baseUserName}${maxSuffix + 1}` : baseUserName;
+    const maxSuffix = suffixes.length > 0 ? Math.max(...suffixes) : 0;
+    const newUserName = isBaseTaken ? `${baseUserName}${maxSuffix + 1}` : baseUserName;
 
-  return newUserName;
-}
+    return newUserName;
+  }
 
   generateRandomPassword(length: number = 8): string {
     const upperChars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';

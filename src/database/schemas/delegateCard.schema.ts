@@ -5,7 +5,7 @@ import { ElectionTypes } from './electionTypes.schema';
 import { VotingMethods } from './votingMethods.schema';
 import { Thresholds } from './thresholds.schema';
 import { Elections } from './elections.schema';
-import { User } from './users.schema';
+import { Users } from './users.schema';
 import { ElectionDocuments } from './electionDocuments.schema';
 import { Voters } from './voters.schema';
 import { Delegations } from './delegations.schema';

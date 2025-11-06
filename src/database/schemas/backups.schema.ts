@@ -4,7 +4,7 @@ import { USER_ROLE } from 'src/common/enums/config.enum';
 import { BaseSchema } from './base.schema';
 import { Roles } from './roles.schema';
 import { Permissions } from './permissions.schema';
-import { User } from './users.schema';
+import { Users } from './users.schema';
 
 export type BackupsDocument = Backups & Document;
 
@@ -25,7 +25,7 @@ export class Backups extends BaseSchema {
   @Prop()
   action: string;
 
-  @Prop({ type: Types.ObjectId, ref: User.name, required: true })
+  @Prop({ type: Types.ObjectId, ref: Users.name, required: true })
   actionBy: Types.ObjectId;
 
   @Prop()

@@ -48,12 +48,44 @@ export class ReportsService {
 
   async getById(id: string) {
     try {
-      return await this.reportModel
+      const report = await this.reportModel
         .findById(new Types.ObjectId(id))
         .populate('electionId')
         .populate('reviewedBy', 'username fullName email position')
         .populate('signedBy', 'username fullName email position')
         .exec();
+
+      //Check if report is exist or IsNotEmpty
+      if (!report) {
+        throw new Error(MESSAGE.REPORT_NOT_FOUND);
+      }
+
+      return report;
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  async getByElectionId(electionId: string) {
+    try {
+      //Check if electionId is exist or IsNotEmpty
+      const electionExist = await this.electionsModel.exists({ _id: new Types.ObjectId(electionId) });
+      if (!electionExist)
+        throw new Error(MESSAGE.ELECTION_NOT_FOUND);
+
+      const report = await this.reportModel
+        .find({ electionId: new Types.ObjectId(electionId) })
+        .populate('electionId')
+        .populate('reviewedBy', 'username fullName email position')
+        .populate('signedBy', 'username fullName email position')
+        .exec();
+
+      //Check if report is exist or IsNotEmpty
+      if (!report) {
+        throw new Error(MESSAGE.REPORT_NOT_FOUND);
+      }
+
+      return report;
     } catch (error) {
       throw error;
     }

@@ -6,6 +6,7 @@ import { Meetings } from 'src/database/schemas/meetings.schema';
 import { Model, Types } from 'mongoose';
 import { Elections } from 'src/database/schemas/elections.schema';
 import { MESSAGE } from 'src/common/enums/message.enum';
+import { SearchDTO } from 'src/common/dto/search.dto';
 @Injectable()
 export class MeetingsService {
   constructor(
@@ -15,6 +16,56 @@ export class MeetingsService {
     private readonly electionsModel: Model<Elections>,
   ) { }
 
+
+
+  async getById(id: string) {
+    try {
+      const meeting = await this.meetingsModel
+        .findById(new Types.ObjectId(id))
+        .populate({
+          path: 'electionId',
+          select: 'title startDate endDate delegationStart delegationEnd status statusData decisionNumber decisionName',
+          populate: [
+            { path: "typeId", select: "typeName typeNameCode description status" },
+            { path: "votingMethodId", select: "methodName methodCode description status" },
+            { path: "thresholdId", select: "thresholdName thresholdCode value description status" }
+          ]
+        })
+        .exec();
+      if (!meeting) {
+        throw new Error(MESSAGE.MEETING_NOT_FOUND);
+      }
+      return meeting;
+    } catch (error) {
+      throw error;
+    }
+  }
+
+
+  async getByElectionId(electionId: string) {
+    try {
+      // Check if the electionId exists in the database
+      const electionExists = await this.electionsModel.exists({ _id: electionId });
+      if (!electionExists) {
+        throw new Error(MESSAGE.ELECTION_NOT_FOUND);
+      }
+      const meetings = await this.meetingsModel
+      .find({ electionId:new Types.ObjectId(electionId) })
+        .populate({
+          path: 'electionId',
+          select: 'title startDate endDate delegationStart delegationEnd status statusData decisionNumber decisionName',
+          populate: [
+            { path: "typeId", select: "typeName typeNameCode description status" },
+            { path: "votingMethodId", select: "methodName methodCode description status" },
+            { path: "thresholdId", select: "thresholdName thresholdCode value description status" }
+          ]
+        })
+        .exec();
+      return meetings;
+    } catch (error) {
+      throw error;
+    }
+  }
 
 
   async create(createMeeting: CreateMeetingDto) {

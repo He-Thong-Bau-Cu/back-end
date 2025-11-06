@@ -4,13 +4,13 @@ import { USER_ROLE } from 'src/common/enums/config.enum';
 import { BaseSchema } from './base.schema';
 import { Roles } from './roles.schema';
 import { Permissions } from './permissions.schema';
-import { User } from './users.schema';
+import { Users } from './users.schema';
 
 export type AuditLogsDocument = AuditLogs & Document;
 
 @Schema()
 export class AuditLogs extends BaseSchema {
-  @Prop({ type: Types.ObjectId, ref: User.name, required: true })
+  @Prop({ type: Types.ObjectId, ref: Users.name, required: true })
   userId: Types.ObjectId;
 
   @Prop({ type: String, required: true })

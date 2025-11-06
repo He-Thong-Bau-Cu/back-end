@@ -8,6 +8,7 @@ import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { Voters, VotersSchema } from 'src/database/schemas/voters.schema';
 import { Elections, ElectionsSchema } from 'src/database/schemas/elections.schema';
+import { MailModule } from '../mail/mail.module';
 
 @Module({
   imports: [
@@ -27,6 +28,8 @@ import { Elections, ElectionsSchema } from 'src/database/schemas/elections.schem
         },
       }),
     }),
+
+    MailModule,
   ],
   controllers: [VoterInvitationsController],
   providers: [VoterInvitationsService],

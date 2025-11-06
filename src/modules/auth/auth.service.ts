@@ -1,6 +1,6 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { User, UserDocument } from '../../database/schemas/users.schema';
+import { Users, UserDocument } from '../../database/schemas/users.schema';
 import { Model, SchemaTypes } from 'mongoose';
 import { Roles, RolesDocument } from '../../database/schemas/roles.schema';
 import {
@@ -27,7 +27,7 @@ import { encryptString, decryptString } from '../../common/utils/encryption';
 @Injectable()
 export class AuthService {
   constructor(
-    @InjectModel(User.name) private readonly userModel: Model<UserDocument>,
+    @InjectModel(Users.name) private readonly userModel: Model<UserDocument>,
     @InjectModel(Roles.name) private readonly roleModel: Model<RolesDocument>,
     @InjectModel(RolePermissions.name)
     private readonly rolePermissionModel: Model<RolePermissionsDocument>,

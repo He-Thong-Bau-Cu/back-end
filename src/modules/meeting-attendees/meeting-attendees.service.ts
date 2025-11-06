@@ -23,7 +23,13 @@ export class MeetingAttendeesService {
     try {
       return await this.meetingAttendeesModel.find()
         .populate('meetingId')
-        .populate('participantId')
+        .populate({
+          path: 'participantId',
+          populate: [
+            { path: 'electionId' },
+            { path: 'userId', select: 'fullName username email phone position department' }
+          ]
+        })
         .exec();
     } catch (error) {
       throw error;
@@ -34,7 +40,13 @@ export class MeetingAttendeesService {
     try {
       return await this.meetingAttendeesModel.findById(id)
         .populate('meetingId')
-        .populate('participantId')
+        .populate({
+          path: 'participantId',
+          populate: [
+            { path: 'electionId' },
+            { path: 'userId', select: 'fullName username email phone position department' }
+          ]
+        })
         .exec();
     } catch (error) {
       throw error;
@@ -51,7 +63,7 @@ export class MeetingAttendeesService {
       //Check if participantId is exist or IsNotEmpty
       const participantExist = await this.electionParticipantsModel.exists({ _id: createMeetingAttendee.participantId });
       if (!participantExist) {
-        throw new Error(MESSAGE.PARTICIPANT_NOT_FOUND);
+        throw new Error(MESSAGE.ELECTION_PARTICIPANT_NOT_FOUND);
       }
       return await this.meetingAttendeesModel.create(createMeetingAttendee);
     } catch (error) {
@@ -69,7 +81,7 @@ export class MeetingAttendeesService {
       //Check if participantId is exist or IsNotEmpty
       const participantExist = await this.electionParticipantsModel.exists({ _id: participantId });
       if (!participantExist) {
-        throw new Error(MESSAGE.PARTICIPANT_NOT_FOUND);
+        throw new Error(MESSAGE.ELECTION_PARTICIPANT_NOT_FOUND);
       }
       return await this.meetingAttendeesModel.findOneAndUpdate(
         { meetingId: meetingId, participantId: participantId },
@@ -91,6 +103,74 @@ export class MeetingAttendeesService {
       return await this.meetingAttendeesModel
         .findByIdAndUpdate(new Types.ObjectId(meetingAttendeeId), updateMeetingAttendee, { new: true })
         .exec();
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  async getByMeetingId(meetingId: string) {
+    try {
+      //Check if meetingId is exist or IsNotEmpty
+      const meetingExist = await this.meetingsModel.exists({ _id: meetingId });
+      if (!meetingExist) {
+        throw new Error(MESSAGE.MEETING_NOT_FOUND);
+      }
+
+      //
+
+      const meetingAttendees = await this.meetingAttendeesModel
+      .find({ meetingId: new Types.ObjectId(meetingId) })
+        .populate('meetingId')
+        .populate({
+          path: 'participantId',
+          populate: [
+            { path: 'electionId' },
+            { path: 'userId', select: 'fullName username email phone position department' },
+            { path: 'roleId', select: 'roleName roleCode description status' }
+          ]
+        })
+        .exec();
+
+      //Check if meetingAttendees is exist or IsNotEmpty
+      if (!meetingAttendees) {
+        throw new Error(MESSAGE.MEETING_ATTENDEE_NOT_FOUND);
+      }
+
+      return meetingAttendees;
+    } catch (error) {
+      throw error;
+    }
+
+  }
+
+  async getByParticipantId(participantId: string) {
+    try {
+      //Check if participantId is exist or IsNotEmpty
+      const participantExist = await this.electionParticipantsModel.exists({ _id: participantId });
+      if (!participantExist) {
+        throw new Error(MESSAGE.ELECTION_PARTICIPANT_NOT_FOUND);
+      }
+
+      const meetingAttendees = await this.meetingAttendeesModel
+      .find({ participantId: new Types.ObjectId(participantId) })
+        .populate('meetingId')
+        .populate({
+          path: 'participantId',
+          populate: [
+            { path: 'electionId' },
+            { path: 'userId', select: 'fullName username email phone position department' },
+            { path: 'roleId', select: 'roleName roleCode description status' }
+          ]
+        })
+        .exec();
+
+      //Check if meetingAttendees is exist or IsNotEmpty
+      if (!meetingAttendees) {
+        throw new Error(MESSAGE.MEETING_ATTENDEE_NOT_FOUND);
+      }
+
+      return meetingAttendees;
+
     } catch (error) {
       throw error;
     }

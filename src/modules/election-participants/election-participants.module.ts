@@ -4,19 +4,19 @@ import { ElectionParticipantsController } from './election-participants.controll
 import { MongooseModule } from '@nestjs/mongoose';
 import { ElectionsParticipants, ElectionsParticipantsSchema } from 'src/database/schemas/electionParticipants.schema';
 import { Elections, ElectionsSchema } from 'src/database/schemas/elections.schema';
-import { User, UserSchema } from 'src/database/schemas/users.schema';
+import { Users, UsersSchema } from 'src/database/schemas/users.schema';
 import { Roles, RolesSchema } from 'src/database/schemas/roles.schema';
 
 @Module({
   imports: [
     MongooseModule.forFeature([
-      {name:ElectionsParticipants.name, schema:ElectionsParticipantsSchema}, 
-      {name:Elections.name, schema:ElectionsSchema},
-      {name:User.name, schema:UserSchema},
-      {name:Roles.name, schema:RolesSchema},
+      { name: ElectionsParticipants.name, schema: ElectionsParticipantsSchema },
+      { name: Elections.name, schema: ElectionsSchema },
+      { name: Users.name, schema: UsersSchema },
+      { name: Roles.name, schema: RolesSchema },
     ])
   ],
   controllers: [ElectionParticipantsController],
   providers: [ElectionParticipantsService],
 })
-export class ElectionParticipantsModule {}
+export class ElectionParticipantsModule { }

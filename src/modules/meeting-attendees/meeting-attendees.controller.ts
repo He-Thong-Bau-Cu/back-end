@@ -45,6 +45,40 @@ export class MeetingAttendeesController {
     }
   }
 
+  @Get('meetings/:meetingId')
+  @ApiOperation({ summary: "Lấy danh sách người tham gia trong cuộc họp theo ID cuộc họp" })
+  @ApiResponse({ status: 200, description: "Lấy danh sách người tham gia trong cuộc họp theo ID cuộc họp thành công" })
+  @ApiResponse({ status: 400, description: "Dữ liệu không hợp lệ" })
+  @ApiResponse({ status: 500, description: "Lỗi server" })
+  async getByMeetingId(@Param('meetingId') meetingId: string) {
+    try {
+      const resData = await this.meetingAttendeesService.getByMeetingId(meetingId);
+      return BaseResponse.success(resData, MESSAGE.MEETING_ATTENDEE_GET_BY_MEETING_ID_SUCCESS, HttpStatus.OK);
+    } catch (error) {
+      throw new HttpException(
+        { message: error.message },
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @Get('participants/:participantId')
+  @ApiOperation({ summary: "Lấy danh sách người tham gia trong cuộc họp theo ID người tham gia" })
+  @ApiResponse({ status: 200, description: "Lấy danh sách người tham gia trong cuộc họp theo ID người tham gia thành công" })
+  @ApiResponse({ status: 400, description: "Dữ liệu không hợp lệ" })
+  @ApiResponse({ status: 500, description: "Lỗi server" })
+  async getByParticipantId(@Param('participantId') participantId: string) {
+    try {
+      const resData = await this.meetingAttendeesService.getByParticipantId(participantId);
+      return BaseResponse.success(resData, MESSAGE.MEETING_ATTENDEE_GET_BY_PARTICIPANT_ID_SUCCESS, HttpStatus.OK);
+    } catch (error) {
+      throw new HttpException(
+        { message: error.message },
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
   @Post()
   @ApiOperation({ summary: "Tạo người tham gia trong cuộc họp" })
   @ApiResponse({ status: 200, description: "Tạo người tham gia trong cuộc họp thành công" })
