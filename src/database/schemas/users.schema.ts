@@ -1,5 +1,5 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import {  Document, Types } from 'mongoose';
+import { Document, Types } from 'mongoose';
 import { USER_ROLE } from 'src/common/enums/config.enum';
 import { BaseSchema } from './base.schema';
 import { Roles } from './roles.schema';
@@ -14,25 +14,25 @@ export class Users extends BaseSchema {
   @Prop({ required: true })
   password: string;
 
-  @Prop({ required: true, default: false})
+  @Prop({ required: true, default: false })
   isTempPassword: boolean;
 
-  @Prop({required: true})
+  @Prop({ required: true })
   fullName: string;
 
   @Prop()
-  dob: Date;
+  dateOfBirth: Date;
 
-  @Prop({required: true, unique: true})
+  @Prop({ required: true, unique: true })
   citizenId: string;
 
-  @Prop({required: true, unique: true})
+  @Prop({ required: true, unique: true })
   email: string;
 
-  @Prop({required: true, unique: true})
+  @Prop({ required: true, unique: true })
   phone: string;
 
-  @Prop({required: true})
+  @Prop({ required: true })
   address: string;
 
   @Prop({ default: USER_ROLE.USER })
@@ -41,21 +41,20 @@ export class Users extends BaseSchema {
   @Prop({ type: Types.ObjectId, ref: Roles.name, required: true })
   roleId: Types.ObjectId;
 
-  @Prop({required: true})
+  @Prop({ required: true })
   position: string;
 
-  @Prop({required: true})
+  @Prop({ required: true })
   department: string;
 
   @Prop()
   image: string;
 
-  @Prop()
-  twoFASecret: string;
+  @Prop({ default: true })
+  isTwoFaEnabled: boolean;
 
   @Prop()
-  isTwoFAEnabled: boolean;
-
+  twoFaSecret: string;
 }
 
 export const UsersSchema = SchemaFactory.createForClass(Users);

@@ -93,6 +93,13 @@ export enum MESSAGE_STATUS {
     USER_DELETE = 'Xóa người dùng thành công!',
     USER_VIEW = 'Lấy dữ liệu người dùng thành công!',
     USER_ROLE_UPDATE = 'Cập nhật vai trò cho người dùng thành công!',
+    LOGIN_SUCCESS = 'Đăng nhập thành công!',
+    TWO_FA_ENABLED = 'Xác thực hai yếu tố đã được kích hoạt!',
+    TWO_FA_DISABLED = 'Xác thực hai yếu tố đã được vô hiệu hóa!',
+    TWO_FA_UPDATE = 'Cập nhật xác thực hai yếu tố thành cong!',
+    TWO_FA_VIEW = 'Lấy dữ liệu xác thực hai yếu tố thành cong!',
+    TWO_FA_CREATE = 'Tạo xác thức hai yếu tố thành cong!',
+    TWO_FA_DELETE = 'Xóa xác thức hai yếu tố	thanh cong!',
 
 }
 
