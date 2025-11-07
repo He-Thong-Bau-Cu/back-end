@@ -53,7 +53,7 @@ export class Users extends BaseSchema {
   @Prop({ default: true })
   isTwoFaEnabled: boolean;
 
-  @Prop()
+  @Prop({ default: '' })
   twoFaSecret: string;
 }
 
