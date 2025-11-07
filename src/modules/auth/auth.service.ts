@@ -52,22 +52,35 @@ export class AuthService {
         throw new Error('Tài khoản của bạn đã bị vô hiệu hóa!');
       }
       const role = await this.roleModel.findById(user.roleId).exec();
-      // console.log(role);
-      // console.log(user.roleId);
       if (!role || role.status !== STATUS.ACTIVE) {
         throw new Error('Vai trò của bạn không hợp lệ hoặc đã bị vô hiệu hóa!');
       }
 
       if (user.isTwoFaEnabled) {
-        return { requireTwoFa: true, userId: user._id };
+        return {
+          requireTwoFa: true,
+          isSetting: user.isTwoFaEnabled && Boolean(user.twoFaSecret?.trim()),
+          userId: user._id,
+        };
       }
-
+      const rolePermissions = await this.rolePermissionModel.find({ roleId: role._id }).exec();
+      if (!rolePermissions) {
+        throw new Error('Vai trò của bạn chưa được cấp quyền truy cập!');
+      }
+      const permissionIds = rolePermissions.map((rp) => rp.permissionIds);
+      const permissions = await this.permissionModel
+        .find({ _id: { $in: permissionIds }, status: STATUS.ACTIVE })
+        .exec();
+      if (!permissions) {
+        throw new Error('Vai trò của bạn chưa được cấp quyền truy cập!');
+      }
+      const permissionPaths = permissions.map((p) => p.url);
       const token = this.jwtService.sign({
         sub: user._id,
         fullname: user.fullName,
         username: user.username,
-        roleCode: role.roleCode,
-        roleName: role.roleName,
+        role: role.roleCode,
+        permissions: permissionPaths,
       });
       console.log("token", token);
       return { accessToken: token };
@@ -96,7 +109,7 @@ export class AuthService {
 
       const qrCode = await qrcode.toDataURL(secret.otpauth_url!);
       // Trả về secret gốc (chưa mã hóa) để user có thể thấy trong lần đầu setup
-      return { qrCode, secret: secret.base32 };
+      return { qrCode };
     } catch (error) {
       throw error;
     }
@@ -104,7 +117,8 @@ export class AuthService {
 
   async verify2FASetup(userId: string, token: string) {
     const user = await this.userModel.findById(new Types.ObjectId(userId)).exec();
-    if (!user || !user.twoFaSecret) throw new Error('Người dùng không tồn tại hoặc chưa thiết lập 2FA');
+    if (!user || !user.twoFaSecret)
+      throw new Error('Người dùng không tồn tại hoặc chưa thiết lập 2FA');
 
     // Giải mã secret trước khi verify
     const encryptionKey = this.configService.get<string>('ENCRYPTION_KEY') || 'keysecret123';
@@ -149,13 +163,25 @@ export class AuthService {
       throw new Error('Vai trò của bạn không hợp lệ hoặc đã bị vô hiệu hóa!');
     }
 
+    const rolePermissions = await this.rolePermissionModel.find({ roleId: role._id }).exec();
+    if (!rolePermissions) {
+      throw new Error('Vai trò của bạn chưa được cấp quyền truy cập!');
+    }
+    const permissionIds = rolePermissions.map((rp) => rp.permissionIds);
+    const permissions = await this.permissionModel
+      .find({ _id: { $in: permissionIds }, status: STATUS.ACTIVE })
+      .exec();
+    if (!permissions) {
+      throw new Error('Vai trò của bạn chưa được cấp quyền truy cập!');
+    }
+    const permissionPaths = permissions.map((p) => p.url);
     // Tạo token với đầy đủ thông tin giống như login
     const jwt = this.jwtService.sign({
       sub: user._id,
       fullname: user.fullName,
       username: user.username,
-      roleCode: role.roleCode,
-      roleName: role.roleName,
+      role: role.roleCode,
+      permissions: permissionPaths,
     });
 
     return { accessToken: jwt };
