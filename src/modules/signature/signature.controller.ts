@@ -14,7 +14,9 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as multer from 'multer';
 import { MESSAGE } from 'src/common/enums/message.enum';
+import { ApiBearerAuth } from '@nestjs/swagger';
 
+@ApiBearerAuth('access-token')
 @Controller('signing')
 export class SigningController {
   constructor(private readonly signingService: SigningService) { }

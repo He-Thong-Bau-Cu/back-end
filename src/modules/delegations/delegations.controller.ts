@@ -64,6 +64,22 @@ export class DelegationsController {
       )
     }
   }
+  @Get('status')
+  @ApiOperation({ summary: "Lấy danh sách ủy quyền theo trạng thái" })
+  @ApiResponse({ status: 200, description: "Lấy danh sách ủy quyền theo trạng thái thành công" })
+  @ApiResponse({ status: 400, description: 'Dữ liệu không hợp lệ.' })
+  @ApiResponse({ status: 500, description: 'Lỗi server' })
+  async getDelegationsByStatus(): Promise<BaseResponse> {
+    try {
+      const resData = await this.delegationsService.getStatusActive();
+      return BaseResponse.success(resData, MESSAGE.DELEGATION_GET_BY_STATUS_SUCCESS, HttpStatus.OK);
+    } catch (error) {
+      throw new HttpException(
+        { message: error.message },
+        HttpStatus.INTERNAL_SERVER_ERROR
+      )
+    }
+  }
 
   @Post()
   @ApiOperation({ summary: 'Tạo mới ủy quyền' })

@@ -3,10 +3,11 @@ import { VotingRightsService } from './voting-rights.service';
 import { CreateVotingRightDto } from './dto/create-voting-right.dto';
 import { UpdateVotingRightDto } from './dto/update-voting-right.dto';
 import Api from 'twilio/lib/rest/Api';
-import { ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { BaseResponse } from 'src/common/dto/base-response.dto';
 import { MESSAGE } from 'src/common/enums/message.enum';
 
+@ApiBearerAuth('access-token')
 @Controller('voting-rights')
 export class VotingRightsController {
   constructor(private readonly votingRightsService: VotingRightsService) { }

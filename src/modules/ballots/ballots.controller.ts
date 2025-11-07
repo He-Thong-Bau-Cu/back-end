@@ -2,10 +2,11 @@ import { Controller, Get, Post, Body, Patch, Param, Delete, HttpStatus, HttpExce
 import { BallotsService } from './ballots.service';
 import { CreateBallotDto } from './dto/create-ballot.dto';
 import { UpdateBallotDto } from './dto/update-ballot.dto';
-import { ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { BaseResponse } from 'src/common/dto/base-response.dto';
 import { MESSAGE } from 'src/common/enums/message.enum';
 
+@ApiBearerAuth('access-token')
 @Controller('ballots')
 export class BallotsController {
   constructor(private readonly ballotsService: BallotsService) { }

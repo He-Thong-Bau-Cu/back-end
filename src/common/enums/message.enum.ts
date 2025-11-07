@@ -99,6 +99,15 @@ export enum MESSAGE {
 
     // Delegations
     DELEGATION_NOT_FOUND = 'Không tìm thấy ủy quyền',
+    DELEGATION_GET_BY_STATUS_SUCCESS = 'Lấy danh sách ủy quyền theo trạng thái thành công',
+    DELEGATION_GET_BY_ELECTION_SUCCESS = 'Lấy thông tin ủy quyền theo cuộc bầu cử thành công',
+    DELEGATION_GET_PENDING_SUCCESS = 'Lấy danh sách ủy quyền cần xác minh',
+    DELEGATION_GET_BY_ID_SUCCESS = 'Lấy thông tin ủy quyền theo ID thành công.',
+    DELEGATION_CREATE_SUCCESS = 'Tạo ủy quyền thành công',
+    DELEGATION_UPDATE_SUCCESS = 'Cập nhật ủy quyền thành công',
+    DELEGATION_DELETE_SUCCESS = 'Xóa ủy quyền thành công',
+
+
     DOCUMENT_IS_NOT_FOUND = 'Không tìm thấy tài liệu',
 
     // Reports
@@ -169,11 +178,7 @@ export enum MESSAGE {
     ROLE_DELETE_SUCCESS = 'Xóa vai trò thành công',
 
     // Success Messages - Delegations
-    DELEGATION_GET_BY_ELECTION_SUCCESS = 'Lấy thông tin ủy quyền theo cuộc bầu cử thành công',
-    DELEGATION_GET_PENDING_SUCCESS = 'Lấy danh sách ủy quyền cần xác minh',
-    DELEGATION_GET_BY_ID_SUCCESS = 'Lấy thông tin ủy quyền theo ID thành công.',
-    DELEGATION_CREATE_SUCCESS = 'Tạo ủy quyền thành công',
-    DELEGATION_UPDATE_SUCCESS = 'Cập nhật ủy quyền thành công',
+   
 
 
 

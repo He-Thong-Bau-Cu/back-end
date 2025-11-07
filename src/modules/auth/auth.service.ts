@@ -36,7 +36,7 @@ export class AuthService {
     private readonly mailService: MailService,
     private readonly redisService: RedisService,
     private readonly configService: ConfigService,
-  ) {}
+  ) { }
 
   async login(req: LoginDto) {
     try {
@@ -52,8 +52,8 @@ export class AuthService {
         throw new Error('Tài khoản của bạn đã bị vô hiệu hóa!');
       }
       const role = await this.roleModel.findById(user.roleId).exec();
-      console.log(role);
-      console.log(user.roleId);
+      // console.log(role);
+      // console.log(user.roleId);
       if (!role || role.status !== STATUS.ACTIVE) {
         throw new Error('Vai trò của bạn không hợp lệ hoặc đã bị vô hiệu hóa!');
       }
@@ -69,6 +69,7 @@ export class AuthService {
         roleCode: role.roleCode,
         roleName: role.roleName,
       });
+      console.log("token", token);
       return { accessToken: token };
     } catch (error) {
       throw error;
@@ -101,7 +102,7 @@ export class AuthService {
     }
   }
 
-   async verify2FASetup(userId: string, token: string) {
+  async verify2FASetup(userId: string, token: string) {
     const user = await this.userModel.findById(new Types.ObjectId(userId)).exec();
     if (!user || !user.twoFaSecret) throw new Error('Người dùng không tồn tại hoặc chưa thiết lập 2FA');
 

@@ -1,16 +1,17 @@
-import {Body, Controller, Delete, Get, HttpException, HttpStatus, Param, Post, Put} from '@nestjs/common';
-import {SystemService} from './system.service';
-import {SearchDTO} from 'src/common/dto/search.dto';
-import {BaseResponse} from 'src/common/dto/base-response.dto';
-import {MESSAGES} from '@nestjs/core/constants';
-import {MESSAGE_STATUS} from 'src/common/enums/status.enum';
-import {ENDPOINT, METHOD} from 'src/common/enums/method.enum';
-import {RoleService} from "./role/role.service";
-import {RoleDto} from "../../common/dto/role.dto";
-import {RolePermissionDto} from "../../common/dto/rolePermission.dto";
-import {PermissionDto} from "../../common/dto/permission.dto";
-import {ApiOperation, ApiResponse, ApiTags} from "@nestjs/swagger";
+import { Body, Controller, Delete, Get, HttpException, HttpStatus, Param, Post, Put } from '@nestjs/common';
+import { SystemService } from './system.service';
+import { SearchDTO } from 'src/common/dto/search.dto';
+import { BaseResponse } from 'src/common/dto/base-response.dto';
+import { MESSAGES } from '@nestjs/core/constants';
+import { MESSAGE_STATUS } from 'src/common/enums/status.enum';
+import { ENDPOINT, METHOD } from 'src/common/enums/method.enum';
+import { RoleService } from "./role/role.service";
+import { RoleDto } from "../../common/dto/role.dto";
+import { RolePermissionDto } from "../../common/dto/rolePermission.dto";
+import { PermissionDto } from "../../common/dto/permission.dto";
+import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from "@nestjs/swagger";
 
+@ApiBearerAuth('access-token')
 @ApiTags('Hệ thống')
 @Controller('system')
 export class SystemController {
@@ -33,7 +34,7 @@ export class SystemController {
             return BaseResponse.success(resData, MESSAGE_STATUS.SYSTEM_LOGS_VIEW, HttpStatus.OK);
         } catch (e) {
             throw new HttpException(
-                {message: e.message},
+                { message: e.message },
                 HttpStatus.INTERNAL_SERVER_ERROR,
             );
         }
@@ -52,7 +53,7 @@ export class SystemController {
             return BaseResponse.success(resData, MESSAGE_STATUS.ROLE_VIEW, HttpStatus.OK);
         } catch (e) {
             throw new HttpException(
-                {message: e.message},
+                { message: e.message },
                 HttpStatus.INTERNAL_SERVER_ERROR,
             )
         }
@@ -71,7 +72,7 @@ export class SystemController {
             return BaseResponse.success(resData, MESSAGE_STATUS.ROLE_SUCCESS, HttpStatus.CREATED);
         } catch (e) {
             throw new HttpException(
-                {message: e.message},
+                { message: e.message },
                 HttpStatus.INTERNAL_SERVER_ERROR,
             )
         }
@@ -90,7 +91,7 @@ export class SystemController {
             return BaseResponse.success(resData, MESSAGE_STATUS.ROLE_UPDATE, HttpStatus.OK);
         } catch (e) {
             throw new HttpException(
-                {message: e.message},
+                { message: e.message },
                 HttpStatus.INTERNAL_SERVER_ERROR,
             )
         }
@@ -109,7 +110,7 @@ export class SystemController {
             return BaseResponse.success(resData, MESSAGE_STATUS.ROLE_VIEW, HttpStatus.OK);
         } catch (e) {
             throw new HttpException(
-                {message: e.message},
+                { message: e.message },
                 HttpStatus.INTERNAL_SERVER_ERROR,
             )
         }
@@ -128,7 +129,7 @@ export class SystemController {
             return BaseResponse.success(resData, MESSAGE_STATUS.ROLE_DELETE, HttpStatus.OK);
         } catch (e) {
             throw new HttpException(
-                {message: e.message},
+                { message: e.message },
                 HttpStatus.INTERNAL_SERVER_ERROR,
             )
         }
@@ -147,7 +148,7 @@ export class SystemController {
             return BaseResponse.success(resData, MESSAGE_STATUS.ROLE_PERMISSIONS_UPDATE, HttpStatus.OK);
         } catch (e) {
             throw new HttpException(
-                {message: e.message},
+                { message: e.message },
                 HttpStatus.INTERNAL_SERVER_ERROR,
             )
         }
@@ -166,7 +167,7 @@ export class SystemController {
             return BaseResponse.success(resData, MESSAGE_STATUS.PERMISSION_VIEW, HttpStatus.OK);
         } catch (e) {
             throw new HttpException(
-                {message: e.message},
+                { message: e.message },
                 HttpStatus.INTERNAL_SERVER_ERROR,
             )
         }
@@ -185,7 +186,7 @@ export class SystemController {
             return BaseResponse.success(resData, MESSAGE_STATUS.PERMISSION_SUCCESS, HttpStatus.CREATED);
         } catch (e) {
             throw new HttpException(
-                {message: e.message},
+                { message: e.message },
                 HttpStatus.INTERNAL_SERVER_ERROR,
             )
         }
@@ -204,7 +205,7 @@ export class SystemController {
             return BaseResponse.success(resData, MESSAGE_STATUS.PERMISSION_UPDATE, HttpStatus.OK);
         } catch (e) {
             throw new HttpException(
-                {message: e.message},
+                { message: e.message },
                 HttpStatus.INTERNAL_SERVER_ERROR,
             )
         }
@@ -223,7 +224,7 @@ export class SystemController {
             return BaseResponse.success(resData, MESSAGE_STATUS.PERMISSION_VIEW, HttpStatus.OK);
         } catch (e) {
             throw new HttpException(
-                {message: e.message},
+                { message: e.message },
                 HttpStatus.INTERNAL_SERVER_ERROR,
             )
         }
@@ -242,7 +243,7 @@ export class SystemController {
             return BaseResponse.success(resData, MESSAGE_STATUS.PERMISSION_DELETE, HttpStatus.OK);
         } catch (e) {
             throw new HttpException(
-                {message: e.message},
+                { message: e.message },
                 HttpStatus.INTERNAL_SERVER_ERROR,
             )
         }

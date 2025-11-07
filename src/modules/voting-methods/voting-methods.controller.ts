@@ -5,8 +5,9 @@ import { UpdateVotingMethodDto } from './dto/update-voting-method.dto';
 
 import { BaseResponse } from 'src/common/dto/base-response.dto';
 import { MESSAGE } from 'src/common/enums/message.enum';
-import { ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOperation, ApiResponse } from '@nestjs/swagger';
 
+@ApiBearerAuth('access-token')
 @Controller('voting-methods')
 export class VotingMethodsController {
   constructor(private readonly votingMethodsService: VotingMethodsService) { }

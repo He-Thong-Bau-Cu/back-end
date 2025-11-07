@@ -13,7 +13,7 @@ import {
   Query,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { ApiOperation, ApiResponse, ApiTags, ApiConsumes, ApiBody, ApiParam, ApiQuery } from '@nestjs/swagger';
+import { ApiOperation, ApiResponse, ApiTags, ApiConsumes, ApiBody, ApiParam, ApiQuery, ApiBearerAuth } from '@nestjs/swagger';
 import { MinioService } from './minio.service';
 import { FileType } from '../../common/enums/file-type.enum';
 import { FileResponseDto } from './dto/fileResponse.dto';
@@ -21,10 +21,11 @@ import { Response } from 'express';
 import { BaseResponse } from '../../common/dto/base-response.dto';
 import { MESSAGE_STATUS } from '../../common/enums/status.enum';
 
+@ApiBearerAuth('access-token')
 @ApiTags('MinIO - File Management')
 @Controller('minio')
 export class MinioController {
-  constructor(private readonly minioService: MinioService) {}
+  constructor(private readonly minioService: MinioService) { }
 
   @ApiOperation({ summary: 'Upload file to MinIO' })
   @ApiConsumes('multipart/form-data')

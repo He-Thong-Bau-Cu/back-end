@@ -10,7 +10,9 @@ import { ElectionEntities } from 'src/database/schemas/electionEntities.schema';
 import { VotingRights } from 'src/database/schemas/votingRights.schema';
 import { STATUS } from 'src/common/enums/status.enum';
 import { MESSAGE } from 'src/common/enums/message.enum';
+import { ApiBearerAuth } from '@nestjs/swagger';
 
+@ApiBearerAuth('access-token')
 @Injectable()
 export class BallotsService {
 
@@ -70,7 +72,7 @@ export class BallotsService {
         })
         .populate('entityId')
         .exec();
-        
+
       return ballot;
     } catch (error) {
       throw error;
@@ -87,7 +89,7 @@ export class BallotsService {
       }
 
       const ballots = await this.ballotsModel
-      .find({ electionId: new Types.ObjectId(electionId) })
+        .find({ electionId: new Types.ObjectId(electionId) })
         .populate('electionId', 'title startDate endDate delegationStart delegationEnd status statusData decisionNumber decisionName')
         .populate({
           path: 'voterId',
@@ -111,7 +113,7 @@ export class BallotsService {
     }
   }
 
-    async getByVoterId(voterId: string) {
+  async getByVoterId(voterId: string) {
     try {
       //Check if the voter is exist
       const voterExist = await this.votersModel.exists({ _id: voterId });

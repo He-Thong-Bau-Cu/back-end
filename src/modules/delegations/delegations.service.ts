@@ -8,6 +8,7 @@ import { Elections } from 'src/database/schemas/elections.schema';
 import { Users } from 'src/database/schemas/users.schema';
 import { ElectionDocuments } from 'src/database/schemas/electionDocuments.schema';
 import { MESSAGE } from 'src/common/enums/message.enum';
+import { STATUS } from 'src/common/enums/status.enum';
 
 @Injectable()
 export class DelegationsService {
@@ -36,6 +37,28 @@ export class DelegationsService {
           { path: 'confirmedBy', select: "username fullName email position" },
           { path: 'documentId', select: "title file_url status" },
         ]).exec();
+
+      return delegation;
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  async getStatusActive() {
+    try {
+
+      const delegation = await this.delegationModel
+        .find({ status: STATUS.ACTIVE })
+        .populate('delegatorId', 'username fullName email position')
+        .populate('delegateId', 'username fullName email position')
+        .populate('confirmedBy', 'username fullName email position')
+        .populate('documentId', 'title file_url status')
+        .exec();
+
+      //kiểm tra có delegation
+      if (!delegation) {
+        throw new Error(MESSAGE.DELEGATION_NOT_FOUND);
+      }
 
       return delegation;
     } catch (error) {
