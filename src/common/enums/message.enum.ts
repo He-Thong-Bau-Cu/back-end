@@ -74,7 +74,7 @@ export enum MESSAGE {
     ELECTION_TYPE_CODE_NOT_FOUND = 'Không tìm thấy loại bầu cử',
     NO_PARTICIPANTS_LINKED = 'Không có người tham gia liên kết với cuộc bầu cử',
 
-    
+
     // Meetings
     MEETING_NOT_FOUND = 'Không tìm thấy cuộc họp',
     MEETING_GET_ID_SUCCESS = "Lấy thông tin cuộc họp theo ID thành công",
@@ -178,7 +178,7 @@ export enum MESSAGE {
     ROLE_DELETE_SUCCESS = 'Xóa vai trò thành công',
 
     // Success Messages - Delegations
-   
+
 
 
 
@@ -207,7 +207,8 @@ export enum MESSAGE {
 
     // Success Messages - Delegate Cards
     DELEGATE_CARD_GET_ACTIVE_SUCCESS = 'Lấy danh sách thẻ đại biểu hoặc ủy quyền thành công',
-
+    DELEGATE_CARD_NOT_FOUND = 'Không tìm thấy thẻ đại biểu hoặc ủy quyền',
+    DELEGATE_CARD_GET_BY_ID_SUCCESS = 'Lấy thông tin thẻ đại biểu hoặc ủy quyền theo ID thành công',
     // Success Messages - System
     SYSTEM_LOG_SEARCH_SUCCESS = 'Tìm kiếm log hệ thống thành công',
 }
