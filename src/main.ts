@@ -16,9 +16,8 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   dotenv.config();
   app.enableCors({
-    origin: ['http://localhost:5173', 'http://127.0.0.1:5173', 'https://hethongbaucu.netlify.app/'],
-    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
-    credentials: true,
+    origin: '*',
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
   });
   app.use(
     helmet({
@@ -49,10 +48,12 @@ async function bootstrap() {
   //     },
   //   }),
   // );
-  app.use(compression({
-    level: 6,
-    threshold: 1024,
-  }));
+  app.use(
+    compression({
+      level: 6,
+      threshold: 1024,
+    }),
+  );
   const u = path.join(process.cwd(), 'uploads');
   const c = path.join(process.cwd(), 'certs');
   if (!fs.existsSync(u)) fs.mkdirSync(u);
