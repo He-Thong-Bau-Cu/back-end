@@ -95,20 +95,28 @@ export class AuthService {
       if (!userData) {
         throw new Error('Người dùng không tồn tại!');
       }
+      const encryptionKey = this.configService.get<string>('ENCRYPTION_KEY') || 'keysecret123';
+      if (userData.twoFaSecret) {
+        const decryptedSecret = decryptString(userData.twoFaSecret, encryptionKey);
+        const otpauthUrl = speakeasy.otpauthURL({
+          secret: decryptedSecret,
+          label: `Hệ thống bầu cử - ${userData.email}`,
+          encoding: 'base32',
+        });
+        const qrCode = await qrcode.toDataURL(otpauthUrl);
+        return { qrCode };
+      }
       const secret = speakeasy.generateSecret({
         name: `Hệ thống bầu cử - ${userData.email}`,
         length: 16,
         digits: 6,
       });
 
-      // Mã hóa secret trước khi lưu vào database
-      const encryptionKey = this.configService.get<string>('ENCRYPTION_KEY') || 'keysecret123';
       const encryptedSecret = encryptString(secret.base32, encryptionKey);
       userData.twoFaSecret = encryptedSecret;
       await userData.save();
 
       const qrCode = await qrcode.toDataURL(secret.otpauth_url!);
-      // Trả về secret gốc (chưa mã hóa) để user có thể thấy trong lần đầu setup
       return { qrCode };
     } catch (error) {
       throw error;
