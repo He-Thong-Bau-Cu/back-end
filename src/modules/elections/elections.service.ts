@@ -17,6 +17,8 @@ import { Users } from 'src/database/schemas/users.schema';
 import { CreateElectionDto } from './dto/create-elections-dto';
 import { UpdateElectionDto } from './dto/update-elections-dto';
 import { SearchElectionsDto } from './dto/search-dto';
+import { SearchDTO } from 'src/common/dto/search.dto';
+import removeVietnameseTones from 'src/common/utils/format';
 
 @Injectable()
 export class ElectionsService {
@@ -35,9 +37,16 @@ export class ElectionsService {
     private readonly userModel: Model<Users>,
   ) { }
 
-  async searchElections(req: SearchElectionsDto) {
+  async searchElections(req: SearchDTO) {
     try {
-      const elections = await this.electionsModel.find()
+      const elections = await this.electionsModel.find({
+        $or: [
+          { title: { $regex: removeVietnameseTones(req.textSearch), $options: 'i' } },
+          { decisionName: { $regex: removeVietnameseTones(req.decisionName), $options: 'i' } },
+          { decisionNumber: { $regex: req.decisionNumber, $options: 'i' } },
+          { status: { $regex: req.status, $options: 'i' } },
+        ],
+      })
         .populate('typeId')
         .populate('votingMethodId')
         .populate('thresholdId').exec();
@@ -146,7 +155,7 @@ export class ElectionsService {
 
   async deleteElection(id: string) {
     try {
-    
+
       const election = await this.electionsModel
         .findById(new Types.ObjectId(id))
         .exec();
