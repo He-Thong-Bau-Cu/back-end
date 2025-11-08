@@ -6,6 +6,7 @@ import { Voters, VotersSchema } from 'src/database/schemas/voters.schema';
 import { Elections, ElectionsSchema } from 'src/database/schemas/elections.schema';
 import { Users, UsersSchema } from 'src/database/schemas/users.schema';
 import { VotingRights, VotingRightsSchema } from 'src/database/schemas/votingRights.schema';
+import { ElectionsParticipants, ElectionsParticipantsSchema } from 'src/database/schemas/electionParticipants.schema';
 
 @Module({
   imports: [
@@ -14,6 +15,7 @@ import { VotingRights, VotingRightsSchema } from 'src/database/schemas/votingRig
       { name: Elections.name, schema: ElectionsSchema },
       { name: Users.name, schema: UsersSchema },
       { name: VotingRights.name, schema: VotingRightsSchema },
+      { name: ElectionsParticipants.name, schema: ElectionsParticipantsSchema },
     ]),
   ],
   controllers: [VotersController],

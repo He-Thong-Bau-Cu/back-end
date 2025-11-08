@@ -9,6 +9,7 @@ import { Users } from 'src/database/schemas/users.schema';
 import { Roles } from 'src/database/schemas/roles.schema';
 import { MESSAGE } from 'src/common/enums/message.enum';
 import { Types } from 'mongoose';
+import { USER_ROLE } from 'src/common/enums/config.enum';
 
 @Injectable()
 export class ElectionParticipantsService {
@@ -22,6 +23,38 @@ export class ElectionParticipantsService {
                 @InjectModel(Roles.name)
                 private readonly rolesModel: Model<Roles>
         ) { }
+        async getParticipantsAsVoter(electionId: string) {
+                try {
+                        //kiểm tra xem electionId có tồn tại không
+                        const electionExist = await this.electionsModel.exists({ _id: electionId });
+                        if (!electionExist) {
+                                throw new NotFoundException(MESSAGE.ELECTION_NOT_FOUND);
+                        }
+                        // Tìm role có roleCode là VOTER
+                        const voterRole = await this.rolesModel.findOne({ roleCode: USER_ROLE.VOTER });
+                        if (!voterRole) {
+                                throw new NotFoundException('Không tìm thấy role VOTER trong hệ thống');
+                        }
+
+                        // Tạo query để tìm participants có role là VOTER
+                        const query: any = { roleId: voterRole._id };
+
+
+                        // Lấy danh sách participants có role là VOTER
+                        const participants = await this.electionParticipantsModel
+                                .find(query)
+                                .populate([
+                                        { path: "electionId", select: "title startDate endDate delegationStart delegationEnd status statusData decisionNumber decisionName" },
+                                        { path: "roleId", select: "roleName roleCode description status" },
+                                        { path: 'userId', select: "fullName username email phone position department" }
+                                ])
+                                .exec();
+
+                        return participants;
+                } catch (error) {
+                        throw error;
+                }
+        }
 
         async getById(id: string) {
                 try {

@@ -23,8 +23,27 @@ export class DelegationsService {
     private readonly userModel: Model<Users>,
     @InjectModel(ElectionDocuments.name)
     private readonly documentModel: Model<ElectionDocuments>,
-    private readonly usersService: UsersService
-  ) {}
+
+  ) { }
+  async getDelegatorIdAndElectionId(delegatorId: string, electionId: string) {
+    try {
+      const delegation = await this.delegationModel
+        .findOne(
+          {
+            delegatorId: new Types.ObjectId(delegatorId),
+            electionId: new Types.ObjectId(electionId)
+          })
+        .populate('electionId', 'title startDate endDate delegationStart delegationEnd status statusData decisionNumber decisionName')
+        .populate('delegatorId', 'username fullName email position')
+        .populate('delegateId', 'username fullName email position')
+        .populate('confirmedBy', 'username fullName email position')
+        .populate('documentId', 'title file_url status')
+        .exec();
+      return delegation;
+    } catch (error) {
+      throw error;
+    }
+  }
 
   async getByElectionId(id: string) {
     try {
