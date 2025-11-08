@@ -170,7 +170,7 @@ export class UsersService {
 
   async detail (userId: string) {
     try {
-      const userData = await this.userModel.findById(new Types.ObjectId(userId), "_id username fullName dateOfBirth citizenId email phone address roleId position department image").exec();
+      const userData = await this.userModel.findById(new Types.ObjectId(userId), "_id username isTempPassword fullName dateOfBirth citizenId email phone address roleId position department image").exec();
       if(!userData){
         throw new Error('Người dùng không tồn tại !');
       }

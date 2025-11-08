@@ -27,7 +27,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
       useFactory: (configService: ConfigService) => ({
         global: true,
         secret: configService.get<string>('JWT_SECRET') || 'supersecretkey',
-        signOptions: { expiresIn: '2h' },
+        signOptions: { expiresIn: '24h' },
       }),
     }),
     MailModule,
