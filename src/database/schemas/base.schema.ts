@@ -11,7 +11,7 @@ export class BaseSchema extends Document {
   createdAt: Date;
 
   @Prop({ type: Types.ObjectId, ref: 'Users' })
-  createdByUserId: Types.ObjectId;  
+  createdByUserId: Types.ObjectId;
 
   @Prop({ type: Types.ObjectId, ref: 'Users' })
   updatedByUserId: Types.ObjectId;

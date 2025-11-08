@@ -1,10 +1,11 @@
 import { Controller, Get, Post, Body, Patch, Param, Delete, HttpException, HttpStatus } from '@nestjs/common';
 import { ElectionParticipantsService } from './election-participants.service';
 import { CreateElectionParticipantDto } from './dto/create-election-participant.dto';
-import { ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { BaseResponse } from 'src/common/dto/base-response.dto';
 import { MESSAGE } from 'src/common/enums/message.enum';
 
+@ApiBearerAuth('access-token')
 @Controller('election-participants')
 export class ElectionParticipantsController {
   constructor(private readonly electionParticipantsService: ElectionParticipantsService) { }

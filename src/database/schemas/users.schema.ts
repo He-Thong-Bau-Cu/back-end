@@ -20,7 +20,7 @@ export class Users extends BaseSchema {
   @Prop({ required: true })
   fullName: string;
 
-  @Prop()
+  @Prop({ default: null })
   dateOfBirth: Date;
 
   @Prop({ required: true, unique: true })
@@ -47,7 +47,7 @@ export class Users extends BaseSchema {
   @Prop({ required: true })
   department: string;
 
-  @Prop()
+  @Prop({ default: null })
   image: string;
 
   @Prop({ default: true })

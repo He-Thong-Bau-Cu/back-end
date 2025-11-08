@@ -1,5 +1,5 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import {  Document, Types } from 'mongoose';
+import { Document, Types } from 'mongoose';
 import { USER_ROLE } from 'src/common/enums/config.enum';
 import { BaseSchema } from './base.schema';
 import { Roles } from './roles.schema';
@@ -10,13 +10,13 @@ export type SystemConfigDocument = SystemConfig & Document;
 
 @Schema()
 export class SystemConfig extends BaseSchema {
-  @Prop({required: true})
+  @Prop({ required: true })
   configKey: string;
 
-  @Prop({type: Object})
+  @Prop({ type: Object, default: null })
   configValue: Record<string, any>;
 
-  @Prop({required: true})
+  @Prop({ required: true })
   groupType: string;
 }
 

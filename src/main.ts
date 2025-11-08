@@ -22,6 +22,7 @@ async function bootstrap() {
   app.use(
     helmet({
       crossOriginResourcePolicy: { policy: 'cross-origin' },
+      crossOriginOpenerPolicy: false,
     }),
   );
   app.useGlobalFilters(new HttpExceptionFilter());
@@ -62,10 +63,23 @@ async function bootstrap() {
     .setTitle('Election System API')
     .setDescription('API docs cho hệ thống bầu cử')
     .setVersion('1.0')
-    .addBearerAuth({ type: 'http', scheme: 'bearer', bearerFormat: 'JWT' }, 'access-token')
+    .addBearerAuth(
+      {
+        type: 'http',
+        scheme: 'bearer',
+        bearerFormat: 'JWT',
+        name: 'Authorization',
+        description: 'Enter JWT token',
+        in: 'header',
+      },
+      'access-token')
     .build();
   const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('api/docs', app, document);
+  SwaggerModule.setup('api/docs', app, document, {
+    swaggerOptions: {
+      persistAuthorization: true, // nhớ token sau khi bạn Authorize
+    },
+  });
   await app.listen(process.env.PORT ?? 3000);
   Logger.log(`Server run at port ${process.env.PORT ?? 3000} 😍😍😍`, 'Server');
 }

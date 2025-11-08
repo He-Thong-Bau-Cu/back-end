@@ -1,52 +1,53 @@
-import {Controller, Get, Post, Body, Patch, Param, Delete, HttpStatus, HttpException, Put} from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, HttpStatus, HttpException, Put } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
-import {ApiOperation, ApiResponse, ApiTags} from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { BaseResponse } from 'src/common/dto/base-response.dto';
 import { MESSAGE } from 'src/common/enums/message.enum';
-import {MESSAGE_STATUS} from "../../common/enums/status.enum";
-import {METHOD} from "../../common/enums/method.enum";
-import {UserDto} from "../../common/dto/user.dto";
+import { MESSAGE_STATUS } from "../../common/enums/status.enum";
+import { METHOD } from "../../common/enums/method.enum";
+import { UserDto } from "../../common/dto/user.dto";
 
+@ApiBearerAuth('access-token')
 @ApiTags('Users')
 @Controller('users')
 export class UsersController {
-  constructor(private readonly usersService: UsersService) {}
+  constructor(private readonly usersService: UsersService) { }
 
- @Get(':id')
-   @ApiOperation({ summary: 'Lấy thông tin người dùng' })
-   @ApiResponse({ status: 200, description: 'Lấy thông tin người dùng thành công.' })
-   @ApiResponse({ status: 400, description: 'Dữ liệu không hợp lệ.' })
-   @ApiResponse({ status: 500, description: 'Lỗi server' })
-   async getById(@Param('id') id: string): Promise<BaseResponse> {
-     try {
-       const resData = await this.usersService.getById(id);
-       return BaseResponse.success(resData, MESSAGE.USER_GET_BY_ID_SUCCESS, HttpStatus.OK);
-     } catch (error) {
-       throw new HttpException(
-         { message: error.message },
-         HttpStatus.INTERNAL_SERVER_ERROR
-       )
-     }
-   }
+  @Get(':id')
+  @ApiOperation({ summary: 'Lấy thông tin người dùng' })
+  @ApiResponse({ status: 200, description: 'Lấy thông tin người dùng thành công.' })
+  @ApiResponse({ status: 400, description: 'Dữ liệu không hợp lệ.' })
+  @ApiResponse({ status: 500, description: 'Lỗi server' })
+  async getById(@Param('id') id: string): Promise<BaseResponse> {
+    try {
+      const resData = await this.usersService.getById(id);
+      return BaseResponse.success(resData, MESSAGE.USER_GET_BY_ID_SUCCESS, HttpStatus.OK);
+    } catch (error) {
+      throw new HttpException(
+        { message: error.message },
+        HttpStatus.INTERNAL_SERVER_ERROR
+      )
+    }
+  }
 
-   @Get()
-   @ApiOperation({ summary: 'Lấy danh sách thông tin người dùng' })
-   @ApiResponse({ status: 200, description: 'Lấy danh sách thông tin người dùng thành công.' })
-   @ApiResponse({ status: 400, description: 'Dữ liệu không hợp lệ.' })
-   @ApiResponse({ status: 500, description: 'Lỗi server' })
-   async getAll(): Promise<BaseResponse> {
-     try {
-       const resData = await this.usersService.getAll();
-       return BaseResponse.success(resData, MESSAGE.USER_GET_ALL_SUCCESS, HttpStatus.OK);
-     } catch (error) {
-       throw new HttpException(
-         { message: error.message },
-         HttpStatus.INTERNAL_SERVER_ERROR
-       )
-     }
-   }
+  @Get()
+  @ApiOperation({ summary: 'Lấy danh sách thông tin người dùng' })
+  @ApiResponse({ status: 200, description: 'Lấy danh sách thông tin người dùng thành công.' })
+  @ApiResponse({ status: 400, description: 'Dữ liệu không hợp lệ.' })
+  @ApiResponse({ status: 500, description: 'Lỗi server' })
+  async getAll(): Promise<BaseResponse> {
+    try {
+      const resData = await this.usersService.getAll();
+      return BaseResponse.success(resData, MESSAGE.USER_GET_ALL_SUCCESS, HttpStatus.OK);
+    } catch (error) {
+      throw new HttpException(
+        { message: error.message },
+        HttpStatus.INTERNAL_SERVER_ERROR
+      )
+    }
+  }
 
   @ApiOperation({ summary: 'Tìm kiếm người dùng' })
   @ApiResponse({
@@ -55,7 +56,7 @@ export class UsersController {
   })
   @ApiResponse({ status: HttpStatus.INTERNAL_SERVER_ERROR, description: MESSAGE_STATUS.SERVER_ERROR })
   @Post(`${METHOD.SEARCH}`)
-  async search(@Body() req: UserDto){
+  async search(@Body() req: UserDto) {
     try {
       const resData = await this.usersService.search(req);
       return BaseResponse.success(resData, MESSAGE_STATUS.USER_VIEW, HttpStatus.OK);
@@ -87,7 +88,7 @@ export class UsersController {
   })
   @ApiResponse({ status: HttpStatus.INTERNAL_SERVER_ERROR, description: MESSAGE_STATUS.SERVER_ERROR })
   @Put(`${METHOD.UPDATE}/:id`)
-  async update(@Param('id') id: string, @Body() req: UserDto){
+  async update(@Param('id') id: string, @Body() req: UserDto) {
     try {
       const resData = await this.usersService.updateUser(id, req);
       return BaseResponse.success(resData, MESSAGE_STATUS.USER_UPDATE, HttpStatus.OK);
@@ -103,7 +104,7 @@ export class UsersController {
   })
   @ApiResponse({ status: HttpStatus.INTERNAL_SERVER_ERROR, description: MESSAGE_STATUS.SERVER_ERROR })
   @Delete(`${METHOD.DELETE}/:id`)
-  async delete(@Param('id') id: string){
+  async delete(@Param('id') id: string) {
     try {
       const resData = await this.usersService.delete(id);
       return BaseResponse.success(resData, MESSAGE_STATUS.USER_DELETE, HttpStatus.OK);
@@ -119,7 +120,7 @@ export class UsersController {
   })
   @ApiResponse({ status: HttpStatus.INTERNAL_SERVER_ERROR, description: MESSAGE_STATUS.SERVER_ERROR })
   @Get(`${METHOD.DETAIL}/:id`)
-  async detail(@Param('id') id: string){
+  async detail(@Param('id') id: string) {
     try {
       const resData = await this.usersService.detail(id);
       return BaseResponse.success(resData, MESSAGE_STATUS.USER_VIEW, HttpStatus.OK);

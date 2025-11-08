@@ -15,25 +15,25 @@ export class SystemLog extends BaseSchema {
   @Prop({ required: true })
   url: string;
 
-  @Prop()
+  @Prop({ default: null })
   statusCode: number;
 
-  @Prop()
+  @Prop({ default: null })
   ipAddress: string;
 
-  @Prop({ type: Types.ObjectId, ref: Users.name })
+  @Prop({ type: Types.ObjectId, ref: Users.name, default: null })
   userId: Types.ObjectId;
 
-  @Prop({ type: Object })
+  @Prop({ type: Object, default: null })
   body: Record<string, any>;
 
-  @Prop({ type: Object })
+  @Prop({ type: Object, default: null })
   query: Record<string, any>;
 
-  @Prop({ type: Object })
+  @Prop({ type: Object, default: null })
   headers: Record<string, any>;
 
-  @Prop()
+  @Prop({ default: null })
   responseTime: number;
 }
 

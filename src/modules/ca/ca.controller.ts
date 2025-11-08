@@ -2,7 +2,9 @@ import { Body, Controller, Post } from '@nestjs/common';
 import { CaService } from './ca.service';
 import { SignerInfo } from 'src/common/dto/singerInfo.dot';
 import { MESSAGE } from 'src/common/enums/message.enum';
+import { ApiBearerAuth } from '@nestjs/swagger';
 
+@ApiBearerAuth('access-token')
 @Controller('ca')
 export class CaController {
   constructor(private readonly caService: CaService) { }

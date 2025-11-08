@@ -2,10 +2,11 @@ import { Controller, Get, Post, Body, Patch, Param, Delete, HttpException, HttpS
 import { DelegationsService } from './delegations.service';
 import { CreateDelegationDto } from './dto/create-delegation.dto';
 import { UpdateDelegationDto } from './dto/update-delegation.dto';
-import { ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { BaseResponse } from 'src/common/dto/base-response.dto';
 import { MESSAGE } from 'src/common/enums/message.enum';
 
+@ApiBearerAuth('access-token')
 @Controller('delegations')
 export class DelegationsController {
   constructor(private readonly delegationsService: DelegationsService) { }
@@ -57,6 +58,22 @@ export class DelegationsController {
 
       const resData = await this.delegationsService.getById(id);
       return BaseResponse.success(resData, MESSAGE.DELEGATION_GET_BY_ID_SUCCESS, HttpStatus.OK);
+    } catch (error) {
+      throw new HttpException(
+        { message: error.message },
+        HttpStatus.INTERNAL_SERVER_ERROR
+      )
+    }
+  }
+  @Get('status')
+  @ApiOperation({ summary: "Lấy danh sách ủy quyền theo trạng thái" })
+  @ApiResponse({ status: 200, description: "Lấy danh sách ủy quyền theo trạng thái thành công" })
+  @ApiResponse({ status: 400, description: 'Dữ liệu không hợp lệ.' })
+  @ApiResponse({ status: 500, description: 'Lỗi server' })
+  async getDelegationsByStatus(): Promise<BaseResponse> {
+    try {
+      const resData = await this.delegationsService.getStatusActive();
+      return BaseResponse.success(resData, MESSAGE.DELEGATION_GET_BY_STATUS_SUCCESS, HttpStatus.OK);
     } catch (error) {
       throw new HttpException(
         { message: error.message },

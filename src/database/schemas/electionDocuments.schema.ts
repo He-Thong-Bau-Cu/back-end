@@ -1,4 +1,4 @@
-import {Prop, Schema, SchemaFactory} from '@nestjs/mongoose';
+import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Date, Document, Types } from 'mongoose';
 import { Elections } from './elections.schema';
 import { STATUS } from 'src/common/enums/status.enum';
@@ -8,25 +8,25 @@ export type ElectionDocument = ElectionDocuments & Document;
 
 @Schema()
 export class ElectionDocuments {
-  @Prop({ type: Types.ObjectId, ref: Elections.name })
+  @Prop({ type: Types.ObjectId, ref: Elections.name, required: true })
   electionId: Types.ObjectId;
 
-  @Prop({ type: Types.ObjectId, ref: ElectionsParticipants.name })
+  @Prop({ type: Types.ObjectId, ref: ElectionsParticipants.name, default: null })
   preparedBy: Types.ObjectId;
 
-  @Prop()
+  @Prop({ required: true })
   title: string;
 
-  @Prop()
+  @Prop({ required: true })
   content: string;
 
-  @Prop()
+  @Prop({ default: null })
   fileUrl: string;
 
-  @Prop({default:STATUS.ACTIVE})
+  @Prop({ default: STATUS.ACTIVE })
   status: string;
 
-  @Prop()
+  @Prop({ default: null })
   remark: string;
 }
 

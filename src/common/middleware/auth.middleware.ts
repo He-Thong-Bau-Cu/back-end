@@ -16,7 +16,9 @@ export interface CustomRequest extends Request {
 
 @Injectable()
 export class AuthMiddleware implements NestMiddleware {
-  constructor(private configService: ConfigService) {}
+  constructor(
+    private configService: ConfigService
+  ) {}
 
   use(req: CustomRequest, res: Response, next: NextFunction) {
     const authHeader = req.headers["authorization"];

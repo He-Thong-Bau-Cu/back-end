@@ -22,16 +22,20 @@ export class ElectionDocumentsService {
   async create(createElectionDocument: CreateElectionDocumentDto) {
     try {
       //check if the election exists
-      const election = await this.electionsModel.findById(createElectionDocument.electionId);
+      const election = await this.electionsModel.exists({ _id: createElectionDocument.electionId });
       if (!election) {
         throw new Error(MESSAGE.ELECTION_NOT_FOUND);
       }
       //check if the preparedBy exists
-      const preparedBy = await this.electionsParticipantsModel.findById(createElectionDocument.preparedBy);
+      const preparedBy = await this.electionsParticipantsModel.exists({ _id: createElectionDocument.preparedBy });
       if (!preparedBy) {
         throw new Error(MESSAGE.ELECTION_PARTICIPANT_NOT_FOUND);
       }
-      const electionDocument = await this.electionDocumentsModel.create(createElectionDocument);
+      const electionDocument = await this.electionDocumentsModel.create({
+        ...createElectionDocument,
+        electionId: new Types.ObjectId(createElectionDocument.electionId),
+        preparedBy: new Types.ObjectId(createElectionDocument.preparedBy),
+      });
       return electionDocument;
     } catch (error) {
       throw error;
@@ -86,7 +90,11 @@ export class ElectionDocumentsService {
         throw new Error(MESSAGE.ELECTION_DOCUMENT_NOT_FOUND);
       }
       const electionDocument = await this.electionDocumentsModel
-        .findByIdAndUpdate(new Types.ObjectId(id), updateElectionDocument, { new: true })
+        .findByIdAndUpdate(new Types.ObjectId(id), {
+          ...updateElectionDocument,
+          electionId: updateElectionDocument.electionId ? new Types.ObjectId(updateElectionDocument.electionId) : null,
+          preparedBy: updateElectionDocument.preparedBy ? new Types.ObjectId(updateElectionDocument.preparedBy) : null,
+        }, { new: true })
         .populate('electionId')
         .populate('preparedBy')
         .exec();

@@ -36,7 +36,7 @@ export class AuthService {
     private readonly mailService: MailService,
     private readonly redisService: RedisService,
     private readonly configService: ConfigService,
-  ) {}
+  ) { }
 
   async login(req: LoginDto) {
     try {
@@ -82,6 +82,7 @@ export class AuthService {
         role: role.roleCode,
         permissions: permissionPaths,
       });
+      console.log("token", token);
       return { accessToken: token };
     } catch (error) {
       throw error;

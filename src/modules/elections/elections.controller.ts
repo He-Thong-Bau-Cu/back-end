@@ -9,7 +9,7 @@ import {
   Post,
   Put,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiParam } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiBearerAuth } from '@nestjs/swagger';
 import { BaseResponse } from 'src/common/dto/base-response.dto';
 import { MESSAGE } from 'src/common/enums/message.enum';
 import { ElectionsService } from './elections.service';
@@ -19,6 +19,7 @@ import { CreateElectionDto } from './dto/create-elections-dto';
 import { SearchDTO } from 'src/common/dto/search.dto';
 import { UpdateElectionDto } from './dto/update-elections-dto';
 
+@ApiBearerAuth('access-token')
 @ApiTags('Elections')
 @Controller('elections')
 export class ElectionsController {

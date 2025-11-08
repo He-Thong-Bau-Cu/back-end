@@ -2,11 +2,12 @@ import { Controller, Get, Post, Body, Patch, Param, Delete, HttpException, HttpS
 import { DelegateCardsService } from './delegate-cards.service';
 import { CreateDelegateCardDto } from './dto/create-delegate-card.dto';
 import { UpdateDelegateCardDto } from './dto/update-delegate-card.dto';
-import { ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import Api from 'twilio/lib/rest/Api';
 import { BaseResponse } from 'src/common/dto/base-response.dto';
 import { MESSAGE } from 'src/common/enums/message.enum';
 
+@ApiBearerAuth('access-token')
 @Controller('delegate-cards')
 export class DelegateCardsController {
   constructor(private readonly delegateCardsService: DelegateCardsService) { }

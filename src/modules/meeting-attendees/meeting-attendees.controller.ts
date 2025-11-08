@@ -2,10 +2,11 @@ import { Controller, Get, Post, Body, Patch, Param, Delete, HttpException, HttpS
 import { MeetingAttendeesService } from './meeting-attendees.service';
 import { CreateMeetingAttendeeDto } from './dto/create-meeting-attendee.dto';
 import { UpdateMeetingAttendeeDto } from './dto/update-meeting-attendee.dto';
-import { ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { BaseResponse } from 'src/common/dto/base-response.dto';
 import { MESSAGE } from 'src/common/enums/message.enum';
 
+@ApiBearerAuth('access-token')
 @Controller('meeting-attendees')
 export class MeetingAttendeesController {
   constructor(private readonly meetingAttendeesService: MeetingAttendeesService) { }
@@ -28,22 +29,7 @@ export class MeetingAttendeesController {
     }
   }
 
-  @Get()
-  @ApiOperation({ summary: "Lấy danh sách người tham gia trong cuộc họp" })
-  @ApiResponse({ status: 200, description: "Lấy danh sách người tham gia trong cuộc họp thành công" })
-  @ApiResponse({ status: 400, description: "Dữ liệu không hợp lệ" })
-  @ApiResponse({ status: 500, description: "Lỗi server" })
-  async getAll() {
-    try {
-      const resData = await this.meetingAttendeesService.findAll();
-      return BaseResponse.success(resData, MESSAGE.MEETING_ATTENDEE_GET_ALL_SUCCESS, HttpStatus.OK);
-    } catch (error) {
-      throw new HttpException(
-        { message: error.message },
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
-    }
-  }
+
 
   @Get('meetings/:meetingId')
   @ApiOperation({ summary: "Lấy danh sách người tham gia trong cuộc họp theo ID cuộc họp" })
@@ -71,6 +57,23 @@ export class MeetingAttendeesController {
     try {
       const resData = await this.meetingAttendeesService.getByParticipantId(participantId);
       return BaseResponse.success(resData, MESSAGE.MEETING_ATTENDEE_GET_BY_PARTICIPANT_ID_SUCCESS, HttpStatus.OK);
+    } catch (error) {
+      throw new HttpException(
+        { message: error.message },
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @Get()
+  @ApiOperation({ summary: "Lấy danh sách người tham gia trong cuộc họp" })
+  @ApiResponse({ status: 200, description: "Lấy danh sách người tham gia trong cuộc họp thành công" })
+  @ApiResponse({ status: 400, description: "Dữ liệu không hợp lệ" })
+  @ApiResponse({ status: 500, description: "Lỗi server" })
+  async getAll() {
+    try {
+      const resData = await this.meetingAttendeesService.findAll();
+      return BaseResponse.success(resData, MESSAGE.MEETING_ATTENDEE_GET_ALL_SUCCESS, HttpStatus.OK);
     } catch (error) {
       throw new HttpException(
         { message: error.message },

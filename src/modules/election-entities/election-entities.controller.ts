@@ -2,11 +2,12 @@ import { Controller, Get, Post, Body, Patch, Param, Delete, HttpStatus, HttpExce
 import { ElectionEntitiesService } from './election-entities.service';
 import { CreateElectionEntityDto } from './dto/create-election-entity.dto';
 import { UpdateElectionEntityDto } from './dto/update-election-entity.dto';
-import { ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import Api from 'twilio/lib/rest/Api';
 import { BaseResponse } from 'src/common/dto/base-response.dto';
 import { MESSAGE } from 'src/common/enums/message.enum';
 
+@ApiBearerAuth('access-token')
 @Controller('election-entities')
 export class ElectionEntitiesController {
   constructor(private readonly electionEntitiesService: ElectionEntitiesService) { }

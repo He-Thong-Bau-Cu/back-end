@@ -74,7 +74,7 @@ export enum MESSAGE {
     ELECTION_TYPE_CODE_NOT_FOUND = 'Không tìm thấy loại bầu cử',
     NO_PARTICIPANTS_LINKED = 'Không có người tham gia liên kết với cuộc bầu cử',
 
-    
+
     // Meetings
     MEETING_NOT_FOUND = 'Không tìm thấy cuộc họp',
     MEETING_GET_ID_SUCCESS = "Lấy thông tin cuộc họp theo ID thành công",
@@ -99,6 +99,17 @@ export enum MESSAGE {
 
     // Delegations
     DELEGATION_NOT_FOUND = 'Không tìm thấy ủy quyền',
+    DELEGATION_GET_BY_STATUS_SUCCESS = 'Lấy danh sách ủy quyền theo trạng thái thành công',
+    DELEGATION_GET_BY_ELECTION_SUCCESS = 'Lấy thông tin ủy quyền theo cuộc bầu cử thành công',
+    DELEGATION_GET_PENDING_SUCCESS = 'Lấy danh sách ủy quyền cần xác minh',
+    DELEGATION_GET_BY_ID_SUCCESS = 'Lấy thông tin ủy quyền theo ID thành công.',
+    DELEGATION_CREATE_SUCCESS = 'Tạo ủy quyền thành công',
+    DELEGATION_UPDATE_SUCCESS = 'Cập nhật ủy quyền thành công',
+    DELEGATION_DELETE_SUCCESS = 'Xóa ủy quyền thành công',
+    DELEGATION_DELEGATOR_FALIL = 'Bạn không thể tự ủy quyền cho chính bạn được',
+    DELEGATION_USER_FALIL = 'Tạo người ủy quyền thất bại',
+
+
     DOCUMENT_IS_NOT_FOUND = 'Không tìm thấy tài liệu',
 
     // Reports
@@ -169,11 +180,7 @@ export enum MESSAGE {
     ROLE_DELETE_SUCCESS = 'Xóa vai trò thành công',
 
     // Success Messages - Delegations
-    DELEGATION_GET_BY_ELECTION_SUCCESS = 'Lấy thông tin ủy quyền theo cuộc bầu cử thành công',
-    DELEGATION_GET_PENDING_SUCCESS = 'Lấy danh sách ủy quyền cần xác minh',
-    DELEGATION_GET_BY_ID_SUCCESS = 'Lấy thông tin ủy quyền theo ID thành công.',
-    DELEGATION_CREATE_SUCCESS = 'Tạo ủy quyền thành công',
-    DELEGATION_UPDATE_SUCCESS = 'Cập nhật ủy quyền thành công',
+
 
 
 
@@ -202,7 +209,8 @@ export enum MESSAGE {
 
     // Success Messages - Delegate Cards
     DELEGATE_CARD_GET_ACTIVE_SUCCESS = 'Lấy danh sách thẻ đại biểu hoặc ủy quyền thành công',
-
+    DELEGATE_CARD_NOT_FOUND = 'Không tìm thấy thẻ đại biểu hoặc ủy quyền',
+    DELEGATE_CARD_GET_BY_ID_SUCCESS = 'Lấy thông tin thẻ đại biểu hoặc ủy quyền theo ID thành công',
     // Success Messages - System
     SYSTEM_LOG_SEARCH_SUCCESS = 'Tìm kiếm log hệ thống thành công',
 }

@@ -5,8 +5,9 @@ import { UpdateThresholdDto } from './dto/update-threshold.dto';
 import Api from 'twilio/lib/rest/Api';
 import { BaseResponse } from 'src/common/dto/base-response.dto';
 import { MESSAGE } from 'src/common/enums/message.enum';
-import { ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOperation, ApiResponse } from '@nestjs/swagger';
 
+@ApiBearerAuth('access-token')
 @Controller('thresholds')
 export class ThresholdsController {
   constructor(private readonly thresholdsService: ThresholdsService) { }

@@ -2,10 +2,11 @@ import { Controller, Get, Post, Body, Patch, Param, Delete, HttpException, HttpS
 import { ElectionTypesService } from './election-types.service';
 import { CreateElectionTypeDto } from './dto/create-election-type.dto';
 import { UpdateElectionTypeDto } from './dto/update-election-type.dto';
-import { ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { BaseResponse } from 'src/common/dto/base-response.dto';
 import { MESSAGE } from 'src/common/enums/message.enum';
 
+@ApiBearerAuth('access-token')
 @Controller('election-types')
 export class ElectionTypesController {
   constructor(private readonly electionTypesService: ElectionTypesService) { }
