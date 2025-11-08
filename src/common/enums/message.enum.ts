@@ -107,6 +107,8 @@ export enum MESSAGE {
     DELEGATION_CREATE_SUCCESS = 'Tạo ủy quyền thành công',
     DELEGATION_UPDATE_SUCCESS = 'Cập nhật ủy quyền thành công',
     DELEGATION_DELETE_SUCCESS = 'Xóa ủy quyền thành công',
+    DELEGATION_DELEGATOR_FALIL = 'Bạn không thể tự ủy quyền cho chính bạn được',
+    DELEGATION_USER_FALIL = 'Tạo người ủy quyền thất bại',
     DELEGATION_GET_BY_DELEGATOR_AND_ELECTION_SUCCESS = 'Lấy thông tin ủy quyền theo ID người ủy quyền và ID cuộc bầu cử thành công',
 
 

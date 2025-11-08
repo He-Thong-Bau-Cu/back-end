@@ -6,6 +6,7 @@ import { Delegations, DelegationsSchema } from 'src/database/schemas/delegations
 import { Elections, ElectionsSchema } from 'src/database/schemas/elections.schema';
 import { Users, UsersSchema } from 'src/database/schemas/users.schema';
 import { ElectionDocuments, ElectionDocumentSchema } from 'src/database/schemas/electionDocuments.schema';
+import { UsersModule } from '../users/users.module';
 
 @Module({
   imports: [
@@ -14,7 +15,8 @@ import { ElectionDocuments, ElectionDocumentSchema } from 'src/database/schemas/
       { name: Elections.name, schema: ElectionsSchema },
       { name: Users.name, schema: UsersSchema },
       { name: ElectionDocuments.name, schema: ElectionDocumentSchema },
-    ])
+    ]),
+    UsersModule
   ],
   controllers: [DelegationsController],
   providers: [DelegationsService],
