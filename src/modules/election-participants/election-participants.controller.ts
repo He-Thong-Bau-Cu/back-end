@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, HttpException, HttpStatus } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, Query, HttpException, HttpStatus } from '@nestjs/common';
 import { ElectionParticipantsService } from './election-participants.service';
 import { CreateElectionParticipantDto } from './dto/create-election-participant.dto';
 import { ApiBearerAuth, ApiOperation, ApiResponse } from '@nestjs/swagger';
@@ -9,6 +9,23 @@ import { MESSAGE } from 'src/common/enums/message.enum';
 @Controller('election-participants')
 export class ElectionParticipantsController {
   constructor(private readonly electionParticipantsService: ElectionParticipantsService) { }
+
+  @Get('voters/elections/:electionId')
+  @ApiOperation({ summary: 'Lấy danh sách người tham gia có role là VOTER' })
+  @ApiResponse({ status: 200, description: 'Lấy danh sách người tham gia có role là VOTER thành công' })
+  @ApiResponse({ status: 400, description: 'Dữ liệu không hợp lệ.' })
+  @ApiResponse({ status: 500, description: 'Lỗi server' })
+  async getVotersByElectionId(@Param('electionId') electionId: string): Promise<BaseResponse> {
+    try {
+      const resData = await this.electionParticipantsService.getParticipantsAsVoter(electionId);
+      return BaseResponse.success(resData, MESSAGE.ELECTION_PARTICIPANT_GET_VOTERS_SUCCESS, HttpStatus.OK);
+    } catch (error) {
+      throw new HttpException(
+        { message: error.message },
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      )
+    }
+  }
 
   @Get(':id')
   @ApiOperation({ summary: 'Lấy thông tin của người tham gia cuộc bầu cử theo ID' })

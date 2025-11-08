@@ -25,6 +25,7 @@ export enum MESSAGE {
     VOTER_NOT_FOUND = 'Không tìm thấy cử tri',
     VOTER_IS_NOT_ACTIVE = 'Cử tri không hoạt động',
     VOTER_HAS_NOT_VOTING_RIGHT = 'Cử tri không có quyền bầu cử cho cuộc bầu cử này',
+    VOTER_ALREADY_EXISTS = 'Cử tri đã tồn tại cho cuộc bầu cử và người dùng này',
     VOTER_DELETE_SUCCESS = 'Cử tri được xóa thành công',
     VOTER_GET_BY_ELECTION_SUCCESS = 'Lấy danh sách cử tri theo cuộc bầu cử thành công',
     VOTER_GET_BY_ID_SUCCESS = 'Lấy thông tin cử tri thành công',
@@ -106,6 +107,7 @@ export enum MESSAGE {
     DELEGATION_CREATE_SUCCESS = 'Tạo ủy quyền thành công',
     DELEGATION_UPDATE_SUCCESS = 'Cập nhật ủy quyền thành công',
     DELEGATION_DELETE_SUCCESS = 'Xóa ủy quyền thành công',
+    DELEGATION_GET_BY_DELEGATOR_AND_ELECTION_SUCCESS = 'Lấy thông tin ủy quyền theo ID người ủy quyền và ID cuộc bầu cử thành công',
 
 
     DOCUMENT_IS_NOT_FOUND = 'Không tìm thấy tài liệu',
@@ -191,6 +193,7 @@ export enum MESSAGE {
     ELECTION_PARTICIPANT_GET_BY_ELECTION = 'Lấy danh sách người tham gia theo cuộc bầu cử thành công',
     ELECTION_PARTICIPANT_UPDATE_SUCCESS = 'Cập nhật người tham gia thành công',
     ELECTION_PARTICIPANT_GET_BY_USER_SUCCESS = 'Lấy danh sách cuộc bầu cử người dùng tham gia thành công',
+    ELECTION_PARTICIPANT_GET_VOTERS_SUCCESS = 'Lấy danh sách participants có role là VOTER thành công',
     ELECTION_PARTICIPANT_ID_DOES_NOT_EXIST = 'ID người tham gia không tồn tại',
     ELECTION_PARTICIPANT_ROLE_NOT_FOUND = 'Không tìm thấy vai trò',
 
@@ -209,6 +212,16 @@ export enum MESSAGE {
     DELEGATE_CARD_GET_ACTIVE_SUCCESS = 'Lấy danh sách thẻ đại biểu hoặc ủy quyền thành công',
     DELEGATE_CARD_NOT_FOUND = 'Không tìm thấy thẻ đại biểu hoặc ủy quyền',
     DELEGATE_CARD_GET_BY_ID_SUCCESS = 'Lấy thông tin thẻ đại biểu hoặc ủy quyền theo ID thành công',
+    DELEGATE_NOT_FOUND = 'Không tìm thấy người đại diện',
+    DELEGATOR_NOT_FOUND = 'Không tìm thấy người đại diện',
+    DELEGATE_CREATE_SUCCESS = 'Tạo người đại diện thành công',
+    DELEGATE_UPDATE_SUCCESS = 'Cập nhật người đại diện thành công',
+    DELEGATE_DELETE_SUCCESS = 'Xóa người đại diện thành công',
+    DELEGATE_GET_BY_ID_SUCCESS = 'Lấy thông tin người đại diện theo ID thành công',
+    DELEGATE_GET_BY_ELECTION_SUCCESS = 'Lấy danh sách người đại diện theo cuộc bầu cử thành công',
+    DELEGATE_GET_BY_VOTER_SUCCESS = 'Lấy danh sách người đại diện theo cử tri thành công',
+    DELEGATE_GET_BY_DELEGATOR_SUCCESS = 'Lấy danh sách người đại diện theo người đại diện thành công',
+
     // Success Messages - System
     SYSTEM_LOG_SEARCH_SUCCESS = 'Tìm kiếm log hệ thống thành công',
 }

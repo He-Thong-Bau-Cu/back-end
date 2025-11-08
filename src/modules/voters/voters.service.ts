@@ -7,6 +7,7 @@ import { Model, Types } from 'mongoose';
 import { Elections } from 'src/database/schemas/elections.schema';
 import { Users } from 'src/database/schemas/users.schema';
 import { VotingRights } from 'src/database/schemas/votingRights.schema';
+import { ElectionsParticipants } from 'src/database/schemas/electionParticipants.schema';
 import { STATUS } from 'src/common/enums/status.enum';
 import { MESSAGE } from 'src/common/enums/message.enum';
 
@@ -21,6 +22,8 @@ export class VotersService {
     private readonly userModel: Model<Users>,
     @InjectModel(VotingRights.name)
     private readonly votingRightsModel: Model<VotingRights>,
+    @InjectModel(ElectionsParticipants.name)
+    private readonly electionParticipantsModel: Model<ElectionsParticipants>,
 
   ) { }
 
@@ -28,27 +31,57 @@ export class VotersService {
 
   async create(createVoter: CreateVoterDto) {
     try {
-      // Kiểm tra electionId có tồn tại không
-      const electionExists = await this.electionsModel.findOne({ electionId: createVoter.electionId });
+      // Kiểm tra electionId có tồn tại không (sử dụng _id)
+      const electionId = new Types.ObjectId(createVoter.electionId);
+      const electionExists = await this.electionsModel.findById(electionId);
       if (!electionExists) {
         throw new Error(MESSAGE.ELECTION_NOT_FOUND);
       } else if (electionExists.status && electionExists.status !== STATUS.ACTIVE) {
         throw new Error(MESSAGE.ELECTION_IS_NOT_ACTIVE);
       }
 
-      // Kiểm tra userId có tồn tại không
-      const userExists = await this.userModel.findOne({ userId: createVoter.userId });
+      // Kiểm tra userId có tồn tại không (sử dụng _id) và lấy thông tin roleId, position
+      const userId = new Types.ObjectId(createVoter.userId);
+      const userExists = await this.userModel.findById(userId);
       if (!userExists) {
         throw new Error(MESSAGE.USER_NOT_FOUND);
       } else if (userExists.status && userExists.status !== STATUS.ACTIVE) {
         throw new Error(MESSAGE.USER_IS_NOT_ACTIVE);
       }
 
+      // Kiểm tra xem đã có voter chưa (tránh duplicate)
+      const existingVoter = await this.voterModel.findOne({
+        electionId: electionId,
+        userId: userId,
+      });
+
+      if (existingVoter) {
+        throw new Error(MESSAGE.VOTER_ALREADY_EXISTS);
+      }
+
+      // Kiểm tra xem đã có electionParticipant chưa
+      const existingParticipant = await this.electionParticipantsModel.findOne({
+        electionId: electionId,
+        userId: userId,
+      });
+
+      if (!existingParticipant) {
+        // Tạo electionParticipant nếu chưa tồn tại
+        await this.electionParticipantsModel.create({
+          electionId: electionId,
+          userId: userId,
+          roleId: userExists.roleId,
+          position: userExists.position || 'Voter',
+        });
+      }
+
+      // Tạo voter
       const voter = await this.voterModel.create({
         ...createVoter,
-        electionId: new Types.ObjectId(createVoter.electionId),
-        userId: new Types.ObjectId(createVoter.userId),
+        electionId: electionId,
+        userId: userId,
       });
+
       return voter;
     } catch (error) {
       throw error;

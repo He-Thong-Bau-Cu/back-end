@@ -11,6 +11,24 @@ import { MESSAGE } from 'src/common/enums/message.enum';
 export class DelegationsController {
   constructor(private readonly delegationsService: DelegationsService) { }
 
+  //Get By DelegatorId And ElectionId
+  @Get('delegator/:delegatorId/elections/:electionId')
+  @ApiOperation({ summary: "Lấy thông tin ủy quyền theo ID người ủy quyền và ID cuộc bầu cử" })
+  @ApiResponse({ status: 200, description: "Lấy thông tin ủy quyền theo ID người ủy quyền và ID cuộc bầu cử thành công" })
+  @ApiResponse({ status: 400, description: 'Dữ liệu không hợp lệ.' })
+  @ApiResponse({ status: 500, description: 'Lỗi server' })
+  async getDelegationsByDelegatorIdAndElectionId(@Param('delegatorId') delegatorId: string, @Param('electionId') electionId: string): Promise<BaseResponse> {
+    try {
+      const resData = await this.delegationsService.getDelegatorIdAndElectionId(delegatorId, electionId);
+      return BaseResponse.success(resData, MESSAGE.DELEGATION_GET_BY_DELEGATOR_AND_ELECTION_SUCCESS, HttpStatus.OK);
+    } catch (error) {
+      throw new HttpException(
+        { message: error.message },
+        HttpStatus.INTERNAL_SERVER_ERROR
+      )
+    }
+  }
+
   //Get By ElectionId
   @Get('election/:electionId')
   @ApiOperation({ summary: "Lấy thông tin ủy quyền theo ID cuộc bầu cử" })
