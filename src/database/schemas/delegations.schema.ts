@@ -1,4 +1,4 @@
-import {Prop, Schema, SchemaFactory} from '@nestjs/mongoose';
+import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Types } from 'mongoose';
 import { BaseSchema } from './base.schema';
 import { ElectionTypes } from './electionTypes.schema';
@@ -12,8 +12,8 @@ import { STATUS } from 'src/common/enums/status.enum';
 export type DelegationsDocument = Delegations & Document;
 
 @Schema()
-export class Delegations extends BaseSchema{
-  @Prop({required: true})
+export class Delegations extends BaseSchema {
+  @Prop({ required: true })
   delegationType: string;
 
   @Prop({ type: Types.ObjectId, ref: Elections.name, required: true })
@@ -25,28 +25,29 @@ export class Delegations extends BaseSchema{
   @Prop({ type: Types.ObjectId, ref: Users.name, required: true })
   delegateId: Types.ObjectId;
 
-  @Prop()
+
+  @Prop({ required: true })
   startDate: Date;
 
-  @Prop()
+  @Prop({ required: true })
   endDate: Date;
 
-  @Prop({ type: Types.ObjectId, ref: ElectionDocuments.name })
+  @Prop({ type: Types.ObjectId, ref: ElectionDocuments.name, default: "" })
   documentId: Types.ObjectId;
 
-  @Prop()
+  @Prop({ default: null })
   delegateReason: string;
 
-  @Prop()
+  @Prop({ default: null })
   signature: string;
 
-  @Prop({default:STATUS.PENDING})
+  @Prop({ default: STATUS.PENDING })
   status: string;
 
   @Prop({ type: Types.ObjectId, ref: Users.name, required: true })
   confirmedBy: Types.ObjectId;
 
-  @Prop({default: new Date()})
+  @Prop({ default: new Date() })
   confirmedAt: Date;
 }
 

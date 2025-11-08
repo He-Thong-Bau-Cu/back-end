@@ -65,7 +65,13 @@ export class MeetingAttendeesService {
       if (!participantExist) {
         throw new Error(MESSAGE.ELECTION_PARTICIPANT_NOT_FOUND);
       }
-      return await this.meetingAttendeesModel.create(createMeetingAttendee);
+      const meetingAttendee = await this.meetingAttendeesModel.create({
+        ...createMeetingAttendee,
+        meetingId: new Types.ObjectId(createMeetingAttendee.meetingId),
+        participantId: new Types.ObjectId(createMeetingAttendee.participantId),
+      });
+
+      return meetingAttendee;
     } catch (error) {
       throw error;
     }
@@ -100,9 +106,22 @@ export class MeetingAttendeesService {
       if (!meetingAttendeeExist) {
         throw new Error(MESSAGE.MEETING_ATTENDEE_NOT_FOUND);
       }
-      return await this.meetingAttendeesModel
-        .findByIdAndUpdate(new Types.ObjectId(meetingAttendeeId), updateMeetingAttendee, { new: true })
+      const meetingAttendee = await this.meetingAttendeesModel
+        .findByIdAndUpdate(new Types.ObjectId(meetingAttendeeId), {
+          ...updateMeetingAttendee,
+          meetingId: updateMeetingAttendee.meetingId ? new Types.ObjectId(updateMeetingAttendee.meetingId) : null,
+          participantId: updateMeetingAttendee.participantId ? new Types.ObjectId(updateMeetingAttendee.participantId) : null,
+        }, { new: true })
+        .populate('meetingId')
+        .populate({
+          path: 'participantId',
+          populate: [
+            { path: 'electionId' },
+            { path: 'userId', select: 'fullName username email phone position department' }
+          ]
+        })
         .exec();
+      return meetingAttendee;
     } catch (error) {
       throw error;
     }
@@ -116,10 +135,9 @@ export class MeetingAttendeesService {
         throw new Error(MESSAGE.MEETING_NOT_FOUND);
       }
 
-      //
 
       const meetingAttendees = await this.meetingAttendeesModel
-      .find({ meetingId: new Types.ObjectId(meetingId) })
+        .find({ meetingId: new Types.ObjectId(meetingId) })
         .populate('meetingId')
         .populate({
           path: 'participantId',
@@ -152,7 +170,7 @@ export class MeetingAttendeesService {
       }
 
       const meetingAttendees = await this.meetingAttendeesModel
-      .find({ participantId: new Types.ObjectId(participantId) })
+        .find({ participantId: new Types.ObjectId(participantId) })
         .populate('meetingId')
         .populate({
           path: 'participantId',

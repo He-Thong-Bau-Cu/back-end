@@ -1,4 +1,4 @@
-import {Prop, Schema, SchemaFactory} from '@nestjs/mongoose';
+import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Types } from 'mongoose';
 import { BaseSchema } from './base.schema';
 import { ElectionTypes } from './electionTypes.schema';
@@ -14,8 +14,8 @@ import { STATUS } from 'src/common/enums/status.enum';
 export type DelegateCardDocument = DelegateCard & Document;
 
 @Schema()
-export class DelegateCard extends BaseSchema{
-  @Prop({required: true})
+export class DelegateCard extends BaseSchema {
+  @Prop({ required: true })
   token: string;
 
   @Prop({ type: Types.ObjectId, ref: Elections.name, required: true })
@@ -24,16 +24,16 @@ export class DelegateCard extends BaseSchema{
   @Prop({ type: Types.ObjectId, ref: Voters.name, required: true })
   voterId: Types.ObjectId;
 
-  @Prop({ type: Types.ObjectId, ref: Delegations.name})
+  @Prop({ type: Types.ObjectId, ref: Delegations.name, default: null })
   delegationId: Types.ObjectId;
 
-  @Prop({required: true})
+  @Prop({ required: true })
   issuedAt: Date;
 
-  @Prop({required: true})
+  @Prop({ required: true })
   expiresAt: Date;
 
-  @Prop({default:STATUS.ACTIVE})
+  @Prop({ default: STATUS.ACTIVE })
   status: string;
 }
 

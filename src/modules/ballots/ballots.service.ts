@@ -187,7 +187,12 @@ export class BallotsService {
       } else {
         throw new Error(MESSAGE.ELECTION_ENTITY_NOT_FOUND);
       }
-      const ballot = await this.ballotsModel.create(createBallot);
+      const ballot = await this.ballotsModel.create({
+        ...createBallot,
+        electionId: new Types.ObjectId(createBallot.electionId),
+        voterId: new Types.ObjectId(createBallot.voterId),
+        entityId: new Types.ObjectId(createBallot.entityId),
+      });
       return ballot;
     } catch (error) {
       throw error;
@@ -201,8 +206,27 @@ export class BallotsService {
       if (!ballotExist) {
         throw new Error(MESSAGE.BALLOT_NOT_FOUND);
       }
+
+
+
       const ballot = await this.ballotsModel
-        .findByIdAndUpdate(new Types.ObjectId(id), updateBalllot, { new: true })
+        .findByIdAndUpdate(new Types.ObjectId(id), {
+          ...updateBalllot,
+          electionId: updateBalllot.electionId ? new Types.ObjectId(updateBalllot.electionId) : null,
+          voterId: updateBalllot.voterId ? new Types.ObjectId(updateBalllot.voterId) : null,
+          entityId: updateBalllot.entityId ? new Types.ObjectId(updateBalllot.entityId) : null,
+        }, { new: true })
+        .populate('electionId', 'title startDate endDate delegationStart delegationEnd status statusData decisionNumber decisionName')
+        .populate({
+          path: 'voterId',
+          populate: [
+            {
+              path: 'userId',
+              select: "username fullName email position",
+            }
+          ]
+        })
+        .populate('entityId')
         .exec();
       return ballot;
     } catch (error) {

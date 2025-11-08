@@ -24,7 +24,7 @@ export class VotersService {
 
   ) { }
 
-  
+
 
   async create(createVoter: CreateVoterDto) {
     try {
@@ -32,7 +32,7 @@ export class VotersService {
       const electionExists = await this.electionsModel.findOne({ electionId: createVoter.electionId });
       if (!electionExists) {
         throw new Error(MESSAGE.ELECTION_NOT_FOUND);
-      }else if(electionExists.status && electionExists.status !== STATUS.ACTIVE){
+      } else if (electionExists.status && electionExists.status !== STATUS.ACTIVE) {
         throw new Error(MESSAGE.ELECTION_IS_NOT_ACTIVE);
       }
 
@@ -40,11 +40,15 @@ export class VotersService {
       const userExists = await this.userModel.findOne({ userId: createVoter.userId });
       if (!userExists) {
         throw new Error(MESSAGE.USER_NOT_FOUND);
-      }else if(userExists.status && userExists.status !== STATUS.ACTIVE){
+      } else if (userExists.status && userExists.status !== STATUS.ACTIVE) {
         throw new Error(MESSAGE.USER_IS_NOT_ACTIVE);
       }
-      
-      const voter = await this.voterModel.create(createVoter);
+
+      const voter = await this.voterModel.create({
+        ...createVoter,
+        electionId: new Types.ObjectId(createVoter.electionId),
+        userId: new Types.ObjectId(createVoter.userId),
+      });
       return voter;
     } catch (error) {
       throw error;
@@ -58,9 +62,13 @@ export class VotersService {
       if (!voterExists) {
         throw new Error(MESSAGE.VOTER_NOT_FOUND);
       }
-      
+
       const voter = await this.voterModel
-        .findByIdAndUpdate(new Types.ObjectId(id), updateVoter, { new: true })
+        .findByIdAndUpdate(new Types.ObjectId(id), {
+          ...updateVoter,
+          electionId: updateVoter.electionId ? new Types.ObjectId(updateVoter.electionId) : null,
+          userId: updateVoter.userId ? new Types.ObjectId(updateVoter.userId) : null,
+        }, { new: true })
         .exec();
       return voter;
     } catch (error) {
@@ -73,7 +81,7 @@ export class VotersService {
     try {
       //Check election exists
       const electionExists = await this.electionsModel
-      .findOne({ _id: new Types.ObjectId(electionId) }).exec();
+        .findOne({ _id: new Types.ObjectId(electionId) }).exec();
       if (electionExists) {
         if (electionExists.status && electionExists.status !== STATUS.ACTIVE) {
           throw new Error(MESSAGE.ELECTION_IS_NOT_ACTIVE);
@@ -85,13 +93,13 @@ export class VotersService {
       //Check voters exists
       const votersExists = await this.voterModel
         .find({ electionId: new Types.ObjectId(electionId), status: STATUS.ACTIVE })
-         .populate({
+        .populate({
           path: 'electionId',
           select: 'title',
-          populate:[
-            {path:"typeId",select:"typeName typeNameCode description status"},
-            {path:"votingMethodId",select:"methodName methodCode description status"},
-            {path:"thresholdId",select:"thresholdName thresholdCode value description status"}
+          populate: [
+            { path: "typeId", select: "typeName typeNameCode description status" },
+            { path: "votingMethodId", select: "methodName methodCode description status" },
+            { path: "thresholdId", select: "thresholdName thresholdCode value description status" }
           ]
         })
         .populate('userId', 'fullName username email phone position department')
@@ -106,7 +114,7 @@ export class VotersService {
 
   async delete(id: string) {
     try {
-     
+
       const voter = await this.voterModel
         .findById(new Types.ObjectId(id))
         .exec();
@@ -124,7 +132,7 @@ export class VotersService {
     try {
       //Check if the election exists
       const electionExists = await this.electionsModel
-      .findOne({ _id: new Types.ObjectId(electionId) }).exec();
+        .findOne({ _id: new Types.ObjectId(electionId) }).exec();
       if (!electionExists) {
         throw new Error(MESSAGE.ELECTION_NOT_FOUND);
       }
@@ -133,16 +141,16 @@ export class VotersService {
         .populate({
           path: 'electionId',
           select: 'title',
-          populate:[
-            {path:"typeId",select:"typeName typeNameCode description status"},
-            {path:"votingMethodId",select:"methodName methodCode description status"},
-            {path:"thresholdId",select:"thresholdName thresholdCode value description status"}
+          populate: [
+            { path: "typeId", select: "typeName typeNameCode description status" },
+            { path: "votingMethodId", select: "methodName methodCode description status" },
+            { path: "thresholdId", select: "thresholdName thresholdCode value description status" }
           ]
         })
         .populate('userId', 'fullName username email phone position department')
         .exec();
 
-        //Check if the voters exists
+      //Check if the voters exists
       if (!voters) {
         throw new Error(MESSAGE.VOTER_NOT_FOUND);
       }
@@ -164,10 +172,10 @@ export class VotersService {
         .populate({
           path: 'electionId',
           select: 'title',
-          populate:[
-            {path:"typeId",select:"typeName typeNameCode description status"},
-            {path:"votingMethodId",select:"methodName methodCode description status"},
-            {path:"thresholdId",select:"thresholdName thresholdCode value description status"}
+          populate: [
+            { path: "typeId", select: "typeName typeNameCode description status" },
+            { path: "votingMethodId", select: "methodName methodCode description status" },
+            { path: "thresholdId", select: "thresholdName thresholdCode value description status" }
           ]
         })
         .populate('userId', 'fullName username email phone position department')
