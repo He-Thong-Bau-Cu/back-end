@@ -13,31 +13,31 @@ export class Elections extends BaseSchema {
   @Prop({ required: true })
   title: string;
 
-  @Prop({ type: Types.ObjectId, ref: ElectionTypes.name, default: "" })
+  @Prop({ type: Types.ObjectId, ref: ElectionTypes.name, default: null })
   typeId: Types.ObjectId;
 
-  @Prop({ type: Types.ObjectId, ref: VotingMethods.name, default: "" })
+  @Prop({ type: Types.ObjectId, ref: VotingMethods.name, default: null })
   votingMethodId: Types.ObjectId;
 
-  @Prop({ type: Types.ObjectId, ref: Thresholds.name, default: "" })
+  @Prop({ type: Types.ObjectId, ref: Thresholds.name, default: null })
   thresholdId: Types.ObjectId;
 
-  @Prop({ default: "" })
+  @Prop({ default: null })
   startDate: Date;
 
-  @Prop({ default: "" })
+  @Prop({ default: null })
   endDate: Date;
 
-  @Prop({ default: "" })
+  @Prop({ default: null })
   delegationStart: Date;
 
-  @Prop({ default: "" })
+  @Prop({ default: null })
   delegationEnd: Date;
 
   @Prop({ default: STATUS.ACTIVE })
   status: string;
 
-  @Prop({ default: "" })
+  @Prop({ default: null })
   statusData: string;
 
   @Prop({ required: true })

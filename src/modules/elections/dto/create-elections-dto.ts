@@ -1,4 +1,4 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
     IsString,
     IsNotEmpty,
@@ -17,57 +17,64 @@ export class CreateElectionDto {
     @IsString()
     title: string;
 
-    @ApiProperty({
+    @ApiPropertyOptional({
         description: 'ID của loại cuộc bầu cử (Election Type)',
         example: '64c5b4a8a95f1e2b40b85e91',
     })
     // @IsNotEmpty()
     @IsString()
+    @IsOptional()
     typeId: string;
 
-    @ApiProperty({
+    @ApiPropertyOptional({
         description: 'ID của phương thức bỏ phiếu (Voting Method)',
         example: '64c5b4a8a95f1e2b40b85e92',
     })
     // @IsNotEmpty()
     @IsString()
-    votingMethodId: string;
+    @IsOptional()
+    votingMethodId?: string;
 
-    @ApiProperty({
+    @ApiPropertyOptional({
         description: 'ID của ngưỡng hợp lệ (Threshold)',
         example: '64c5b4a8a95f1e2b40b85e93',
     })
     // @IsNotEmpty()
     @IsString()
-    thresholdId: string;
+    @IsOptional()
+    thresholdId?: string;
 
-    @ApiProperty({
+    @ApiPropertyOptional({
         description: 'Ngày bắt đầu cuộc bầu cử',
         example: '2025-12-01',
     })
     // @IsNotEmpty()
-    startDate: Date;
+    @IsOptional()
+    startDate?: Date;
 
-    @ApiProperty({
+    @ApiPropertyOptional({
         description: 'Ngày kết thúc cuộc bầu cử',
         example: '2025-12-10',
     })
     // @IsNotEmpty()
-    endDate: Date;
+    @IsOptional()
+    endDate?: Date;
 
-    @ApiProperty({
+    @ApiPropertyOptional({
         description: 'Thời gian bắt đầu ủy quyền bỏ phiếu',
         example: '2025-11-25T00:00:00.000Z',
     })
     // @IsNotEmpty()
-    delegationStart: Date;
+    @IsOptional()
+    delegationStart?: Date;
 
-    @ApiProperty({
+    @ApiPropertyOptional({
         description: 'Thời gian kết thúc ủy quyền bỏ phiếu',
         example: '2025-11-30T23:59:59.000Z',
     })
     // @IsNotEmpty()
-    delegationEnd: Date;
+    @IsOptional()
+    delegationEnd?: Date;
 
     @ApiProperty({
         description: 'Trạng thái của cuộc bầu cử',
@@ -79,7 +86,7 @@ export class CreateElectionDto {
     @IsEnum(STATUS)
     status?: STATUS;
 
-    @ApiProperty({
+    @ApiPropertyOptional({
         description: 'Dữ liệu phụ trợ cho trạng thái (nếu có)',
         example: 'Cuộc bầu cử đang được khởi tạo',
     })
