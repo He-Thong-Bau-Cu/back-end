@@ -22,6 +22,7 @@ async function bootstrap() {
   app.use(
     helmet({
       crossOriginResourcePolicy: { policy: 'cross-origin' },
+      crossOriginOpenerPolicy: false,
     }),
   );
   app.useGlobalFilters(new HttpExceptionFilter());
@@ -62,6 +63,7 @@ async function bootstrap() {
     .setTitle('Election System API')
     .setDescription('API docs cho hệ thống bầu cử')
     .setVersion('1.0')
+    .addServer('http://54.253.192.210')
     .addBearerAuth(
       {
         type: 'http',
