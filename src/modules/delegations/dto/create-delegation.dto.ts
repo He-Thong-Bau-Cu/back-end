@@ -105,7 +105,8 @@ export class CreateDelegationDto {
       "fullName": "John Doe",
       "citizenId": "123456789",
       "email": "M9eGx@example.com",
-      "phone": "1234567890"
+      "phone": "1234567890",
+      "address": "123 Main St, Anytown, USA",
     }
    })
    @IsOptional()
