@@ -78,10 +78,12 @@ export class ElectionsService {
       }
 
       //Kiểm tra ngày bắt đầu phải nhỏ hơn ngày kết thúc
-      const start = new Date(createElection.startDate);
-      const end = new Date(createElection.endDate);
-      if (end <= start) {
-        throw new BadRequestException('End date must be after start date');
+      if (createElection.startDate && createElection.endDate) {
+        const start = new Date(createElection.startDate);
+        const end = new Date(createElection.endDate);
+        if (end <= start) {
+          throw new BadRequestException('End date must be after start date');
+        }
       }
 
       //Kiểm tra delegationDate có hợp lệ không
@@ -92,8 +94,10 @@ export class ElectionsService {
           throw new BadRequestException('Delegation end must be after delegation start');
         }
         // Nếu có delegation, đảm bảo nằm trong phạm vi election
-        if (delStart < start || delEnd > end) {
-          throw new BadRequestException('Delegation period must be within election duration');
+        if (createElection.startDate && createElection.endDate) {
+          if (delStart < createElection.startDate || delEnd > createElection.endDate) {
+            throw new BadRequestException('Delegation period must be within election duration');
+          }
         }
       }
 
