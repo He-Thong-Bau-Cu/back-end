@@ -16,7 +16,7 @@ import {USER_ROLE} from "../../common/enums/config.enum";
 @Injectable()
 export class UsersService {
   constructor(
-    @InjectModel(Users.name) 
+    @InjectModel(Users.name)
     private userModel: Model<UserDocument>,
     @InjectModel(Roles.name)
     private roleModel: Model<RolesDocument>,
@@ -39,7 +39,7 @@ export class UsersService {
       .findById(new Types.ObjectId(id))
       .populate('roleId')
       .exec();
-      
+
       if (!user) {
         throw new Error(MESSAGE.USER_NOT_FOUND);
       }
@@ -170,7 +170,7 @@ export class UsersService {
 
   async detail (userId: string) {
     try {
-      const userData = await this.userModel.findById(new Types.ObjectId(userId)).exec();
+      const userData = await this.userModel.findById(new Types.ObjectId(userId), "_id username fullName dateOfBirth citizenId email phone address roleId position department image").exec();
       if(!userData){
         throw new Error('Người dùng không tồn tại !');
       }
