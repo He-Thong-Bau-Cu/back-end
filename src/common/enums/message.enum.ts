@@ -106,6 +106,8 @@ export enum MESSAGE {
     DELEGATION_CREATE_SUCCESS = 'Tạo ủy quyền thành công',
     DELEGATION_UPDATE_SUCCESS = 'Cập nhật ủy quyền thành công',
     DELEGATION_DELETE_SUCCESS = 'Xóa ủy quyền thành công',
+    DELEGATION_DELEGATOR_FALIL = 'Bạn không thể tự ủy quyền cho chính bạn được',
+    DELEGATION_USER_FALIL = 'Tạo người ủy quyền thất bại',
 
 
     DOCUMENT_IS_NOT_FOUND = 'Không tìm thấy tài liệu',

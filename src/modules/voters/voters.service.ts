@@ -43,13 +43,13 @@ export class VotersService {
       } else if (userExists.status && userExists.status !== STATUS.ACTIVE) {
         throw new Error(MESSAGE.USER_IS_NOT_ACTIVE);
       }
-
-      const voter = await this.voterModel.create({
-        ...createVoter,
+      const voter = new this.voterModel({
         electionId: new Types.ObjectId(createVoter.electionId),
         userId: new Types.ObjectId(createVoter.userId),
-      });
-      return voter;
+        eligible: createVoter.eligible,
+        status: createVoter.status
+      })
+      return await voter.save();
     } catch (error) {
       throw error;
     }
