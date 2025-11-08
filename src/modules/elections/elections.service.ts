@@ -89,7 +89,12 @@ export class ElectionsService {
       }
 
 
-      const election = await this.electionsModel.create(createElection);
+      const election = await this.electionsModel.create({
+        ...createElection,
+        typeId: createElection.typeId ? new Types.ObjectId(createElection.typeId) : null,
+        votingMethodId: createElection.votingMethodId ? new Types.ObjectId(createElection.votingMethodId) : null,
+        thresholdId: createElection.thresholdId ? new Types.ObjectId(createElection.thresholdId) : null,
+      });
       return election;
     } catch (error) {
       throw error;
@@ -136,7 +141,12 @@ export class ElectionsService {
       }
 
       const election = await this.electionsModel
-        .findByIdAndUpdate(new Types.ObjectId(id), data, { new: true })
+        .findByIdAndUpdate(new Types.ObjectId(id), {
+          ...data,
+          typeId: data.typeId ? new Types.ObjectId(data.typeId) : null,
+          votingMethodId: data.votingMethodId ? new Types.ObjectId(data.votingMethodId) : null,
+          thresholdId: data.thresholdId ? new Types.ObjectId(data.thresholdId) : null,
+        }, { new: true })
         .exec();
       return election;
     } catch (error) {
@@ -146,7 +156,7 @@ export class ElectionsService {
 
   async deleteElection(id: string) {
     try {
-    
+
       const election = await this.electionsModel
         .findById(new Types.ObjectId(id))
         .exec();

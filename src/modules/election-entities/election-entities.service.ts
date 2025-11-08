@@ -87,7 +87,12 @@ export class ElectionEntitiesService {
         throw new Error(MESSAGE.NO_PARTICIPANTS_LINKED);
       }
 
-      const entity = await this.electionEntityModel.create(electionEntity);
+      const entity = await this.electionEntityModel.create({
+        ...electionEntity,
+        electionId: new Types.ObjectId(electionEntity.electionId),
+        electionTypeId: new Types.ObjectId(electionEntity.electionTypeId),
+        proposerId: new Types.ObjectId(electionEntity.proposerId),
+      });
       return entity;
     } catch (error) {
       throw error;
@@ -104,7 +109,15 @@ export class ElectionEntitiesService {
         throw new Error(MESSAGE.ELECTION_ENTITY_NOT_FOUND);
       }
       const updateElectionsEntity = await this.electionEntityModel
-        .findByIdAndUpdate(new Types.ObjectId(id), electionEntity, { new: true })
+        .findByIdAndUpdate(new Types.ObjectId(id), {
+          ...electionEntity,
+          electionId: electionEntity.electionId ? new Types.ObjectId(electionEntity.electionId) : null,
+          electionTypeId: electionEntity.electionTypeId ? new Types.ObjectId(electionEntity.electionTypeId) : null,
+          proposerId: electionEntity.proposerId ? new Types.ObjectId(electionEntity.proposerId) : null,
+        }, { new: true })
+        .populate('electionId')
+        .populate('electionTypeId')
+        .populate('proposerId')
         .exec();
       return updateElectionsEntity;
     } catch (error) {

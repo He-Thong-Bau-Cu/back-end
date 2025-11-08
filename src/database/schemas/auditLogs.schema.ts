@@ -1,5 +1,5 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import {  Document, Types } from 'mongoose';
+import { Document, Types } from 'mongoose';
 import { USER_ROLE } from 'src/common/enums/config.enum';
 import { BaseSchema } from './base.schema';
 import { Roles } from './roles.schema';
@@ -19,19 +19,19 @@ export class AuditLogs extends BaseSchema {
   @Prop({ type: String, required: true })
   module: string;
 
-  @Prop({ type: Number })
+  @Prop({ type: Number, default: null })
   reference_id?: number;
 
-  @Prop({ type: Object })
+  @Prop({ type: Object, default: null })
   old_value?: Record<string, any>;
 
-  @Prop({ type: Object })
+  @Prop({ type: Object, default: null })
   new_value?: Record<string, any>;
 
-  @Prop({ type: String })
+  @Prop({ type: String, default: null })
   ip_address?: string;
 
-  @Prop({ type: String })
+  @Prop({ type: String, default: null })
   user_agent?: string;
 }
 

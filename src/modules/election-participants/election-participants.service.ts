@@ -108,7 +108,13 @@ export class ElectionParticipantsService {
                                 throw new NotFoundException(MESSAGE.ROLE_NOT_FOUND);
                         }
 
-                        const electionParticipant = await this.electionParticipantsModel.create(electionParticipants);
+                        // Chuyển đổi string IDs sang ObjectId
+                        const electionParticipant = await this.electionParticipantsModel.create({
+                                ...electionParticipants,
+                                electionId: new Types.ObjectId(electionParticipants.electionId),
+                                userId: new Types.ObjectId(electionParticipants.userId),
+                                roleId: new Types.ObjectId(electionParticipants.roleId),
+                        });
                         return electionParticipant;
                 } catch (error) {
                         throw error;

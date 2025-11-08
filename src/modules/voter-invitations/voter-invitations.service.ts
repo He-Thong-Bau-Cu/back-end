@@ -33,9 +33,9 @@ export class VoterInvitationsService {
     try {
       // Check if the voterId exists in the database
       const voterExists = await this.votersModel
-      .findOne({ _id: voterInvitation.voterId })
-      .populate('userId')
-      .exec();
+        .findOne({ _id: voterInvitation.voterId })
+        .populate('userId')
+        .exec();
       if (!voterExists) {
         throw new Error(MESSAGE.VOTER_NOT_FOUND);
       }
@@ -57,13 +57,16 @@ export class VoterInvitationsService {
       //   voterExists.userId.password,
       // );
 
-      const createdInvitation = await this.voterInvitationsModel.create({
+      const invitation = await this.voterInvitationsModel.create({
         ...voterInvitation,
+        voterId: new Types.ObjectId(voterInvitation.voterId),
+        electionId: new Types.ObjectId(voterInvitation.electionId),
         token,
         sentAt,
         expiresAt,
       });
-      return createdInvitation;
+
+      return invitation;
     } catch (error) {
       throw error;
     }
@@ -77,10 +80,10 @@ export class VoterInvitationsService {
         throw new Error(MESSAGE.ELECTION_NOT_FOUND);
       }
       const invitations = await this.voterInvitationsModel
-      .find({ electionId: new Types.ObjectId(electionId) })
-      .populate('voterId')
-      .populate('electionId')
-      .exec();
+        .find({ electionId: new Types.ObjectId(electionId) })
+        .populate('voterId')
+        .populate('electionId')
+        .exec();
 
       //check if voter invitation not exist
       if (!invitations) {
@@ -100,10 +103,10 @@ export class VoterInvitationsService {
         throw new Error(MESSAGE.VOTER_NOT_FOUND);
       }
       const invitations = await this.voterInvitationsModel
-      .find({ voterId: new Types.ObjectId(voterId) })
-      .populate('voterId')
-      .populate('electionId')
-      .exec();
+        .find({ voterId: new Types.ObjectId(voterId) })
+        .populate('voterId')
+        .populate('electionId')
+        .exec();
 
       //check if voter invitation not exist
       if (!invitations) {
@@ -119,11 +122,11 @@ export class VoterInvitationsService {
   async getById(id: string) {
     try {
       const invitation = await this.voterInvitationsModel
-      .findById(new Types.ObjectId(id))
-      .populate('voterId')
-      .populate('electionId')
-      .exec();
-      
+        .findById(new Types.ObjectId(id))
+        .populate('voterId')
+        .populate('electionId')
+        .exec();
+
       //check if voter invitation not exist
       if (!invitation) {
         throw new Error(MESSAGE.VOTER_INVITATION_NOT_FOUND);

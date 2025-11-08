@@ -1,4 +1,4 @@
-import {Prop, Schema, SchemaFactory} from '@nestjs/mongoose';
+import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Types } from 'mongoose';
 import { BaseSchema } from './base.schema';
 import { ElectionTypes } from './electionTypes.schema';
@@ -10,23 +10,23 @@ import { STATUS } from 'src/common/enums/status.enum';
 export type MeetingsDocument = Meetings & Document;
 
 @Schema()
-export class Meetings extends BaseSchema{
+export class Meetings extends BaseSchema {
   @Prop({ type: Types.ObjectId, ref: Elections.name, required: true })
   electionId: Types.ObjectId;
 
-  @Prop()
+  @Prop({ required: true })
   title: string;
 
-  @Prop({required: true})
+  @Prop({ required: true })
   meetingDate: Date;
 
-  @Prop({required: true})
+  @Prop({ required: true })
   location: string;
 
-  @Prop()
+  @Prop({ default: null })
   description: string;
 
-  @Prop({default:STATUS.SCHEDULED})
+  @Prop({ default: STATUS.SCHEDULED })
   status: string;
 }
 

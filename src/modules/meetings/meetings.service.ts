@@ -50,7 +50,7 @@ export class MeetingsService {
         throw new Error(MESSAGE.ELECTION_NOT_FOUND);
       }
       const meetings = await this.meetingsModel
-      .find({ electionId:new Types.ObjectId(electionId) })
+        .find({ electionId: new Types.ObjectId(electionId) })
         .populate({
           path: 'electionId',
           select: 'title startDate endDate delegationStart delegationEnd status statusData decisionNumber decisionName',
@@ -72,11 +72,14 @@ export class MeetingsService {
     try {
       // Check if the electionId exists in the database
       const electionExists = await this.electionsModel.exists({ _id: createMeeting.electionId });
-
       if (!electionExists) {
         throw new Error(MESSAGE.ELECTION_NOT_FOUND);
       }
-      const meeting = await this.meetingsModel.create(createMeeting);
+
+      const meeting = await this.meetingsModel.create({
+        ...createMeeting,
+        electionId: new Types.ObjectId(createMeeting.electionId)
+      });
       return meeting;
     } catch (error) {
       throw error;
@@ -91,7 +94,10 @@ export class MeetingsService {
         throw new Error(MESSAGE.MEETING_NOT_FOUND);
       }
       const updatedMeeting = await this.meetingsModel
-        .findByIdAndUpdate(new Types.ObjectId(id), updateMeeting, { new: true })
+        .findByIdAndUpdate(new Types.ObjectId(id), {
+          ...updateMeeting,
+          electionId: updateMeeting.electionId ? new Types.ObjectId(updateMeeting.electionId) : null,
+        }, { new: true })
         .exec();
 
       return updatedMeeting;

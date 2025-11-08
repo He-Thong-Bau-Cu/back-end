@@ -81,7 +81,11 @@ export class ResultsService {
         throw new Error(MESSAGE.ENTITY_NOT_FOUND);
       }
 
-      const result = await this.resultsModel.create(createResultDto);
+      const result = await this.resultsModel.create({
+        ...createResultDto,
+        electionId: new Types.ObjectId(createResultDto.electionId),
+        entityId: new Types.ObjectId(createResultDto.entityId),
+      });
       return result;
     } catch (error) {
       throw error;
@@ -96,7 +100,11 @@ export class ResultsService {
         throw new Error(MESSAGE.RESULT_NOT_FOUND);
       }
       const result = await this.resultsModel
-        .findByIdAndUpdate(new Types.ObjectId(id), updateResultDto, { new: true })
+        .findByIdAndUpdate(new Types.ObjectId(id), {
+          ...updateResultDto,
+          electionId: updateResultDto.electionId ? new Types.ObjectId(updateResultDto.electionId) : null,
+          entityId: updateResultDto.entityId ? new Types.ObjectId(updateResultDto.entityId) : null,
+        }, { new: true })
         .exec();
       return result;
     } catch (error) {

@@ -23,11 +23,11 @@ export class VotingRightsService {
 
   async getById(id: string) {
     try {
-      
+
       const votingRight = await this.votingRightModel.findById(new Types.ObjectId(id))
-      .populate('electionId')
-      .populate('voterId')
-      .exec();
+        .populate('electionId')
+        .populate('voterId')
+        .exec();
 
       //Check if the voting right exists
       if (!votingRight) {
@@ -48,10 +48,10 @@ export class VotingRightsService {
         throw new Error(MESSAGE.ELECTION_NOT_FOUND);
       }
       const votingRights = await this.votingRightModel
-      .find({ electionId: new Types.ObjectId(electionId) })
-      .populate('electionId')
-      .populate('voterId')
-      .exec();
+        .find({ electionId: new Types.ObjectId(electionId) })
+        .populate('electionId')
+        .populate('voterId')
+        .exec();
 
       //Check if the voting rights exists
       if (!votingRights) {
@@ -71,10 +71,10 @@ export class VotingRightsService {
         throw new Error(MESSAGE.VOTER_NOT_FOUND);
       }
       const votingRights = await this.votingRightModel
-      .find({ voterId: new Types.ObjectId(voterId) })
-      .populate('electionId')
-      .populate('voterId')
-      .exec();
+        .find({ voterId: new Types.ObjectId(voterId) })
+        .populate('electionId')
+        .populate('voterId')
+        .exec();
 
       //Check if the voting rights exists
       if (!votingRights) {
@@ -98,7 +98,11 @@ export class VotingRightsService {
       if (!voterExists) {
         throw new Error(MESSAGE.VOTER_NOT_FOUND);
       }
-      const votingRight = await this.votingRightModel.create(createVotingRightDto);
+      const votingRight = await this.votingRightModel.create({
+        ...createVotingRightDto,
+        electionId: new Types.ObjectId(createVotingRightDto.electionId),
+        voterId: new Types.ObjectId(createVotingRightDto.voterId),
+      });
       return votingRight;
     } catch (error) {
       throw error;
@@ -113,18 +117,16 @@ export class VotingRightsService {
         throw new Error(MESSAGE.VOTING_RIGHT_NOT_FOUND);
       }
 
-      //Check if the election exists
-      const electionExists = await this.electionsModel.exists({ _id: updateVotingRightDto.electionId });
-      if (!electionExists) {
-        throw new Error(MESSAGE.ELECTION_NOT_FOUND);
-      }
-      //Check if the voter exists
-      const voterExists = await this.votersModel.exists({ _id: updateVotingRightDto.voterId });
-      if (!voterExists) {
-        throw new Error(MESSAGE.VOTER_NOT_FOUND);
-      }
+
+
       const votingRight = await this.votingRightModel
-        .findByIdAndUpdate(new Types.ObjectId(id), updateVotingRightDto, { new: true })
+        .findByIdAndUpdate(new Types.ObjectId(id), {
+          ...updateVotingRightDto,
+          electionId: updateVotingRightDto.electionId ? new Types.ObjectId(updateVotingRightDto.electionId) : null,
+          voterId: updateVotingRightDto.voterId ? new Types.ObjectId(updateVotingRightDto.voterId) : null,
+        }, { new: true })
+        .populate('electionId')
+        .populate('voterId')
         .exec();
       return votingRight;
     } catch (error) {

@@ -26,7 +26,12 @@ export class ReportsService {
       if (!eletionExist)
         throw new Error(MESSAGE.ELECTION_NOT_FOUND);
 
-      const report = await this.reportModel.create(createReport);
+      const report = await this.reportModel.create({
+        ...createReport,
+        electionId: new Types.ObjectId(createReport.electionId),
+        reviewedBy: createReport.reviewedBy ? new Types.ObjectId(createReport.reviewedBy) : null,
+        signedBy: createReport.signedBy ? new Types.ObjectId(createReport.signedBy) : null,
+      });
       return report;
     } catch (error) {
       throw error;
@@ -99,7 +104,12 @@ export class ReportsService {
         throw new Error(MESSAGE.REPORT_NOT_FOUND);
       }
       return await this.reportModel
-        .findByIdAndUpdate(new Types.ObjectId(id), updateReport, { new: true })
+        .findByIdAndUpdate(new Types.ObjectId(id), {
+          ...updateReport,
+          electionId: updateReport.electionId ? new Types.ObjectId(updateReport.electionId) : null,
+          reviewedBy: updateReport.reviewedBy ? new Types.ObjectId(updateReport.reviewedBy) : null,
+          signedBy: updateReport.signedBy ? new Types.ObjectId(updateReport.signedBy) : null,
+        }, { new: true })
         .populate('electionId')
         .populate('reviewedBy', 'username fullName email position')
         .populate('signedBy', 'username fullName email position')

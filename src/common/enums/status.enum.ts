@@ -61,6 +61,12 @@ export enum STATUS {
   POSTPONED = 'POSTPONED',
 
   //status data: Signed_blink, DATA_ENTERED, APPROVED_SIGNED
+  //// WAIT_ENTER_DATA, WAIT_APROVAL,REQUEST_EDIT, APPROVED_SIGNED, DARF
+  WAIT_ENTER_DATA = 'WAIT_ENTER_DATA',
+  WAIT_APROVAL = 'WAIT_APROVAL',
+  REQUEST_EDIT = 'REQUEST_EDIT',
+  APPROVED_SIGNED = 'APPROVED_SIGNED',
+  DARF = 'DARF',
 }
 
 
@@ -73,33 +79,33 @@ export enum STATUS_SYSTEM {
 }
 
 export enum MESSAGE_STATUS {
-    SUCCESS = 'Thành công!',
-    INFORMATION = 'Thống báo',
-    REDIRECTION = 'Chuyển huận',
-    CLIENT_ERROR = 'Loại lỗi client',
-    SERVER_ERROR = 'Lỗi server',
-    ROLE_SUCCESS = 'Vai trò được tạo thành công!',
-    ROLE_UPDATE = 'Vai trò được cập nhật thành công!',
-    ROLE_DELETE = 'Vai trò được xóa thành công!',
-    ROLE_VIEW = 'Lấy dữ liệu vai trò thành công!',
-    ROLE_PERMISSIONS_UPDATE = 'Cập nhật quyền cho vai trò thành công!',
-    PERMISSION_SUCCESS = 'Quyền được tạo thành công!',
-    PERMISSION_UPDATE = 'Quyền được cập nhật thành công!',
-    PERMISSION_DELETE = 'Quyền được xóa thành công!',
-    PERMISSION_VIEW = 'Lấy dữ liệu quyền thành công!',
-    SYSTEM_LOGS_VIEW = 'Dữ liệu system log trả về thành công!',
-    USER_CREATE = 'Tạo người dùng thành công!',
-    USER_UPDATE = 'Cập nhật người dùng thành công!',
-    USER_DELETE = 'Xóa người dùng thành công!',
-    USER_VIEW = 'Lấy dữ liệu người dùng thành công!',
-    USER_ROLE_UPDATE = 'Cập nhật vai trò cho người dùng thành công!',
-    LOGIN_SUCCESS = 'Đăng nhập thành công!',
-    TWO_FA_ENABLED = 'Xác thực hai yếu tố đã được kích hoạt!',
-    TWO_FA_DISABLED = 'Xác thực hai yếu tố đã được vô hiệu hóa!',
-    TWO_FA_UPDATE = 'Cập nhật xác thực hai yếu tố thành cong!',
-    TWO_FA_VIEW = 'Lấy dữ liệu xác thực hai yếu tố thành cong!',
-    TWO_FA_CREATE = 'Tạo xác thức hai yếu tố thành cong!',
-    TWO_FA_DELETE = 'Xóa xác thức hai yếu tố	thanh cong!',
+  SUCCESS = 'Thành công!',
+  INFORMATION = 'Thống báo',
+  REDIRECTION = 'Chuyển huận',
+  CLIENT_ERROR = 'Loại lỗi client',
+  SERVER_ERROR = 'Lỗi server',
+  ROLE_SUCCESS = 'Vai trò được tạo thành công!',
+  ROLE_UPDATE = 'Vai trò được cập nhật thành công!',
+  ROLE_DELETE = 'Vai trò được xóa thành công!',
+  ROLE_VIEW = 'Lấy dữ liệu vai trò thành công!',
+  ROLE_PERMISSIONS_UPDATE = 'Cập nhật quyền cho vai trò thành công!',
+  PERMISSION_SUCCESS = 'Quyền được tạo thành công!',
+  PERMISSION_UPDATE = 'Quyền được cập nhật thành công!',
+  PERMISSION_DELETE = 'Quyền được xóa thành công!',
+  PERMISSION_VIEW = 'Lấy dữ liệu quyền thành công!',
+  SYSTEM_LOGS_VIEW = 'Dữ liệu system log trả về thành công!',
+  USER_CREATE = 'Tạo người dùng thành công!',
+  USER_UPDATE = 'Cập nhật người dùng thành công!',
+  USER_DELETE = 'Xóa người dùng thành công!',
+  USER_VIEW = 'Lấy dữ liệu người dùng thành công!',
+  USER_ROLE_UPDATE = 'Cập nhật vai trò cho người dùng thành công!',
+  LOGIN_SUCCESS = 'Đăng nhập thành công!',
+  TWO_FA_ENABLED = 'Xác thực hai yếu tố đã được kích hoạt!',
+  TWO_FA_DISABLED = 'Xác thực hai yếu tố đã được vô hiệu hóa!',
+  TWO_FA_UPDATE = 'Cập nhật xác thực hai yếu tố thành cong!',
+  TWO_FA_VIEW = 'Lấy dữ liệu xác thực hai yếu tố thành cong!',
+  TWO_FA_CREATE = 'Tạo xác thức hai yếu tố thành cong!',
+  TWO_FA_DELETE = 'Xóa xác thức hai yếu tố	thanh cong!',
 
 }
 
