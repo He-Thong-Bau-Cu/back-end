@@ -13,7 +13,7 @@ export class CreateElectionDto {
         description: 'Tiêu đề cuộc bầu cử',
         example: 'Bầu chọn dự án xuất sắc năm 2025',
     })
-    @IsNotEmpty()
+    // @IsNotEmpty()
     @IsString()
     title: string;
 
@@ -21,7 +21,7 @@ export class CreateElectionDto {
         description: 'ID của loại cuộc bầu cử (Election Type)',
         example: '64c5b4a8a95f1e2b40b85e91',
     })
-    @IsNotEmpty()
+    // @IsNotEmpty()
     @IsString()
     typeId: string;
 
@@ -29,7 +29,7 @@ export class CreateElectionDto {
         description: 'ID của phương thức bỏ phiếu (Voting Method)',
         example: '64c5b4a8a95f1e2b40b85e92',
     })
-    @IsNotEmpty()
+    // @IsNotEmpty()
     @IsString()
     votingMethodId: string;
 
@@ -37,7 +37,7 @@ export class CreateElectionDto {
         description: 'ID của ngưỡng hợp lệ (Threshold)',
         example: '64c5b4a8a95f1e2b40b85e93',
     })
-    @IsNotEmpty()
+    // @IsNotEmpty()
     @IsString()
     thresholdId: string;
 
@@ -45,28 +45,28 @@ export class CreateElectionDto {
         description: 'Ngày bắt đầu cuộc bầu cử',
         example: '2025-12-01',
     })
-    @IsNotEmpty()
+    // @IsNotEmpty()
     startDate: Date;
 
     @ApiProperty({
         description: 'Ngày kết thúc cuộc bầu cử',
         example: '2025-12-10',
     })
-    @IsNotEmpty()
+    // @IsNotEmpty()
     endDate: Date;
 
     @ApiProperty({
         description: 'Thời gian bắt đầu ủy quyền bỏ phiếu',
         example: '2025-11-25T00:00:00.000Z',
     })
-    @IsNotEmpty()
+    // @IsNotEmpty()
     delegationStart: Date;
 
     @ApiProperty({
         description: 'Thời gian kết thúc ủy quyền bỏ phiếu',
         example: '2025-11-30T23:59:59.000Z',
     })
-    @IsNotEmpty()
+    // @IsNotEmpty()
     delegationEnd: Date;
 
     @ApiProperty({
@@ -91,7 +91,7 @@ export class CreateElectionDto {
         description: 'Số quyết định ban hành cuộc bầu cử',
         example: 'QĐ-123/2025',
     })
-    @IsNotEmpty()
+    // @IsNotEmpty()
     @IsString()
     decisionNumber: string;
 
@@ -99,7 +99,7 @@ export class CreateElectionDto {
         description: 'Tên quyết định ban hành cuộc bầu cử',
         example: 'Quyết định tổ chức bầu chọn dự án tiêu biểu',
     })
-    @IsNotEmpty()
+    // @IsNotEmpty()
     @IsString()
     decisionName: string;
 }
