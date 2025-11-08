@@ -27,4 +27,21 @@ export class ElectionTypesController {
     }
   }
 
+  @Post()
+  @ApiOperation({ summary: 'Tạo loại bầu cử' })
+  @ApiResponse({ status: 200, description: 'Loại bầu cử đã được tạo thành công.' })
+  @ApiResponse({ status: 400, description: 'Dữ liệu không hợp lệ' })
+  @ApiResponse({ status: 500, description: 'Lỗi server' })
+  async create(@Body() createElectionTypeDto: CreateElectionTypeDto): Promise<BaseResponse> {
+    try {
+      const resData = await this.electionTypesService.create(createElectionTypeDto);
+      return BaseResponse.success(resData, MESSAGE.ELECTION_TYPE_CREATE_SUCCESS, HttpStatus.OK);
+    } catch (error) {
+      throw new HttpException(
+        { message: error.message },
+        500,
+      );
+    }
+  }
+
 }

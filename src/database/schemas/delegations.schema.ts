@@ -32,7 +32,7 @@ export class Delegations extends BaseSchema {
   @Prop({ required: true })
   endDate: Date;
 
-  @Prop({ type: Types.ObjectId, ref: ElectionDocuments.name, default: "" })
+  @Prop({ type: Types.ObjectId, ref: ElectionDocuments.name, default: null, required: false })
   documentId: Types.ObjectId;
 
   @Prop({ default: null })

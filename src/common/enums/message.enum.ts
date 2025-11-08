@@ -29,6 +29,7 @@ export enum MESSAGE {
     VOTER_DELETE_SUCCESS = 'Cử tri được xóa thành công',
     VOTER_GET_BY_ELECTION_SUCCESS = 'Lấy danh sách cử tri theo cuộc bầu cử thành công',
     VOTER_GET_BY_ID_SUCCESS = 'Lấy thông tin cử tri thành công',
+    VOTER_DASHBOARD_SUCCESS = 'Lấy thống kê dashboard voter thành công',
 
 
     // Voting Rights
@@ -72,6 +73,7 @@ export enum MESSAGE {
     ELECTION_ENTITY_UPDATE_SUCCESS = 'Cập nhật đối tượng tham gia cuộc bầu cử thành công',
     ELECTION_ENTITY_DELETE_SUCCESS = 'Xóa đối tượng tham gia cuộc bầu cử thành công',
     ELECTION_TYPE_NOT_FOUND = 'Không tìm thấy loại cuộc bầu cử',
+    ELECTION_TYPE_CREATE_SUCCESS = 'Tạo loại bầu cử thành công',
     ELECTION_TYPE_CODE_NOT_FOUND = 'Không tìm thấy loại bầu cử',
     NO_PARTICIPANTS_LINKED = 'Không có người tham gia liên kết với cuộc bầu cử',
 
