@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { CreateVoterDto } from './dto/create-voter.dto';
 import { UpdateVoterDto } from './dto/update-voter.dto';
 import { InjectModel } from '@nestjs/mongoose';
@@ -10,6 +10,8 @@ import { VotingRights } from 'src/database/schemas/votingRights.schema';
 import { ElectionsParticipants } from 'src/database/schemas/electionParticipants.schema';
 import { STATUS } from 'src/common/enums/status.enum';
 import { MESSAGE } from 'src/common/enums/message.enum';
+import { Roles } from 'src/database/schemas/roles.schema';
+import { USER_ROLE } from 'src/common/enums/config.enum';
 
 @Injectable()
 export class VotersService {
@@ -24,7 +26,8 @@ export class VotersService {
     private readonly votingRightsModel: Model<VotingRights>,
     @InjectModel(ElectionsParticipants.name)
     private readonly electionParticipantsModel: Model<ElectionsParticipants>,
-
+    @InjectModel(Roles.name)
+    private readonly rolesModel: Model<Roles>,
   ) { }
 
 
@@ -215,6 +218,51 @@ export class VotersService {
         .exec();
 
       return voters;
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  async getVoterDashboard(electionId: string) {
+    try {
+      // Kiểm tra electionId có tồn tại không
+      const electionExists = await this.electionsModel.findById(new Types.ObjectId(electionId));
+      if (!electionExists) {
+        throw new NotFoundException(MESSAGE.ELECTION_NOT_FOUND);
+      }
+
+
+      // 1. Lấy tổng số voter trong cuộc bầu cử
+      const totalVoters = await this.voterModel.countDocuments({
+        electionId: electionExists._id,
+      });
+
+      // 2. Lấy role VOTER
+      const voterRole = await this.rolesModel.findOne({ roleCode: USER_ROLE.VOTER });
+      if (!voterRole) {
+        throw new NotFoundException('Không tìm thấy role VOTER trong hệ thống');
+      }
+
+      // 3. Lấy tổng số người tham gia cuộc bầu cử có role là VOTER
+      const totalParticipants = await this.electionParticipantsModel.countDocuments({
+        electionId: electionExists._id,
+        roleId: voterRole._id,
+        status: STATUS.ACTIVE,
+      });
+
+      // 4. Tính tỉ lệ phần trăm: (voters / participants) * 100
+      const participationPercentage = totalParticipants > 0
+        ? ((totalVoters / totalParticipants) * 100).toFixed(2)
+        : '0.00';
+
+
+
+
+      return {
+        totalVoters,
+        totalParticipants,
+        participationPercentage: parseFloat(participationPercentage)
+      };
     } catch (error) {
       throw error;
     }

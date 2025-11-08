@@ -97,6 +97,23 @@ export class VotersController {
     }
   }
 
+  @Get('dashboard/:electionId')
+  @ApiOperation({ summary: 'Lấy thống kê dashboard voter cho cuộc bầu cử' })
+  @ApiResponse({ status: 200, description: 'Lấy thống kê dashboard voter thành công.' })
+  @ApiResponse({ status: 400, description: 'Dữ liệu không hợp lệ.' })
+  @ApiResponse({ status: 500, description: 'Lỗi server' })
+  async getVoterDashboard(@Param('electionId') electionId: string): Promise<BaseResponse> {
+    try {
+      const resData = await this.votersService.getVoterDashboard(electionId);
+      return BaseResponse.success(resData, MESSAGE.VOTER_DASHBOARD_SUCCESS, HttpStatus.OK);
+    } catch (error) {
+      throw new HttpException(
+        { message: error.message },
+        HttpStatus.INTERNAL_SERVER_ERROR
+      )
+    }
+  }
+
   @Get(':id')
   @ApiOperation({ summary: 'Lấy thông tin cử tri' })
   @ApiResponse({ status: 200, description: 'Lấy thông tin cử tri thành công.' })

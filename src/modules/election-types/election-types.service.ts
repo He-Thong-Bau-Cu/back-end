@@ -25,4 +25,13 @@ export class ElectionTypesService {
       throw error;
     }
   }
+
+  async create(createElectionTypeDto: CreateElectionTypeDto) {
+    try {
+      const electionType = await this.electionTypesModel.create(createElectionTypeDto);
+      return electionType;
+    } catch (error) {
+      throw error;
+    }
+  }
 }
