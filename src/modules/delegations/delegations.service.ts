@@ -9,10 +9,11 @@ import { Users } from 'src/database/schemas/users.schema';
 import { ElectionDocuments } from 'src/database/schemas/electionDocuments.schema';
 import { MESSAGE } from 'src/common/enums/message.enum';
 import { STATUS } from 'src/common/enums/status.enum';
+import { CustomRequest } from 'src/common/middleware/auth.middleware';
+import { UsersService } from '../users/users.service';
 
 @Injectable()
 export class DelegationsService {
-
   constructor(
     @InjectModel(Delegations.name)
     private readonly delegationModel: Model<Delegations>,
@@ -22,21 +23,25 @@ export class DelegationsService {
     private readonly userModel: Model<Users>,
     @InjectModel(ElectionDocuments.name)
     private readonly documentModel: Model<ElectionDocuments>,
-
-  ) { }
-
+    private readonly usersService: UsersService
+  ) {}
 
   async getByElectionId(id: string) {
     try {
       const delegation = await this.delegationModel
         .findOne({ electionId: new Types.ObjectId(id) })
         .populate([
-          { path: 'electionId', select: "title startDate endDate delegationStart delegationEnd status statusData decisionNumber decisionName" },
-          { path: 'delegatorId', select: "username fullName email position" },
-          { path: 'delegateId', select: "username fullName email position" },
-          { path: 'confirmedBy', select: "username fullName email position" },
-          { path: 'documentId', select: "title file_url status" },
-        ]).exec();
+          {
+            path: 'electionId',
+            select:
+              'title startDate endDate delegationStart delegationEnd status statusData decisionNumber decisionName',
+          },
+          { path: 'delegatorId', select: 'username fullName email position' },
+          { path: 'delegateId', select: 'username fullName email position' },
+          { path: 'confirmedBy', select: 'username fullName email position' },
+          { path: 'documentId', select: 'title file_url status' },
+        ])
+        .exec();
 
       return delegation;
     } catch (error) {
@@ -46,7 +51,6 @@ export class DelegationsService {
 
   async getStatusActive() {
     try {
-
       const delegation = await this.delegationModel
         .find({ status: STATUS.ACTIVE })
         .populate('delegatorId', 'username fullName email position')
@@ -66,10 +70,9 @@ export class DelegationsService {
     }
   }
 
-
   async getById(id: string) {
     try {
-      console.log("id: ", id);
+      console.log('id: ', id);
       const delegation = await this.delegationModel
         .findById(new Types.ObjectId(id))
         .populate('delegatorId', 'username fullName email position')
@@ -83,7 +86,6 @@ export class DelegationsService {
       throw error;
     }
   }
-
 
   async getDeletaionsPending() {
     try {
@@ -120,8 +122,32 @@ export class DelegationsService {
           throw new Error(MESSAGE.DOCUMENT_IS_NOT_FOUND);
         }
       }
-      const delegation = await this.delegationModel.create(createDelegation);
-      return delegation;
+
+      if (createDelegation.delegateId !== null) {
+        if (createDelegation.delegatorId === createDelegation.delegateId) {
+          throw new Error(MESSAGE.DELEGATION_DELEGATOR_FALIL);
+        }
+      }else{
+        const user = await this.usersService.create(createDelegation.delegateInfo);
+        if(!user){
+          throw new Error(MESSAGE.DELEGATION_DELEGATOR_FALIL);
+        }
+        createDelegation.delegateId = String(user._id);
+      }
+
+      // const delegation = await this.delegationModel.create(createDelegation);
+      const delegation = new this.delegationModel({
+        delegationType: createDelegation.delegationType,
+        electionId: new Types.ObjectId(createDelegation.electionId),
+        delegatorId: new Types.ObjectId(createDelegation.delegatorId),
+        delegateId: new Types.ObjectId(createDelegation.delegateId),
+        startDate: createDelegation.startDate,
+        endDate: createDelegation.endDate,
+        documentId: new Types.ObjectId(createDelegation.documentId),
+        delegateReason: createDelegation.delegateReason,
+        signature: createDelegation.signature,
+      });
+      return await delegation.save();
     } catch (error) {
       throw error;
     }

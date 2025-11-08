@@ -1,5 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
-import { IsEnum, IsNotEmpty, IsOptional, IsString } from "class-validator";
+import { IsEnum, IsNotEmpty, IsObject, IsOptional, IsString } from "class-validator";
+import { UserDto } from "src/common/dto/user.dto";
 import { DELEGATION_TYPE } from "src/common/enums/status.enum";
 
 export class CreateDelegationDto {
@@ -97,4 +98,17 @@ export class CreateDelegationDto {
    @IsOptional()
    @IsString()
    confirmedAt:Date
+
+   @ApiPropertyOptional({
+    description:"Thống tin người ủy quyền",
+    example: {
+      "fullName": "John Doe",
+      "citizenId": "123456789",
+      "email": "M9eGx@example.com",
+      "phone": "1234567890"
+    }
+   })
+   @IsOptional()
+   @IsObject()
+   delegateInfo: UserDto
 }

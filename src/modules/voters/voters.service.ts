@@ -24,7 +24,7 @@ export class VotersService {
 
   ) { }
 
-  
+
 
   async create(createVoter: CreateVoterDto) {
     try {
@@ -43,9 +43,13 @@ export class VotersService {
       }else if(userExists.status && userExists.status !== STATUS.ACTIVE){
         throw new Error(MESSAGE.USER_IS_NOT_ACTIVE);
       }
-      
-      const voter = await this.voterModel.create(createVoter);
-      return voter;
+      const voter = new this.voterModel({
+        electionId: new Types.ObjectId(createVoter.electionId),
+        userId: new Types.ObjectId(createVoter.userId),
+        eligible: createVoter.eligible,
+        status: createVoter.status
+      })
+      return await voter.save();
     } catch (error) {
       throw error;
     }
@@ -58,7 +62,7 @@ export class VotersService {
       if (!voterExists) {
         throw new Error(MESSAGE.VOTER_NOT_FOUND);
       }
-      
+
       const voter = await this.voterModel
         .findByIdAndUpdate(new Types.ObjectId(id), updateVoter, { new: true })
         .exec();
@@ -106,7 +110,7 @@ export class VotersService {
 
   async delete(id: string) {
     try {
-     
+
       const voter = await this.voterModel
         .findById(new Types.ObjectId(id))
         .exec();
