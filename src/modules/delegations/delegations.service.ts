@@ -194,7 +194,7 @@ export class DelegationsService {
     }
   }
 
-  async create(createDelegation: CreateDelegationDto, userId:string) {
+  async create(createDelegation: CreateDelegationDto, userId: string) {
     try {
       //Check if the election is exist
       const electionExist = await this.electionModel.exists({
@@ -202,6 +202,26 @@ export class DelegationsService {
       });
       if (!electionExist) {
         throw new Error(MESSAGE.ELECTION_NOT_FOUND);
+      }
+
+      //Check delegator have already authorized or not 
+      const delegatorAuthorized = await this.delegationModel.findOne({
+        delegatorId: new Types.ObjectId(createDelegation.delegatorId),
+        electionId: new Types.ObjectId(createDelegation.electionId),
+        status: STATUS.ACTIVE
+      });
+      if (delegatorAuthorized) {
+        throw new Error(MESSAGE.DELEGATOR_ALREADY_AUTHORIZED);
+      }
+
+      //Check delegate have adready been authorized or not
+      const delegateAuthorized = await this.delegationModel.findOne({
+        delegateId: new Types.ObjectId(createDelegation.delegateId),
+        electionId: new Types.ObjectId(createDelegation.electionId),
+        status: STATUS.ACTIVE
+      })
+      if (delegateAuthorized) {
+        throw new Error(MESSAGE.DELEGATE_ALREADY_AUTHORIZED);
       }
       //Check if the user is exist
       const delegatorExist = await this.userModel.exists({
@@ -265,8 +285,8 @@ export class DelegationsService {
         confirmedBy: createDelegation.confirmedBy
           ? new Types.ObjectId(createDelegation.confirmedBy)
           : null,
-          createdBy: new Types.ObjectId(userId) || null,
-          
+        createdBy: new Types.ObjectId(userId) || null,
+
       });
 
       // Return delegation with all fields
@@ -276,7 +296,7 @@ export class DelegationsService {
     }
   }
 
-  async update(id: string, updateDelegation: UpdateDelegationDto, userId:string) {
+  async update(id: string, updateDelegation: UpdateDelegationDto, userId: string) {
     try {
       //Check if the delegation is exist
       const delegationExist = await this.delegationModel.exists({ _id: id });

@@ -55,6 +55,8 @@ export enum STATUS {
   DELIVERED = 'DELIVERED',
   OPENED = 'OPENED',
 
+  CAST = 'CAST', //ballots was casted
+
   // status of meeting
   SCHEDULED = 'SCHEDULED',
   ONGOING = 'ONGOING',
