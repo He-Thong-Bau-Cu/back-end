@@ -64,23 +64,32 @@ export class ElectionsService {
   async createElection(createElection: CreateElectionDto) {
     try {
       //Kiểm tra electionType có tồn tại hay Không
-      const electionTypeExist = await this.electionTypeModel.exists({ _id: createElection.typeId });
-      if (!electionTypeExist) {
-        throw new Error(MESSAGE.ELECTION_TYPE_NOT_FOUND);
+      if (createElection.typeId) {
+        const electionTypeExist = await this.electionTypeModel.exists({
+          _id: new Types.ObjectId(createElection.typeId),
+        });
+        if (!electionTypeExist) {
+          throw new Error(MESSAGE.ELECTION_TYPE_NOT_FOUND);
+        }
       }
-
       //Kiểm tra voting method có tồn tại hay Không
-      const votingMethodExist = await this.votingMethodModel.exists({
-        _id: createElection.votingMethodId,
-      });
-      if (!votingMethodExist) {
-        throw new Error(MESSAGE.VOTING_METHOD_NOT_FOUND);
+      if (createElection.votingMethodId) {
+        const votingMethodExist = await this.votingMethodModel.exists({
+          _id: new Types.ObjectId(createElection.votingMethodId),
+        });
+        if (!votingMethodExist) {
+          throw new Error(MESSAGE.VOTING_METHOD_NOT_FOUND);
+        }
       }
 
       //Kiểm tra electionType có tồn tại hay Không
-      const thresholdExist = await this.thresholdModel.exists({ _id: createElection.thresholdId });
-      if (!thresholdExist) {
-        throw new Error(MESSAGE.THRESHOLD_NOT_FOUND);
+      if (createElection.thresholdId) {
+        const thresholdExist = await this.thresholdModel.exists({
+          _id: createElection.thresholdId,
+        });
+        if (!thresholdExist) {
+          throw new Error(MESSAGE.THRESHOLD_NOT_FOUND);
+        }
       }
 
       //Kiểm tra ngày bắt đầu phải nhỏ hơn ngày kết thúc
