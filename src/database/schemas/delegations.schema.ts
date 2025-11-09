@@ -44,7 +44,7 @@ export class Delegations extends BaseSchema {
   @Prop({ default: STATUS.PENDING })
   status: string;
 
-  @Prop({ type: Types.ObjectId, ref: Users.name, required: true })
+  @Prop({ type: Types.ObjectId, ref: Users.name, default: null })
   confirmedBy: Types.ObjectId;
 
   @Prop({ default: new Date() })

@@ -112,6 +112,8 @@ export enum MESSAGE {
     DELEGATION_DELEGATOR_FALIL = 'Bạn không thể tự ủy quyền cho chính bạn được',
     DELEGATION_USER_FALIL = 'Tạo người ủy quyền thất bại',
     DELEGATION_GET_BY_DELEGATOR_AND_ELECTION_SUCCESS = 'Lấy thông tin ủy quyền theo ID người ủy quyền và ID cuộc bầu cử thành công',
+    DELEGATOR_NOT_FOUND = "Không tìm thấy người ủy quyền",
+    DELEGATE_NOT_FOUND = "Không tìm thấy người được ủy quyền",
 
 
     DOCUMENT_IS_NOT_FOUND = 'Không tìm thấy tài liệu',
@@ -212,17 +214,12 @@ export enum MESSAGE {
     // Success Messages - Thresholds
     THRESHOLD_GET_BY_CODE_SUCCESS = 'Lấy thông tin ngưỡng thông qua theo mã thành công',
 
-    // Success Messages - Delegate Cards
+    //  Delegate Cards
     DELEGATE_CARD_GET_ACTIVE_SUCCESS = 'Lấy danh sách thẻ đại biểu hoặc ủy quyền thành công',
     DELEGATE_CARD_NOT_FOUND = 'Không tìm thấy thẻ đại biểu hoặc ủy quyền',
     DELEGATE_CARD_GET_BY_ID_SUCCESS = 'Lấy thông tin thẻ đại biểu hoặc ủy quyền theo ID thành công',
-    DELEGATE_NOT_FOUND = 'Không tìm thấy người đại diện',
-    DELEGATOR_NOT_FOUND = 'Không tìm thấy người đại diện',
-    DELEGATE_CREATE_SUCCESS = 'Tạo người đại diện thành công',
-    DELEGATE_UPDATE_SUCCESS = 'Cập nhật người đại diện thành công',
-    DELEGATE_DELETE_SUCCESS = 'Xóa người đại diện thành công',
-    DELEGATE_GET_BY_ID_SUCCESS = 'Lấy thông tin người đại diện theo ID thành công',
-    DELEGATE_GET_BY_ELECTION_SUCCESS = 'Lấy danh sách người đại diện theo cuộc bầu cử thành công',
+
+
     DELEGATE_GET_BY_VOTER_SUCCESS = 'Lấy danh sách người đại diện theo cử tri thành công',
     DELEGATE_GET_BY_DELEGATOR_SUCCESS = 'Lấy danh sách người đại diện theo người đại diện thành công',
 
