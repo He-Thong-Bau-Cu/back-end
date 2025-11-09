@@ -59,6 +59,9 @@ export enum MESSAGE {
     BALLOT_GET_BY_ID_SUCCESS = 'Lấy thông tin phiếu bầu thành công',
     BALLOT_CREATE_SUCCESS = 'Tạo phiếu bầu thành công',
     BALLOT_UPDATE_SUCCESS = 'Cập nhật phiếu bầu thành công',
+    BALLOT_DELETE_SUCCESS = 'Xóa phiếu bầu thành công',
+    BALLOT_STATISTICS_SUCCESS = 'Lấy thống kê phiếu bầu thành công',
+
 
     // Results
     RESULT_NOT_FOUND = 'Không tìm thấy kết quả',
@@ -114,6 +117,9 @@ export enum MESSAGE {
     DELEGATION_GET_BY_DELEGATOR_AND_ELECTION_SUCCESS = 'Lấy thông tin ủy quyền theo ID người ủy quyền và ID cuộc bầu cử thành công',
     DELEGATOR_NOT_FOUND = "Không tìm thấy người ủy quyền",
     DELEGATE_NOT_FOUND = "Không tìm thấy người được ủy quyền",
+    DELEGATOR_ALREADY_AUTHORIZED = "Người ủy quyền đã ủy quyền cho người khác cho cuộc bầu cử này",
+    DELEGATE_ALREADY_AUTHORIZED = "Người được ủy quyền đã được ủy quyền trong cuộc bầu cử này",
+
 
 
     DOCUMENT_IS_NOT_FOUND = 'Không tìm thấy tài liệu',

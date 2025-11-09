@@ -46,6 +46,23 @@ export class BallotsController {
     }
   }
 
+  @Get('statistics')
+  @ApiOperation({ summary: 'Lấy thống kê phiếu bầu' })
+  @ApiResponse({ status: 200, description: 'Lấy thống kê phiếu bầu thành công' })
+  @ApiResponse({ status: 400, description: 'Dữ liệu không hợp lệ' })
+  @ApiResponse({ status: 500, description: 'Lỗi server' })
+  async getStatistics(): Promise<BaseResponse> {
+    try {
+      const resData = await this.ballotsService.getStatistics();
+      return BaseResponse.success(resData, MESSAGE.BALLOT_STATISTICS_SUCCESS, HttpStatus.OK);
+    } catch (error) {
+      throw new HttpException(
+        { message: error.message },
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      )
+    }
+  }
+
 
   @Get()
   @ApiOperation({ summary: 'Lấy danh sách phiếu bầu cử' })
@@ -112,6 +129,25 @@ export class BallotsController {
     try {
       const resData = await this.ballotsService.update(id, updateBallot, req.user.sub);
       return BaseResponse.success(resData, MESSAGE.BALLOT_UPDATE_SUCCESS, HttpStatus.OK);
+    } catch (error) {
+      throw new HttpException(
+        { message: error.message },
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      )
+    }
+  }
+
+
+
+  @Delete(':id')
+  @ApiOperation({ summary: 'Xóa phiếu bầu' })
+  @ApiResponse({ status: 200, description: 'Xóa phiếu bầu thành công' })
+  @ApiResponse({ status: 400, description: 'Dữ liệu không hợp lệ' })
+  @ApiResponse({ status: 500, description: 'Lỗi server' })
+  async delete(@Param('id') id: string): Promise<BaseResponse> {
+    try {
+      const resData = await this.ballotsService.delete(id);
+      return BaseResponse.success(resData, MESSAGE.BALLOT_DELETE_SUCCESS, HttpStatus.OK);
     } catch (error) {
       throw new HttpException(
         { message: error.message },
