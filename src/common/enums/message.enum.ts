@@ -30,6 +30,7 @@ export enum MESSAGE {
     VOTER_GET_BY_ELECTION_SUCCESS = 'Lấy danh sách cử tri theo cuộc bầu cử thành công',
     VOTER_GET_BY_ID_SUCCESS = 'Lấy thông tin cử tri thành công',
     VOTER_DASHBOARD_SUCCESS = 'Lấy thống kê dashboard voter thành công',
+    VOTER_UPDATE_STATUS_SUCCESS = 'Cập nhật trạng thái cử tri thành công',
 
 
     // Voting Rights
@@ -61,6 +62,7 @@ export enum MESSAGE {
     BALLOT_UPDATE_SUCCESS = 'Cập nhật phiếu bầu thành công',
     BALLOT_DELETE_SUCCESS = 'Xóa phiếu bầu thành công',
     BALLOT_STATISTICS_SUCCESS = 'Lấy thống kê phiếu bầu thành công',
+    BALLOT_UPDATE_STATUS_SUCCESS = 'Cập nhật trạng thái phiếu bầu thành công',
 
 
     // Results
