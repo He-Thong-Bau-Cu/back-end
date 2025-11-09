@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, HttpException, HttpStatus, Put } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, HttpException, HttpStatus, Put, Req } from '@nestjs/common';
 import { VotingRightsService } from './voting-rights.service';
 import { CreateVotingRightDto } from './dto/create-voting-right.dto';
 import { UpdateVotingRightDto } from './dto/update-voting-right.dto';
@@ -6,6 +6,7 @@ import Api from 'twilio/lib/rest/Api';
 import { ApiBearerAuth, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { BaseResponse } from 'src/common/dto/base-response.dto';
 import { MESSAGE } from 'src/common/enums/message.enum';
+import { CustomRequest } from 'src/common/middleware/auth.middleware';
 
 @ApiBearerAuth('access-token')
 @Controller('voting-rights')
@@ -68,9 +69,11 @@ export class VotingRightsController {
   @ApiResponse({ status: 201, description: 'Quyền bầu cử được tạo thành công.' })
   @ApiResponse({ status: 400, description: 'Dữ liệu không hợp lệ.' })
   @ApiResponse({ status: 500, description: 'Lỗi server' })
-  async create(@Body() createVotingRight: CreateVotingRightDto): Promise<BaseResponse> {
+  async create( 
+    @Body() createVotingRight: CreateVotingRightDto,
+    @Req() req:CustomRequest): Promise<BaseResponse> {
     try {
-      const votingRight = await this.votingRightsService.create(createVotingRight);
+      const votingRight = await this.votingRightsService.create(createVotingRight, req.user.sub);
       return BaseResponse.success(votingRight, MESSAGE.VOTING_RIGHT_CREATE_SUCCESS, HttpStatus.CREATED);
     } catch (error) {
       throw new HttpException(
@@ -85,9 +88,12 @@ export class VotingRightsController {
   @ApiResponse({ status: 200, description: 'Quyền bầu cử được cập nhật thành công.' })
   @ApiResponse({ status: 400, description: 'Dữ liệu không hợp lệ.' })
   @ApiResponse({ status: 500, description: 'Lỗi server' })
-  async update(@Param('id') id: string, @Body() updateVotingRight: UpdateVotingRightDto): Promise<BaseResponse> {
+  async update(
+    @Param('id') id: string, 
+    @Body() updateVotingRight: UpdateVotingRightDto,
+    @Req() req:CustomRequest): Promise<BaseResponse> {
     try {
-      const votingRight = await this.votingRightsService.update(id, updateVotingRight);
+      const votingRight = await this.votingRightsService.update(id, updateVotingRight, req.user.sub);
       return BaseResponse.success(votingRight, MESSAGE.VOTING_RIGHT_UPDATE_SUCCESS, HttpStatus.OK);
     } catch (error) {
       throw new HttpException(

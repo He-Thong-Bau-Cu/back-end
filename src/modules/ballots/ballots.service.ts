@@ -43,6 +43,8 @@ export class BallotsService {
           ]
         })
         .populate('entityId')
+        .populate('createdBy', 'username fullName email position')
+        .populate('updatedBy', 'username fullName email position')
         .exec();
       return ballots;
     } catch (error) {
@@ -71,6 +73,8 @@ export class BallotsService {
           ]
         })
         .populate('entityId')
+        .populate('createdBy', 'username fullName email position')
+        .populate('updatedBy', 'username fullName email position')
         .exec();
 
       return ballot;
@@ -101,6 +105,8 @@ export class BallotsService {
           ]
         })
         .populate('entityId')
+        .populate('createdBy', 'username fullName email position')
+        .populate('updatedBy', 'username fullName email position')
         .exec();
 
       //Check if the ballots is exist
@@ -133,6 +139,8 @@ export class BallotsService {
           ]
         })
         .populate('entityId')
+        .populate('createdBy', 'username fullName email position')
+        .populate('updatedBy', 'username fullName email position')
         .exec();
 
       //Check if the ballots is exist
@@ -146,7 +154,7 @@ export class BallotsService {
     }
   }
 
-  async create(createBallot: CreateBallotDto) {
+  async create(createBallot: CreateBallotDto, userId:string) {
     try {
       //Check election exists
       const electionExists = await this.electionsModel.findOne({ _id: createBallot.electionId });
@@ -192,6 +200,7 @@ export class BallotsService {
         electionId: new Types.ObjectId(createBallot.electionId),
         voterId: new Types.ObjectId(createBallot.voterId),
         entityId: new Types.ObjectId(createBallot.entityId),
+        createdBy: new Types.ObjectId(userId) ? new Types.ObjectId(userId) : null,
       });
       return ballot;
     } catch (error) {
@@ -199,7 +208,7 @@ export class BallotsService {
     }
   }
 
-  async update(id: string, updateBalllot: UpdateBallotDto) {
+  async update(id: string, updateBalllot: UpdateBallotDto, userId:string) {
     try {
       //Check if the ballot is exist
       const ballotExist = await this.ballotsModel.exists({ _id: id });
@@ -215,6 +224,7 @@ export class BallotsService {
           electionId: updateBalllot.electionId ? new Types.ObjectId(updateBalllot.electionId) : null,
           voterId: updateBalllot.voterId ? new Types.ObjectId(updateBalllot.voterId) : null,
           entityId: updateBalllot.entityId ? new Types.ObjectId(updateBalllot.entityId) : null,
+          updatedBy: new Types.ObjectId(userId) ? new Types.ObjectId(userId) : null,
         }, { new: true })
         .populate('electionId', 'title startDate endDate delegationStart delegationEnd status statusData decisionNumber decisionName')
         .populate({

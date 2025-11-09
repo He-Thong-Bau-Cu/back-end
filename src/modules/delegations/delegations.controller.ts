@@ -1,10 +1,11 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, HttpException, HttpStatus, Put } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, HttpException, HttpStatus, Put, Req } from '@nestjs/common';
 import { DelegationsService } from './delegations.service';
 import { CreateDelegationDto } from './dto/create-delegation.dto';
 import { UpdateDelegationDto } from './dto/update-delegation.dto';
 import { ApiBearerAuth, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { BaseResponse } from 'src/common/dto/base-response.dto';
 import { MESSAGE } from 'src/common/enums/message.enum';
+import { CustomRequest } from 'src/common/middleware/auth.middleware';
 
 @ApiBearerAuth('access-token')
 @Controller('delegations')
@@ -105,9 +106,11 @@ export class DelegationsController {
   @ApiResponse({ status: 201, description: 'Tạo ủy quyền thành công' })
   @ApiResponse({ status: 400, description: 'Dữ liệu không hợp lệ' })
   @ApiResponse({ status: 500, description: 'Lỗi server' })
-  async create(@Body() createDelegation: CreateDelegationDto): Promise<BaseResponse> {
+  async create(
+    @Body() createDelegation: CreateDelegationDto,
+    @Req() req: CustomRequest): Promise<BaseResponse> {
     try {
-      const resData = await this.delegationsService.create(createDelegation);
+      const resData = await this.delegationsService.create(createDelegation, req.user.sub);
       return BaseResponse.success(resData, MESSAGE.DELEGATION_CREATE_SUCCESS, HttpStatus.CREATED);
     } catch (error) {
       throw new HttpException(
@@ -126,9 +129,9 @@ export class DelegationsController {
   async update(
     @Param('id') id: string,
     @Body() updateDelegation: UpdateDelegationDto,
-  ): Promise<BaseResponse> {
+    @Req() req: CustomRequest): Promise<BaseResponse> {
     try {
-      const resData = await this.delegationsService.update(id, updateDelegation);
+      const resData = await this.delegationsService.update(id, updateDelegation, req.user.sub);
       return BaseResponse.success(resData, MESSAGE.DELEGATION_UPDATE_SUCCESS, HttpStatus.OK);
     } catch (error) {
       throw new HttpException(

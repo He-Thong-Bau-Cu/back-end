@@ -28,7 +28,9 @@ export class MeetingsService {
           populate: [
             { path: "typeId", select: "typeName typeNameCode description status" },
             { path: "votingMethodId", select: "methodName methodCode description status" },
-            { path: "thresholdId", select: "thresholdName thresholdCode value description status" }
+            { path: "thresholdId", select: "thresholdName thresholdCode value description status" },
+            {path:'createdBy', select:'username fullName position department'},
+            {path:'updatedBy', select:'username fullName position department'}
           ]
         })
         .exec();
@@ -57,7 +59,9 @@ export class MeetingsService {
           populate: [
             { path: "typeId", select: "typeName typeNameCode description status" },
             { path: "votingMethodId", select: "methodName methodCode description status" },
-            { path: "thresholdId", select: "thresholdName thresholdCode value description status" }
+            { path: "thresholdId", select: "thresholdName thresholdCode value description status" },
+            {path:'createdBy', select:'username fullName position department'},
+            {path:'updatedBy', select:'username fullName position department'}
           ]
         })
         .exec();
@@ -68,7 +72,7 @@ export class MeetingsService {
   }
 
 
-  async create(createMeeting: CreateMeetingDto) {
+  async create(createMeeting: CreateMeetingDto, userId: string) {
     try {
       // Check if the electionId exists in the database
       const electionExists = await this.electionsModel.exists({ _id: createMeeting.electionId });
@@ -78,7 +82,8 @@ export class MeetingsService {
 
       const meeting = await this.meetingsModel.create({
         ...createMeeting,
-        electionId: new Types.ObjectId(createMeeting.electionId)
+        electionId: new Types.ObjectId(createMeeting.electionId),
+        createdBy: userId ? new Types.ObjectId(userId) : null,
       });
       return meeting;
     } catch (error) {
@@ -86,7 +91,7 @@ export class MeetingsService {
     }
   }
 
-  async update(id: string, updateMeeting: UpdateMeetingDto) {
+  async update(id: string, updateMeeting: UpdateMeetingDto, userId: string) {
     try {
       // Check if the meeting exists
       const meetingExists = await this.meetingsModel.exists({ _id: id });
@@ -97,6 +102,7 @@ export class MeetingsService {
         .findByIdAndUpdate(new Types.ObjectId(id), {
           ...updateMeeting,
           electionId: updateMeeting.electionId ? new Types.ObjectId(updateMeeting.electionId) : null,
+          updatedBy: userId ? new Types.ObjectId(userId) : null,
         }, { new: true })
         .exec();
 

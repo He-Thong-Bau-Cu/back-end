@@ -30,6 +30,8 @@ export class ElectionEntitiesService {
         .populate('electionId')
         .populate('electionTypeId')
         .populate('proposerId')
+        .populate('createdBy', 'username fullName email position')
+        .populate('updatedBy', 'username fullName email position')
         .exec();
 
       // Kiểm tra entity có tồn tại không
@@ -55,6 +57,8 @@ export class ElectionEntitiesService {
         .populate('electionId')
         .populate('electionTypeId')
         .populate('proposerId')
+        .populate('createdBy', 'username fullName email position')
+        .populate('updatedBy', 'username fullName email position')
         .exec();
 
       // Kiểm tra entities có tồn tại không
@@ -67,7 +71,7 @@ export class ElectionEntitiesService {
     }
   }
 
-  async create(electionEntity: CreateElectionEntityDto) {
+  async create(electionEntity: CreateElectionEntityDto, userId:string) {
     try {
       // Kiểm tra electionId có tồn tại không
       const electionExists = await this.electionsModel.exists({ _id: electionEntity.electionId });
@@ -92,6 +96,7 @@ export class ElectionEntitiesService {
         electionId: new Types.ObjectId(electionEntity.electionId),
         electionTypeId: new Types.ObjectId(electionEntity.electionTypeId),
         proposerId: new Types.ObjectId(electionEntity.proposerId),
+        createdBy: new Types.ObjectId(userId) || null,
       });
       return entity;
     } catch (error) {
@@ -101,7 +106,7 @@ export class ElectionEntitiesService {
 
 
 
-  async update(id: string, electionEntity: UpdateElectionEntityDto) {
+  async update(id: string, electionEntity: UpdateElectionEntityDto, userId:string) {
     try {
       // Kiểm tra entity có tồn tại không
       const entityExists = await this.electionEntityModel.exists({ _id: id });
@@ -114,10 +119,13 @@ export class ElectionEntitiesService {
           electionId: electionEntity.electionId ? new Types.ObjectId(electionEntity.electionId) : null,
           electionTypeId: electionEntity.electionTypeId ? new Types.ObjectId(electionEntity.electionTypeId) : null,
           proposerId: electionEntity.proposerId ? new Types.ObjectId(electionEntity.proposerId) : null,
+          updatedBy: new Types.ObjectId(userId) || null,
         }, { new: true })
         .populate('electionId')
         .populate('electionTypeId')
         .populate('proposerId')
+        .populate('createdBy', 'username fullName email position')
+        .populate('updatedBy', 'username fullName email position')
         .exec();
       return updateElectionsEntity;
     } catch (error) {

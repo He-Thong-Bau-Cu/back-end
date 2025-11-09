@@ -19,7 +19,7 @@ export class ReportsService {
     private readonly electionParticipantsModel: Model<ElectionsParticipants>
   ) { }
 
-  async create(createReport: CreateReportDto) {
+  async create(createReport: CreateReportDto, userId: string) {
     try {
       //Check if elctions is exists
       const eletionExist = await this.electionsModel.exists({ _id: createReport.electionId });
@@ -31,6 +31,7 @@ export class ReportsService {
         electionId: new Types.ObjectId(createReport.electionId),
         reviewedBy: createReport.reviewedBy ? new Types.ObjectId(createReport.reviewedBy) : null,
         signedBy: createReport.signedBy ? new Types.ObjectId(createReport.signedBy) : null,
+        createdBy: userId ? new Types.ObjectId(userId) : null,
       });
       return report;
     } catch (error) {
@@ -58,6 +59,8 @@ export class ReportsService {
         .populate('electionId')
         .populate('reviewedBy', 'username fullName email position')
         .populate('signedBy', 'username fullName email position')
+        .populate('createdBy', 'username fullName email position')
+        .populate('updatedBy', 'username fullName email position')
         .exec();
 
       //Check if report is exist or IsNotEmpty
@@ -83,6 +86,8 @@ export class ReportsService {
         .populate('electionId')
         .populate('reviewedBy', 'username fullName email position')
         .populate('signedBy', 'username fullName email position')
+        .populate('createdBy', 'username fullName email position')
+        .populate('updatedBy', 'username fullName email position')
         .exec();
 
       //Check if report is exist or IsNotEmpty
@@ -96,7 +101,7 @@ export class ReportsService {
     }
   }
 
-  async update(id: string, updateReport: UpdateReportDto) {
+  async update(id: string, updateReport: UpdateReportDto, userId: string) {
     try {
       //Check if the report is exist
       const reportExist = await this.reportModel.exists({ _id: id });
@@ -109,10 +114,13 @@ export class ReportsService {
           electionId: updateReport.electionId ? new Types.ObjectId(updateReport.electionId) : null,
           reviewedBy: updateReport.reviewedBy ? new Types.ObjectId(updateReport.reviewedBy) : null,
           signedBy: updateReport.signedBy ? new Types.ObjectId(updateReport.signedBy) : null,
+          updatedBy: userId ? new Types.ObjectId(userId) : null,
         }, { new: true })
         .populate('electionId')
         .populate('reviewedBy', 'username fullName email position')
         .populate('signedBy', 'username fullName email position')
+        .populate('createdBy', 'username fullName email position')
+        .populate('updatedBy', 'username fullName email position')
         .exec();
     } catch (error) {
       throw error;

@@ -41,6 +41,8 @@ export class ResultsService {
       const result = await this.resultsModel.findById(id)
         .populate('electionId', 'title startDate endDate delegationStart delegationEnd status decisionNumber decisionName')
         .populate('entityId', 'title description metaData fileUrl proposerId status')
+        .populate('createdBy', 'username fullName email position')
+        .populate('updatedBy', 'username fullName email position')
         .exec();
       return result;
     } catch (error) {
@@ -60,6 +62,8 @@ export class ResultsService {
       const result = await this.resultsModel.find({ electionId })
         .populate('electionId', 'title startDate endDate delegationStart delegationEnd status decisionNumber decisionName')
         .populate('entityId', 'title description metaData fileUrl proposerId status')
+        .populate('createdBy', 'username fullName email position')
+        .populate('updatedBy', 'username fullName email position')
         .exec();
       return result;
     } catch (error) {
@@ -67,7 +71,7 @@ export class ResultsService {
     }
   }
 
-  async create(createResultDto: CreateResultDto) {
+  async create(createResultDto: CreateResultDto, userId:string) {
     try {
       //Check if elections is exists
       const electionExist = await this.electionsModel.exists({ _id: createResultDto.electionId });
@@ -85,6 +89,7 @@ export class ResultsService {
         ...createResultDto,
         electionId: new Types.ObjectId(createResultDto.electionId),
         entityId: new Types.ObjectId(createResultDto.entityId),
+        createdBy: userId ? new Types.ObjectId(userId) : null,
       });
       return result;
     } catch (error) {
@@ -92,7 +97,7 @@ export class ResultsService {
     }
   }
 
-  async update(id: string, updateResultDto: UpdateResultDto) {
+  async update(id: string, updateResultDto: UpdateResultDto, userId:string) {
     try {
       //Check if the result is exist
       const resultExist = await this.resultsModel.exists({ _id: id });
@@ -104,6 +109,7 @@ export class ResultsService {
           ...updateResultDto,
           electionId: updateResultDto.electionId ? new Types.ObjectId(updateResultDto.electionId) : null,
           entityId: updateResultDto.entityId ? new Types.ObjectId(updateResultDto.entityId) : null,
+          updatedBy: userId ? new Types.ObjectId(userId) : null,
         }, { new: true })
         .exec();
       return result;

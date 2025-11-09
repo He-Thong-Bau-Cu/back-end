@@ -30,6 +30,8 @@ export class DelegateCardsService {
         .populate('electionId')
         .populate('voterId')
         .populate('delegationId')
+        .populate('createdBy', 'username fullName email position')
+        .populate('updatedBy', 'username fullName email position')
         .exec();
       if (!delegateCard) {
         throw new Error(MESSAGE.DELEGATE_CARD_NOT_FOUND);
@@ -52,6 +54,8 @@ export class DelegateCardsService {
         .populate('electionId')
         .populate('voterId')
         .populate('delegationId')
+        .populate('createdBy', 'username fullName email position')
+        .populate('updatedBy', 'username fullName email position')
         .exec();
       if (!delegateCards) {
         throw new Error(MESSAGE.DELEGATE_CARD_NOT_FOUND);
@@ -73,6 +77,8 @@ export class DelegateCardsService {
         .populate('electionId')
         .populate('voterId')
         .populate('delegationId')
+        .populate('createdBy', 'username fullName email position')
+        .populate('updatedBy', 'username fullName email position')
         .exec();
       if (!delegateCards) {
         throw new Error(MESSAGE.DELEGATE_CARD_NOT_FOUND);
@@ -97,14 +103,19 @@ export class DelegateCardsService {
             { path: "delegatorId", select: "username fullName email position" },
             { path: "delegateId", select: "username fullName email position" },
             { path: "documentId", select: "title file_url status" },
-            { path: "confirmedBy", select: "username fullName email position" }
+            { path: "confirmedBy", select: "username fullName email position" },
+            { path: "createdBy", select: "username fullName email position" },
+            { path: "updatedBy", select: "username fullName email position" },
           ],
           select: "delegatorId delegateId confirmedBy"
         })
+        
         .exec();
       return delegateCards;
     } catch (error) {
       throw error;
     }
   }
+
+
 }

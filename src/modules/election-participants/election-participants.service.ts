@@ -46,7 +46,9 @@ export class ElectionParticipantsService {
                                 .populate([
                                         { path: "electionId", select: "title startDate endDate delegationStart delegationEnd status statusData decisionNumber decisionName" },
                                         { path: "roleId", select: "roleName roleCode description status" },
-                                        { path: 'userId', select: "fullName username email phone position department" }
+                                        { path: 'userId', select: "fullName username email phone position department" },
+                                        { path: 'createdBy', select: "fullName username email phone position" },
+                                        { path: 'updatedBy', select: "fullName username email phone position" }
                                 ])
                                 .exec();
 
@@ -63,8 +65,11 @@ export class ElectionParticipantsService {
                                 .populate([
                                         { path: "electionId", select: "title startDate endDate delegationStart delegationEnd status statusData decisionNumber decisionName" },
                                         { path: "roleId" },
-                                        { path: 'userId', select: "fullName username email phone position department" }]
-                                ).exec();
+                                        { path: 'userId', select: "fullName username email phone position department" },
+                                        { path: 'createdBy', select: "fullName username email phone position" },
+                                        { path: 'updatedBy', select: "fullName username email phone position" }
+                                ])
+                                .exec();
                         if (!electionParticipant) {
                                 throw new NotFoundException(MESSAGE.ELECTION_PARTICIPANT_NOT_FOUND);
                         }
@@ -86,8 +91,11 @@ export class ElectionParticipantsService {
                                 .populate([
                                         { path: "electionId", select: "title startDate endDate delegationStart delegationEnd status statusData decisionNumber decisionName" },
                                         { path: "roleId" },
-                                        { path: 'userId', select: "fullName username email phone position department" }]
-                                ).exec();
+                                        { path: 'userId', select: "fullName username email phone position department" },
+                                        { path: 'createdBy', select: "fullName username email phone position" },
+                                        { path: 'updatedBy', select: "fullName username email phone position" }
+                                ])
+                                .exec();
                         if (!electionParticipant) {
                                 throw new NotFoundException(MESSAGE.ELECTION_PARTICIPANT_NOT_FOUND);
                         }
@@ -109,8 +117,11 @@ export class ElectionParticipantsService {
                                 .populate([
                                         { path: "electionId", select: "title startDate endDate delegationStart delegationEnd status statusData decisionNumber decisionName" },
                                         { path: "roleId" },
-                                        { path: 'userId', select: "fullName username email phone position department" }]
-                                ).exec();
+                                        { path: 'userId', select: "fullName username email phone position department" },
+                                        { path: 'createdBy', select: "fullName username email phone position" },
+                                        { path: 'updatedBy', select: "fullName username email phone position" }
+                                ])
+                                .exec();
                         if (!electionParticipants) {
                                 throw new NotFoundException(MESSAGE.ELECTION_PARTICIPANT_NOT_FOUND);
                         }
@@ -121,7 +132,7 @@ export class ElectionParticipantsService {
         }
 
 
-        async create(electionParticipants: CreateElectionParticipantDto) {
+        async create(electionParticipants: CreateElectionParticipantDto, userId: string) {
                 try {
                         //Kiểm tra electionId có tồn tại không
                         const electionExists = await this.electionsModel.exists({ _id: electionParticipants.electionId });
@@ -147,6 +158,7 @@ export class ElectionParticipantsService {
                                 electionId: new Types.ObjectId(electionParticipants.electionId),
                                 userId: new Types.ObjectId(electionParticipants.userId),
                                 roleId: new Types.ObjectId(electionParticipants.roleId),
+                                createdBy: new Types.ObjectId(userId) || null,
                         });
                         return electionParticipant;
                 } catch (error) {

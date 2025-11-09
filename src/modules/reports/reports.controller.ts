@@ -1,10 +1,11 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, HttpException, HttpStatus, Put } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, HttpException, HttpStatus, Put, Req } from '@nestjs/common';
 import { ReportsService } from './reports.service';
 import { CreateReportDto } from './dto/create-report.dto';
 import { UpdateReportDto } from './dto/update-report.dto';
 import { ApiBearerAuth, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { BaseResponse } from 'src/common/dto/base-response.dto';
 import { MESSAGE } from 'src/common/enums/message.enum';
+import { CustomRequest } from 'src/common/middleware/auth.middleware';
 
 @ApiBearerAuth('access-token')
 @Controller('reports')
@@ -16,9 +17,11 @@ export class ReportsController {
   @ApiResponse({ status: 201, description: 'Tạo báo cáo thành công' })
   @ApiResponse({ status: 400, description: 'Dữ liệu không hợp lệ' })
   @ApiResponse({ status: 500, description: 'Lỗi server' })
-  async create(@Body() createReport: CreateReportDto): Promise<BaseResponse> {
+  async create(
+    @Body() createReport: CreateReportDto,
+    @Req() req: CustomRequest): Promise<BaseResponse> {
     try {
-      const resData = await this.reportsService.create(createReport);
+      const resData = await this.reportsService.create(createReport, req.user.sub);
       return BaseResponse.success(resData, MESSAGE.REPORT_CREATE_SUCCESS, HttpStatus.CREATED);
     } catch (error) {
       throw new HttpException(
@@ -80,9 +83,12 @@ export class ReportsController {
   @ApiOperation({ summary: 'Cập nhật báo cáo theo ID' })
   @ApiResponse({ status: 200, description: 'Cập nhật báo cáo theo ID thành công' })
   @ApiResponse({ status: 500, description: 'Lỗi server' })
-  async update(@Param('id') id: string, @Body() updateReport: UpdateReportDto): Promise<BaseResponse> {
+  async update(
+    @Param('id') id: string,
+    @Body() updateReport: UpdateReportDto,
+    @Req() req: CustomRequest): Promise<BaseResponse> {
     try {
-      const resData = await this.reportsService.update(id, updateReport);
+      const resData = await this.reportsService.update(id, updateReport, req.user.sub);
       return BaseResponse.success(resData, MESSAGE.REPORT_UPDATE_SUCCESS, HttpStatus.OK);
     } catch (error) {
       throw new HttpException(

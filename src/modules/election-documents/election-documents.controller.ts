@@ -1,10 +1,11 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, HttpCode, HttpStatus, HttpException, Put } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, HttpCode, HttpStatus, HttpException, Put, Req } from '@nestjs/common';
 import { ElectionDocumentsService } from './election-documents.service';
 import { CreateElectionDocumentDto } from './dto/create-election-document.dto';
 import { UpdateElectionDocumentDto } from './dto/update-election-document.dto';
 import { ApiBearerAuth, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { BaseResponse } from 'src/common/dto/base-response.dto';
 import { MESSAGE } from 'src/common/enums/message.enum';
+import { CustomRequest } from 'src/common/middleware/auth.middleware';
 
 @ApiBearerAuth('access-token')
 @Controller('election-documents')
@@ -17,9 +18,11 @@ export class ElectionDocumentsController {
   @ApiResponse({ status: 400, description: "Dữ liệu không hợp lệ" })
   @ApiResponse({ status: 500, description: "Lỗi server" })
   @HttpCode(HttpStatus.CREATED)
-  async create(@Body() createElectionDocumentDto: CreateElectionDocumentDto): Promise<BaseResponse> {
+  async create(
+    @Body() createElectionDocumentDto: CreateElectionDocumentDto,
+    @Req() req: CustomRequest): Promise<BaseResponse> {
     try {
-      const resData = await this.electionDocumentsService.create(createElectionDocumentDto);
+      const resData = await this.electionDocumentsService.create(createElectionDocumentDto, req.user.sub);
       return BaseResponse.success(resData, MESSAGE.ELECTION_DOCUMENT_CREATE_SUCCESS, HttpStatus.CREATED);
     } catch (error) {
       throw new HttpException(
@@ -71,9 +74,12 @@ export class ElectionDocumentsController {
   @ApiResponse({ status: 400, description: "Dữ liệu không hợp lệ" })
   @ApiResponse({ status: 500, description: "Lỗi server" })
   @HttpCode(HttpStatus.OK)
-  async update(@Param('id') id: string, @Body() updateElectionDocumentDto: UpdateElectionDocumentDto): Promise<BaseResponse> {
+  async update(
+    @Param('id') id: string, 
+    @Body() updateElectionDocumentDto: UpdateElectionDocumentDto, 
+    @Req() req: CustomRequest): Promise<BaseResponse> {
     try {
-      const resData = await this.electionDocumentsService.update(id, updateElectionDocumentDto);
+      const resData = await this.electionDocumentsService.update(id, updateElectionDocumentDto, req.user.sub);
       return BaseResponse.success(resData, MESSAGE.ELECTION_DOCUMENT_UPDATE_SUCCESS, HttpStatus.OK);
     } catch (error) {
       throw new HttpException(

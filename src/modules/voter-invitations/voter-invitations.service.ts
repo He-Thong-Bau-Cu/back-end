@@ -29,7 +29,7 @@ export class VoterInvitationsService {
     return token;
   }
 
-  async create(voterInvitation: CreateVoterInvitationDto) {
+  async create(voterInvitation: CreateVoterInvitationDto, userId:string) {
     try {
       // Check if the voterId exists in the database
       const voterExists = await this.votersModel
@@ -64,6 +64,7 @@ export class VoterInvitationsService {
         token,
         sentAt,
         expiresAt,
+        createdBy: new Types.ObjectId(userId),
       });
 
       return invitation;
@@ -83,6 +84,8 @@ export class VoterInvitationsService {
         .find({ electionId: new Types.ObjectId(electionId) })
         .populate('voterId')
         .populate('electionId')
+        .populate('createdBy', 'username fullName email position')
+        .populate('updatedBy', 'username fullName email position')
         .exec();
 
       //check if voter invitation not exist
@@ -106,6 +109,8 @@ export class VoterInvitationsService {
         .find({ voterId: new Types.ObjectId(voterId) })
         .populate('voterId')
         .populate('electionId')
+        .populate('createdBy', 'username fullName email position')
+        .populate('updatedBy', 'username fullName email position')
         .exec();
 
       //check if voter invitation not exist
@@ -125,6 +130,8 @@ export class VoterInvitationsService {
         .findById(new Types.ObjectId(id))
         .populate('voterId')
         .populate('electionId')
+        .populate('createdBy', 'username fullName email position')
+        .populate('updatedBy', 'username fullName email position')
         .exec();
 
       //check if voter invitation not exist

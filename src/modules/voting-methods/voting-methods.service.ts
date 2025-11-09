@@ -15,8 +15,11 @@ export class VotingMethodsService {
 
   async findOne(methodCode: string) {
     try {
-      const votingMethod = await this.votingMethodsModel.findOne
-        ({ methodCode }).exec();
+      const votingMethod = await this.votingMethodsModel
+        .findOne({ methodCode })
+        .populate('createdBy', 'username fullName email position')
+        .populate('updatedBy', 'username fullName email position')
+        .exec();
       if (!votingMethod) {
         throw new Error(MESSAGE.VOTING_METHOD_CODE_NOT_FOUND);
       }
