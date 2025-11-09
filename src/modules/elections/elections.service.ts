@@ -3,10 +3,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { paginate } from 'src/common/dto/paignation';
 import { ElectionDocuments } from 'src/database/schemas/electionDocuments.schema';
-import {
-  Elections,
-  ElectionsDocument,
-} from 'src/database/schemas/elections.schema';
+import { Elections, ElectionsDocument } from 'src/database/schemas/elections.schema';
 import { STATUS } from 'src/common/enums/status.enum';
 import { ElectionsDocumentDto } from './dto/electionsDocument.dto';
 import { MESSAGE } from 'src/common/enums/message.enum';
@@ -35,27 +32,34 @@ export class ElectionsService {
     private readonly thresholdModel: Model<Thresholds>,
     @InjectModel(Users.name)
     private readonly userModel: Model<Users>,
-  ) { }
+  ) {}
 
   async searchElections(req: SearchDTO) {
     try {
-      const elections = await this.electionsModel.find({
-        $or: [
-          { title: { $regex: removeVietnameseTones(req.textSearch), $options: 'i' } },
-          { decisionName: { $regex: removeVietnameseTones(req.decisionName), $options: 'i' } },
-          { decisionNumber: { $regex: req.decisionNumber, $options: 'i' } },
-          { status: { $regex: req.status, $options: 'i' } },
-        ],
-      })
+      const elections = await this.electionsModel
+        .find({
+          $or: [
+            { title: { $regex: removeVietnameseTones(req.textSearch || ''), $options: 'i' } },
+            {
+              decisionName: {
+                $regex: removeVietnameseTones(req.decisionName || ''),
+                $options: 'i',
+              },
+            },
+            { decisionNumber: { $regex: req.decisionNumber || '', $options: 'i' } },
+            { status: { $regex: req.status || '', $options: 'i' } },
+          ],
+        })
         .populate('typeId')
         .populate('votingMethodId')
-        .populate('thresholdId').exec();
+        .populate('thresholdId')
+        .populate('createdByUserId', 'username fullName email position')
+        .exec();
       return paginate(elections, req.page, req.limit);
     } catch (error) {
       throw error;
     }
   }
-
 
   async createElection(createElection: CreateElectionDto) {
     try {
@@ -66,7 +70,9 @@ export class ElectionsService {
       }
 
       //Kiểm tra voting method có tồn tại hay Không
-      const votingMethodExist = await this.votingMethodModel.exists({ _id: createElection.votingMethodId });
+      const votingMethodExist = await this.votingMethodModel.exists({
+        _id: createElection.votingMethodId,
+      });
       if (!votingMethodExist) {
         throw new Error(MESSAGE.VOTING_METHOD_NOT_FOUND);
       }
@@ -101,12 +107,15 @@ export class ElectionsService {
         }
       }
 
-
       const election = await this.electionsModel.create({
         ...createElection,
         typeId: createElection.typeId ? new Types.ObjectId(createElection.typeId) : null,
-        votingMethodId: createElection.votingMethodId ? new Types.ObjectId(createElection.votingMethodId) : null,
-        thresholdId: createElection.thresholdId ? new Types.ObjectId(createElection.thresholdId) : null,
+        votingMethodId: createElection.votingMethodId
+          ? new Types.ObjectId(createElection.votingMethodId)
+          : null,
+        thresholdId: createElection.thresholdId
+          ? new Types.ObjectId(createElection.thresholdId)
+          : null,
       });
       return election;
     } catch (error) {
@@ -154,12 +163,16 @@ export class ElectionsService {
       }
 
       const election = await this.electionsModel
-        .findByIdAndUpdate(new Types.ObjectId(id), {
-          ...data,
-          typeId: data.typeId ? new Types.ObjectId(data.typeId) : null,
-          votingMethodId: data.votingMethodId ? new Types.ObjectId(data.votingMethodId) : null,
-          thresholdId: data.thresholdId ? new Types.ObjectId(data.thresholdId) : null,
-        }, { new: true })
+        .findByIdAndUpdate(
+          new Types.ObjectId(id),
+          {
+            ...data,
+            typeId: data.typeId ? new Types.ObjectId(data.typeId) : null,
+            votingMethodId: data.votingMethodId ? new Types.ObjectId(data.votingMethodId) : null,
+            thresholdId: data.thresholdId ? new Types.ObjectId(data.thresholdId) : null,
+          },
+          { new: true },
+        )
         .exec();
       return election;
     } catch (error) {
@@ -169,10 +182,7 @@ export class ElectionsService {
 
   async deleteElection(id: string) {
     try {
-
-      const election = await this.electionsModel
-        .findById(new Types.ObjectId(id))
-        .exec();
+      const election = await this.electionsModel.findById(new Types.ObjectId(id)).exec();
       if (!election) {
         throw new Error(MESSAGE.ELECTION_NOT_FOUND);
       }
