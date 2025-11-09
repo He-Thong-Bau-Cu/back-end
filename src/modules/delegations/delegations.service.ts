@@ -86,7 +86,7 @@ export class DelegationsService {
 
   async getStatusActive() {
     try {
-      const delegation = await this.delegationModel
+      const delegations = await this.delegationModel
         .find({ status: STATUS.ACTIVE })
         .populate('delegatorId', 'username fullName email position')
         .populate('delegateId', 'username fullName email position')
@@ -95,7 +95,7 @@ export class DelegationsService {
         .exec();
 
       //kiểm tra có delegation
-      if (!delegation) {
+      if (!delegations) {
         throw new Error(MESSAGE.DELEGATION_NOT_FOUND);
       }
 
