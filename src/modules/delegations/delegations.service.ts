@@ -58,20 +58,9 @@ export class DelegationsService {
           { path: 'delegatorId', select: 'username fullName email position' },
           { path: 'delegateId', select: 'username fullName email position' },
           { path: 'confirmedBy', select: 'username fullName email position' },
+          { path: 'documentId', select: 'title file_url status' },
         ])
-        .lean()
         .exec();
-
-      // Chỉ populate documentId nếu nó tồn tại và là ObjectId hợp lệ
-      if (delegation) {
-        const docId = delegation.documentId as any;
-        if (docId && docId !== '' && Types.ObjectId.isValid(docId)) {
-          const document = await this.documentModel.findById(docId).select('title file_url status').lean().exec();
-          (delegation as any).documentId = document;
-        } else {
-          (delegation as any).documentId = null;
-        }
-      }
 
       return delegation;
     } catch (error) {
@@ -81,31 +70,20 @@ export class DelegationsService {
 
   async getStatusActive() {
     try {
-      const delegations = await this.delegationModel
+      const delegation = await this.delegationModel
         .find({ status: STATUS.ACTIVE })
         .populate('delegatorId', 'username fullName email position')
         .populate('delegateId', 'username fullName email position')
         .populate('confirmedBy', 'username fullName email position')
-        .lean()
+        .populate('documentId', 'title file_url status')
         .exec();
 
       //kiểm tra có delegation
-      if (!delegations || delegations.length === 0) {
+      if (!delegation) {
         throw new Error(MESSAGE.DELEGATION_NOT_FOUND);
       }
 
-      // Populate documentId cho từng delegation nếu có
-      for (const delegation of delegations) {
-        const docId = delegation.documentId as any;
-        if (docId && docId !== '' && Types.ObjectId.isValid(docId)) {
-          const document = await this.documentModel.findById(docId).select('title file_url status').lean().exec();
-          (delegation as any).documentId = document;
-        } else {
-          (delegation as any).documentId = null;
-        }
-      }
-
-      return delegations;
+      return delegation;
     } catch (error) {
       throw error;
     }
@@ -119,19 +97,8 @@ export class DelegationsService {
         .populate('delegatorId', 'username fullName email position')
         .populate('delegateId', 'username fullName email position')
         .populate('confirmedBy', 'username fullName email position')
-        .lean()
+        .populate('documentId', 'title file_url status')
         .exec();
-
-      // Chỉ populate documentId nếu nó tồn tại và là ObjectId hợp lệ
-      if (delegation) {
-        const docId = delegation.documentId as any;
-        if (docId && docId !== '' && Types.ObjectId.isValid(docId)) {
-          const document = await this.documentModel.findById(docId).select('title file_url status').lean().exec();
-          (delegation as any).documentId = document;
-        } else {
-          (delegation as any).documentId = null;
-        }
-      }
 
       return delegation;
     } catch (error) {
@@ -146,19 +113,8 @@ export class DelegationsService {
         .populate('delegatorId', 'username fullName email position')
         .populate('delegateId', 'username fullName email position')
         .populate('confirmedBy', 'username fullName email position')
-        .lean()
+        .populate('documentId', 'title file_url status')
         .exec();
-
-      // Chỉ populate documentId nếu nó tồn tại và là ObjectId hợp lệ
-      if (delegation) {
-        const docId = delegation.documentId as any;
-        if (docId && docId !== '' && Types.ObjectId.isValid(docId)) {
-          const document = await this.documentModel.findById(docId).select('title file_url status').lean().exec();
-          (delegation as any).documentId = document;
-        } else {
-          (delegation as any).documentId = null;
-        }
-      }
 
       return delegation;
     } catch (error) {
