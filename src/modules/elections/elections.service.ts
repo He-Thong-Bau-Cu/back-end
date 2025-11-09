@@ -47,7 +47,7 @@ export class ElectionsService {
               },
             },
             { decisionNumber: { $regex: req.decisionNumber || '', $options: 'i' } },
-            { status: { $regex: req.status || '', $options: 'i' } },
+            { statusData: { $regex: req.status || '', $options: 'i' } },
           ],
         })
         .populate('typeId')
@@ -65,25 +65,28 @@ export class ElectionsService {
     try {
       //Kiểm tra electionType có tồn tại hay Không
       if (createElection.typeId) {
-        const electionTypeExist = await this.electionTypeModel.exists({ _id: createElection.typeId });
+        const electionTypeExist = await this.electionTypeModel.exists({
+          _id: new Types.ObjectId(createElection.typeId),
+        });
         if (!electionTypeExist) {
           throw new Error(MESSAGE.ELECTION_TYPE_NOT_FOUND);
         }
       }
-
       //Kiểm tra voting method có tồn tại hay Không
       if (createElection.votingMethodId) {
         const votingMethodExist = await this.votingMethodModel.exists({
-          _id: createElection.votingMethodId,
+          _id: new Types.ObjectId(createElection.votingMethodId),
         });
         if (!votingMethodExist) {
           throw new Error(MESSAGE.VOTING_METHOD_NOT_FOUND);
         }
       }
 
-      //Kiểm tra threshold có tồn tại hay Không
+      //Kiểm tra electionType có tồn tại hay Không
       if (createElection.thresholdId) {
-        const thresholdExist = await this.thresholdModel.exists({ _id: createElection.thresholdId });
+        const thresholdExist = await this.thresholdModel.exists({
+          _id: createElection.thresholdId,
+        });
         if (!thresholdExist) {
           throw new Error(MESSAGE.THRESHOLD_NOT_FOUND);
         }
@@ -112,7 +115,7 @@ export class ElectionsService {
           }
         }
       }
-     
+
 
       const election = await this.electionsModel.create({
         ...createElection,

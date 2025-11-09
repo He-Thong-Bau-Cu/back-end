@@ -110,7 +110,7 @@ export class MinioService {
         'original-name': file.originalname,
         'content-type': file.mimetype,
         'file-size': file.size.toString(),
-        'encrypted': 'true',
+        encrypted: 'true',
         'user-id': userId,
         'file-type': fileType,
       },
@@ -224,7 +224,9 @@ export class MinioService {
    * @param key - Full file key (path)
    * @returns Object with stream, contentType, and length
    */
-  async getFileByKey(key: string): Promise<{ stream: Readable; contentType: string; length: number }> {
+  async getFileByKey(
+    key: string,
+  ): Promise<{ stream: Readable; contentType: string; length: number }> {
     const buffer = await this.getFileBufferByKey(key);
     const stream = Readable.from(buffer);
     const contentType = this.getMimeType(key);
@@ -260,7 +262,7 @@ export class MinioService {
       Key: key,
     });
 
-      const data = await this.s3Client.send(command);
+    const data = await this.s3Client.send(command);
 
     if (!data.Body) throw new NotFoundException('No file data received');
 
@@ -350,7 +352,8 @@ export class MinioService {
         files.push(
           new FileResponseDto({
             key: object.Key,
-            originalName: headResponse.Metadata?.['original-name'] || object.Key.split('/').pop() || '',
+            originalName:
+              headResponse.Metadata?.['original-name'] || object.Key.split('/').pop() || '',
             mimeType: headResponse.ContentType || 'application/octet-stream',
             size: object.Size || 0,
             uploadDate: object.LastModified || new Date(),
