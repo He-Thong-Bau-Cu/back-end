@@ -197,18 +197,18 @@ export class DelegationsService {
         _id: new Types.ObjectId(createDelegation.delegatorId),
       });
       if (!delegatorExist) {
-        throw new Error(MESSAGE.USER_NOT_FOUND);
+        throw new Error(MESSAGE.DELEGATOR_NOT_FOUND);
       }
       //Check if the user is exist
       const delegateExist = await this.userModel.exists({
         _id: new Types.ObjectId(createDelegation.delegateId),
       });
       if (!delegateExist) {
-        throw new Error(MESSAGE.USER_NOT_FOUND);
+        throw new Error(MESSAGE.DELEGATE_NOT_FOUND);
       }
       //Kiểm tra người ủy quyền và người được ủy tuyển có trùng userId không
       if (createDelegation.delegatorId === createDelegation.delegateId) {
-        throw new Error('Người ủy quyền và người được ủy tuyển không được trùng nhau');
+        throw new Error(MESSAGE.DELEGATION_DELEGATOR_FALIL);
       }
 
       //kiểm tra thời gian bắt đầu và kết thúc
