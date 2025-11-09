@@ -135,6 +135,7 @@ export class ElectionsService {
         .populate('typeId')
         .populate('votingMethodId')
         .populate('thresholdId')
+        .populate('createdByUserId', 'username fullName email position')
         .exec();
       return election;
     } catch (error) {
