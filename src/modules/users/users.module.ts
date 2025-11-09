@@ -7,6 +7,7 @@ import {UsersSchema} from 'src/database/schemas/users.schema';
 import {Roles} from 'src/database/schemas/roles.schema';
 import {RolesSchema} from 'src/database/schemas/roles.schema';
 import {MailModule} from "../mail/mail.module";
+import { MinioModule } from '../minio/minio.module';
 
 @Module({
     imports: [
@@ -14,7 +15,8 @@ import {MailModule} from "../mail/mail.module";
             {name: Users.name, schema: UsersSchema},
             {name: Roles.name, schema: RolesSchema},
         ]),
-        MailModule
+        MailModule,
+        MinioModule
     ],
     controllers: [UsersController],
     providers: [UsersService],

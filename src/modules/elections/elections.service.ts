@@ -47,7 +47,7 @@ export class ElectionsService {
               },
             },
             { decisionNumber: { $regex: req.decisionNumber || '', $options: 'i' } },
-            { status: { $regex: req.status || '', $options: 'i' } },
+            { statusData: { $regex: req.status || '', $options: 'i' } },
           ],
         })
         .populate('typeId')
