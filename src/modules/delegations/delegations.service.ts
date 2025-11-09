@@ -23,17 +23,18 @@ export class DelegationsService {
     private readonly userModel: Model<Users>,
     @InjectModel(ElectionDocuments.name)
     private readonly documentModel: Model<ElectionDocuments>,
-
-  ) { }
+  ) {}
   async getDelegatorIdAndElectionId(delegatorId: string, electionId: string) {
     try {
       const delegation = await this.delegationModel
-        .findOne(
-          {
-            delegatorId: new Types.ObjectId(delegatorId),
-            electionId: new Types.ObjectId(electionId)
-          })
-        .populate('electionId', 'title startDate endDate delegationStart delegationEnd status statusData decisionNumber decisionName')
+        .findOne({
+          delegatorId: new Types.ObjectId(delegatorId),
+          electionId: new Types.ObjectId(electionId),
+        })
+        .populate(
+          'electionId',
+          'title startDate endDate delegationStart delegationEnd status statusData decisionNumber decisionName',
+        )
         .populate('delegatorId', 'username fullName email position')
         .populate('delegateId', 'username fullName email position')
         .populate('confirmedBy', 'username fullName email position')
@@ -66,7 +67,11 @@ export class DelegationsService {
       if (delegation) {
         const docId = delegation.documentId as any;
         if (docId && docId !== '' && Types.ObjectId.isValid(docId)) {
-          const document = await this.documentModel.findById(docId).select('title file_url status').lean().exec();
+          const document = await this.documentModel
+            .findById(docId)
+            .select('title file_url status')
+            .lean()
+            .exec();
           (delegation as any).documentId = document;
         } else {
           (delegation as any).documentId = null;
@@ -98,7 +103,11 @@ export class DelegationsService {
       for (const delegation of delegations) {
         const docId = delegation.documentId as any;
         if (docId && docId !== '' && Types.ObjectId.isValid(docId)) {
-          const document = await this.documentModel.findById(docId).select('title file_url status').lean().exec();
+          const document = await this.documentModel
+            .findById(docId)
+            .select('title file_url status')
+            .lean()
+            .exec();
           (delegation as any).documentId = document;
         } else {
           (delegation as any).documentId = null;
@@ -126,7 +135,11 @@ export class DelegationsService {
       if (delegation) {
         const docId = delegation.documentId as any;
         if (docId && docId !== '' && Types.ObjectId.isValid(docId)) {
-          const document = await this.documentModel.findById(docId).select('title file_url status').lean().exec();
+          const document = await this.documentModel
+            .findById(docId)
+            .select('title file_url status')
+            .lean()
+            .exec();
           (delegation as any).documentId = document;
         } else {
           (delegation as any).documentId = null;
@@ -153,7 +166,11 @@ export class DelegationsService {
       if (delegation) {
         const docId = delegation.documentId as any;
         if (docId && docId !== '' && Types.ObjectId.isValid(docId)) {
-          const document = await this.documentModel.findById(docId).select('title file_url status').lean().exec();
+          const document = await this.documentModel
+            .findById(docId)
+            .select('title file_url status')
+            .lean()
+            .exec();
           (delegation as any).documentId = document;
         } else {
           (delegation as any).documentId = null;
@@ -169,60 +186,74 @@ export class DelegationsService {
   async create(createDelegation: CreateDelegationDto) {
     try {
       //Check if the election is exist
-      const electionExist = await this.electionModel.exists({ _id: createDelegation.electionId });
+      const electionExist = await this.electionModel.exists({
+        _id: new Types.ObjectId(createDelegation.electionId),
+      });
       if (!electionExist) {
         throw new Error(MESSAGE.ELECTION_NOT_FOUND);
       }
       //Check if the user is exist
-      const delegatorExist = await this.userModel.exists({ _id: createDelegation.delegatorId });
+      const delegatorExist = await this.userModel.exists({
+        _id: new Types.ObjectId(createDelegation.delegatorId),
+      });
       if (!delegatorExist) {
         throw new Error(MESSAGE.USER_NOT_FOUND);
       }
       //Check if the user is exist
-      const delegateExist = await this.userModel.exists({ _id: createDelegation.delegateId });
+      const delegateExist = await this.userModel.exists({
+        _id: new Types.ObjectId(createDelegation.delegateId),
+      });
       if (!delegateExist) {
         throw new Error(MESSAGE.USER_NOT_FOUND);
       }
       //Kiểm tra người ủy quyền và người được ủy tuyển có trùng userId không
       if (createDelegation.delegatorId === createDelegation.delegateId) {
-        throw new Error("Người ủy quyền và người được ủy tuyển không được trùng nhau");
+        throw new Error('Người ủy quyền và người được ủy tuyển không được trùng nhau');
       }
 
       //kiểm tra thời gian bắt đầu và kết thúc
       const startDate = new Date(createDelegation.startDate);
       const endDate = new Date(createDelegation.endDate);
       if (endDate <= startDate) {
-        throw new Error("Ngày kết thúc phải lớn hơn ngày bắt đầu");
+        throw new Error('Ngày kết thúc phải lớn hơn ngày bắt đầu');
       }
       if (startDate < new Date()) {
-        throw new Error("Ngày bắt đầu phải lớn hơn ngày hiện tại");
+        throw new Error('Ngày bắt đầu phải lớn hơn ngày hiện tại');
       }
       if (endDate <= new Date()) {
-        throw new Error("Ngày kết thúc phải lớn hơn ngày hiện tại và không được trùng với ngày hiện tại");
+        throw new Error(
+          'Ngày kết thúc phải lớn hơn ngày hiện tại và không được trùng với ngày hiện tại',
+        );
       }
       //Check if the document is exist
       if (createDelegation.documentId) {
-        const documentExist = await this.documentModel.exists({ _id: createDelegation.documentId });
+        const documentExist = await this.documentModel.exists({
+          _id: new Types.ObjectId(createDelegation.documentId),
+        });
         if (!documentExist) {
           throw new Error(MESSAGE.ELECTION_DOCUMENT_NOT_FOUND);
         }
       }
       //Check if the confirmedBy is exist
 
-      const confirmedByExist = await this.userModel.exists({ _id: createDelegation.confirmedBy });
-      if (!confirmedByExist) {
-        throw new Error(MESSAGE.USER_NOT_FOUND);
+      if (createDelegation.confirmedBy) {
+        const confirmedByExist = await this.userModel.exists({ _id: createDelegation.confirmedBy });
+        if (!confirmedByExist) {
+          throw new Error(MESSAGE.USER_NOT_FOUND);
+        }
       }
-
       //Create delegation
       const delegation = await this.delegationModel.create({
         ...createDelegation,
         electionId: new Types.ObjectId(createDelegation.electionId),
         delegatorId: new Types.ObjectId(createDelegation.delegatorId),
         delegateId: new Types.ObjectId(createDelegation.delegateId),
-        documentId: createDelegation.documentId ? new Types.ObjectId(createDelegation.documentId) : null,
-        confirmedBy: createDelegation.confirmedBy ? new Types.ObjectId(createDelegation.confirmedBy) : null,
-
+        documentId: createDelegation.documentId
+          ? new Types.ObjectId(createDelegation.documentId)
+          : null,
+        confirmedBy: createDelegation.confirmedBy
+          ? new Types.ObjectId(createDelegation.confirmedBy)
+          : null,
       });
 
       // Return delegation with all fields
@@ -240,14 +271,28 @@ export class DelegationsService {
         throw new Error(MESSAGE.DELEGATION_NOT_FOUND);
       }
       const delegation = await this.delegationModel
-        .findByIdAndUpdate(new Types.ObjectId(id), {
-          ...updateDelegation,
-          electionId: updateDelegation.electionId ? new Types.ObjectId(updateDelegation.electionId) : null,
-          delegatorId: updateDelegation.delegatorId ? new Types.ObjectId(updateDelegation.delegatorId) : null,
-          delegateId: updateDelegation.delegateId ? new Types.ObjectId(updateDelegation.delegateId) : null,
-          documentId: updateDelegation.documentId ? new Types.ObjectId(updateDelegation.documentId) : null,
-          confirmedBy: updateDelegation.confirmedBy ? new Types.ObjectId(updateDelegation.confirmedBy) : null,
-        }, { new: true })
+        .findByIdAndUpdate(
+          new Types.ObjectId(id),
+          {
+            ...updateDelegation,
+            electionId: updateDelegation.electionId
+              ? new Types.ObjectId(updateDelegation.electionId)
+              : null,
+            delegatorId: updateDelegation.delegatorId
+              ? new Types.ObjectId(updateDelegation.delegatorId)
+              : null,
+            delegateId: updateDelegation.delegateId
+              ? new Types.ObjectId(updateDelegation.delegateId)
+              : null,
+            documentId: updateDelegation.documentId
+              ? new Types.ObjectId(updateDelegation.documentId)
+              : null,
+            confirmedBy: updateDelegation.confirmedBy
+              ? new Types.ObjectId(updateDelegation.confirmedBy)
+              : null,
+          },
+          { new: true },
+        )
         .exec();
       return delegation;
     } catch (error) {
