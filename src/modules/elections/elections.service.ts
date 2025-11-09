@@ -32,7 +32,7 @@ export class ElectionsService {
     private readonly thresholdModel: Model<Thresholds>,
     @InjectModel(Users.name)
     private readonly userModel: Model<Users>,
-  ) {}
+  ) { }
 
   async searchElections(req: SearchDTO) {
     try {
@@ -61,26 +61,32 @@ export class ElectionsService {
     }
   }
 
-  async createElection(createElection: CreateElectionDto) {
+  async createElection(createElection: CreateElectionDto, userId: string) {
     try {
       //Kiểm tra electionType có tồn tại hay Không
-      const electionTypeExist = await this.electionTypeModel.exists({ _id: createElection.typeId });
-      if (!electionTypeExist) {
-        throw new Error(MESSAGE.ELECTION_TYPE_NOT_FOUND);
+      if (createElection.typeId) {
+        const electionTypeExist = await this.electionTypeModel.exists({ _id: createElection.typeId });
+        if (!electionTypeExist) {
+          throw new Error(MESSAGE.ELECTION_TYPE_NOT_FOUND);
+        }
       }
 
       //Kiểm tra voting method có tồn tại hay Không
-      const votingMethodExist = await this.votingMethodModel.exists({
-        _id: createElection.votingMethodId,
-      });
-      if (!votingMethodExist) {
-        throw new Error(MESSAGE.VOTING_METHOD_NOT_FOUND);
+      if (createElection.votingMethodId) {
+        const votingMethodExist = await this.votingMethodModel.exists({
+          _id: createElection.votingMethodId,
+        });
+        if (!votingMethodExist) {
+          throw new Error(MESSAGE.VOTING_METHOD_NOT_FOUND);
+        }
       }
 
-      //Kiểm tra electionType có tồn tại hay Không
-      const thresholdExist = await this.thresholdModel.exists({ _id: createElection.thresholdId });
-      if (!thresholdExist) {
-        throw new Error(MESSAGE.THRESHOLD_NOT_FOUND);
+      //Kiểm tra threshold có tồn tại hay Không
+      if (createElection.thresholdId) {
+        const thresholdExist = await this.thresholdModel.exists({ _id: createElection.thresholdId });
+        if (!thresholdExist) {
+          throw new Error(MESSAGE.THRESHOLD_NOT_FOUND);
+        }
       }
 
       //Kiểm tra ngày bắt đầu phải nhỏ hơn ngày kết thúc
@@ -106,6 +112,7 @@ export class ElectionsService {
           }
         }
       }
+     
 
       const election = await this.electionsModel.create({
         ...createElection,
@@ -116,6 +123,7 @@ export class ElectionsService {
         thresholdId: createElection.thresholdId
           ? new Types.ObjectId(createElection.thresholdId)
           : null,
+        createdBy: userId ? new Types.ObjectId(userId) : null,
       });
       return election;
     } catch (error) {
@@ -135,7 +143,8 @@ export class ElectionsService {
         .populate('typeId')
         .populate('votingMethodId')
         .populate('thresholdId')
-        .populate('createdByUserId', 'username fullName email position')
+        .populate('createdBy', 'username fullName email position')
+        .populate('updatedBy', 'username fullName email position')
         .exec();
       return election;
     } catch (error) {
@@ -155,7 +164,7 @@ export class ElectionsService {
   //   }
   // }
 
-  async updateElections(id: string, data: UpdateElectionDto) {
+  async updateElections(id: string, data: UpdateElectionDto, userId: string) {
     try {
       //kiểm tra electionId có tồn tại không
       const electionExist = await this.electionsModel.exists({ _id: id });
@@ -171,6 +180,7 @@ export class ElectionsService {
             typeId: data.typeId ? new Types.ObjectId(data.typeId) : null,
             votingMethodId: data.votingMethodId ? new Types.ObjectId(data.votingMethodId) : null,
             thresholdId: data.thresholdId ? new Types.ObjectId(data.thresholdId) : null,
+            updatedBy: userId ? new Types.ObjectId(userId) : null,
           },
           { new: true },
         )

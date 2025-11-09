@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, HttpStatus, HttpException } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, HttpStatus, HttpException, Req } from '@nestjs/common';
 import { VoterInvitationsService } from './voter-invitations.service';
 import { CreateVoterInvitationDto } from './dto/create-voter-invitation.dto';
 import { UpdateVoterInvitationDto } from './dto/update-voter-invitation.dto';
@@ -6,6 +6,7 @@ import { ApiBearerAuth, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import Api from 'twilio/lib/rest/Api';
 import { BaseResponse } from 'src/common/dto/base-response.dto';
 import { MESSAGE } from 'src/common/enums/message.enum';
+import { CustomRequest } from 'src/common/middleware/auth.middleware';
 
 @ApiBearerAuth('access-token')
 @Controller('voter-invitations')
@@ -84,9 +85,11 @@ export class VoterInvitationsController {
   @ApiResponse({ status: 201, description: 'Tạo lời mời cử tri thành công.' })
   @ApiResponse({ status: 400, description: 'Dữ liệu không hợp lệ.' })
   @ApiResponse({ status: 500, description: 'Lỗi máy chủ nội bộ.' })
-  async create(@Body() createVoterInvitationDto: CreateVoterInvitationDto): Promise<BaseResponse> {
+  async create(
+    @Body() createVoterInvitationDto: CreateVoterInvitationDto,
+    @Req() req:CustomRequest): Promise<BaseResponse> {
     try {
-      const resData = await this.voterInvitationsService.create(createVoterInvitationDto);
+      const resData = await this.voterInvitationsService.create(createVoterInvitationDto, req.user.sub);
       return BaseResponse.success(
         resData,
         MESSAGE.VOTER_INVITATION_CREATE_SUCCESS,

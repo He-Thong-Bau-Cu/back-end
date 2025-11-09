@@ -19,7 +19,7 @@ export class ElectionDocumentsService {
     private readonly electionsParticipantsModel: Model<ElectionsParticipants>,
   ) { }
 
-  async create(createElectionDocument: CreateElectionDocumentDto) {
+  async create(createElectionDocument: CreateElectionDocumentDto, userId: string) {
     try {
       //check if the election exists
       const election = await this.electionsModel.exists({ _id: createElectionDocument.electionId });
@@ -35,6 +35,7 @@ export class ElectionDocumentsService {
         ...createElectionDocument,
         electionId: new Types.ObjectId(createElectionDocument.electionId),
         preparedBy: new Types.ObjectId(createElectionDocument.preparedBy),
+        createdBy: new Types.ObjectId(userId) || null,
       });
       return electionDocument;
     } catch (error) {
@@ -52,8 +53,10 @@ export class ElectionDocumentsService {
       }
       const electionDocument = await this.electionDocumentsModel
         .findById(new Types.ObjectId(id))
-        .populate('electionId')
+        .populate('electionId', 'title startDate endDate delegationStart delegationEnd status statusData decisionNumber decisionName')
         .populate('preparedBy')
+        .populate('createdBy', 'username fullName email position')
+        .populate('updatedBy', 'username fullName email position')
         .exec();
       return electionDocument;
     } catch (error) {
@@ -75,6 +78,8 @@ export class ElectionDocumentsService {
         .find({ electionId: new Types.ObjectId(electionId) })
         .populate('electionId')
         .populate('preparedBy')
+        .populate('createdBy', 'username fullName email position')
+        .populate('updatedBy', 'username fullName email position')
         .exec();
       return electionDocuments;
     } catch (error) {
@@ -82,7 +87,7 @@ export class ElectionDocumentsService {
     }
   }
 
-  async update(id: string, updateElectionDocument: UpdateElectionDocumentDto) {
+  async update(id: string, updateElectionDocument: UpdateElectionDocumentDto, userId: string) {
     try {
       //check if the document exists
       const documentExist = await this.electionDocumentsModel.exists({ _id: id });
@@ -95,8 +100,10 @@ export class ElectionDocumentsService {
           electionId: updateElectionDocument.electionId ? new Types.ObjectId(updateElectionDocument.electionId) : null,
           preparedBy: updateElectionDocument.preparedBy ? new Types.ObjectId(updateElectionDocument.preparedBy) : null,
         }, { new: true })
-        .populate('electionId')
+        .populate('electionId', 'title startDate endDate delegationStart delegationEnd status statusData decisionNumber decisionName')
         .populate('preparedBy')
+        .populate('createdBy', 'username fullName email position')
+        .populate('updatedBy', 'username fullName email position')
         .exec();
       return electionDocument;
     } catch (error) {

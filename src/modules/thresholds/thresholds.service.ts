@@ -14,7 +14,11 @@ export class ThresholdsService {
 
   async findOne(thresholdCode: string) {
     try {
-      const threshold = await this.thresholdsModel.findOne({ thresholdCode }).exec();
+      const threshold = await this.thresholdsModel
+      .findOne({ thresholdCode })
+      .populate('createdBy', 'username fullName email position')
+      .populate('updatedBy', 'username fullName email position')
+      .exec();
       if (!threshold) {
         throw new Error(MESSAGE.THRESHOLD_CODE_NOT_FOUND);
       }

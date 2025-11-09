@@ -1,10 +1,11 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, HttpStatus, HttpException, Put } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, HttpStatus, HttpException, Put, Req } from '@nestjs/common';
 import { BallotsService } from './ballots.service';
 import { CreateBallotDto } from './dto/create-ballot.dto';
 import { UpdateBallotDto } from './dto/update-ballot.dto';
 import { ApiBearerAuth, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { BaseResponse } from 'src/common/dto/base-response.dto';
 import { MESSAGE } from 'src/common/enums/message.enum';
+import { CustomRequest } from 'src/common/middleware/auth.middleware';
 
 @ApiBearerAuth('access-token')
 @Controller('ballots')
@@ -85,9 +86,11 @@ export class BallotsController {
   @ApiResponse({ status: 200, description: 'Tạo phiếu bầu thành công' })
   @ApiResponse({ status: 400, description: 'Dữ liệu không hợp lệ' })
   @ApiResponse({ status: 500, description: 'Lỗi server' })
-  async create(@Body() createBallotDto: CreateBallotDto): Promise<BaseResponse> {
+  async create(
+    @Body() createBallotDto: CreateBallotDto,
+    @Req() req: CustomRequest): Promise<BaseResponse> {
     try {
-      const resData = await this.ballotsService.create(createBallotDto);
+      const resData = await this.ballotsService.create(createBallotDto, req.user.sub);
       return BaseResponse.success(resData, MESSAGE.BALLOT_CREATE_SUCCESS, HttpStatus.CREATED);
     } catch (error) {
       throw new HttpException(
@@ -102,9 +105,12 @@ export class BallotsController {
   @ApiResponse({ status: 200, description: 'Cập nhật phiếu bầu thành công' })
   @ApiResponse({ status: 400, description: 'Dữ liệu không hợp lệ' })
   @ApiResponse({ status: 500, description: 'Lỗi server' })
-  async update(@Param('id') id: string, @Body() updateBallot: UpdateBallotDto): Promise<BaseResponse> {
+  async update(
+    @Param('id') id: string, 
+    @Body() updateBallot: UpdateBallotDto,
+    @Req() req: CustomRequest): Promise<BaseResponse> {
     try {
-      const resData = await this.ballotsService.update(id, updateBallot);
+      const resData = await this.ballotsService.update(id, updateBallot, req.user.sub);
       return BaseResponse.success(resData, MESSAGE.BALLOT_UPDATE_SUCCESS, HttpStatus.OK);
     } catch (error) {
       throw new HttpException(

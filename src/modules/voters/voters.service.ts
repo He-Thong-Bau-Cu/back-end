@@ -32,7 +32,7 @@ export class VotersService {
 
 
 
-  async create(createVoter: CreateVoterDto) {
+  async create(createVoter: CreateVoterDto, userId:string) {
     try {
       // Kiểm tra electionId có tồn tại không (sử dụng _id)
       const electionId = new Types.ObjectId(createVoter.electionId);
@@ -83,6 +83,7 @@ export class VotersService {
         ...createVoter,
         electionId: electionId,
         userId: userId,
+        createdBy: userId ? new Types.ObjectId(userId) :null
       });
 
       return voter;
@@ -91,7 +92,7 @@ export class VotersService {
     }
   }
 
-  async update(id: string, updateVoter: UpdateVoterDto) {
+  async update(id: string, updateVoter: UpdateVoterDto, userId:string) {
     try {
       //Check if the voter exists
       const voterExists = await this.voterModel.exists({ _id: id });
@@ -104,6 +105,7 @@ export class VotersService {
           ...updateVoter,
           electionId: updateVoter.electionId ? new Types.ObjectId(updateVoter.electionId) : null,
           userId: updateVoter.userId ? new Types.ObjectId(updateVoter.userId) : null,
+          updatedBy: userId ? new Types.ObjectId(userId) :null
         }, { new: true })
         .exec();
       return voter;
@@ -135,7 +137,9 @@ export class VotersService {
           populate: [
             { path: "typeId", select: "typeName typeNameCode description status" },
             { path: "votingMethodId", select: "methodName methodCode description status" },
-            { path: "thresholdId", select: "thresholdName thresholdCode value description status" }
+            { path: "thresholdId", select: "thresholdName thresholdCode value description status" },
+            { path: "createdBy", select: "username fullName email position" },
+            { path: "updatedBy", select: "username fullName email position" }
           ]
         })
         .populate('userId', 'fullName username email phone position department')
@@ -180,7 +184,9 @@ export class VotersService {
           populate: [
             { path: "typeId", select: "typeName typeNameCode description status" },
             { path: "votingMethodId", select: "methodName methodCode description status" },
-            { path: "thresholdId", select: "thresholdName thresholdCode value description status" }
+            { path: "thresholdId", select: "thresholdName thresholdCode value description status" },
+            { path: "createdBy", select: "username fullName email position" },
+            { path: "updatedBy", select: "username fullName email position" }
           ]
         })
         .populate('userId', 'fullName username email phone position department')
@@ -211,7 +217,9 @@ export class VotersService {
           populate: [
             { path: "typeId", select: "typeName typeNameCode description status" },
             { path: "votingMethodId", select: "methodName methodCode description status" },
-            { path: "thresholdId", select: "thresholdName thresholdCode value description status" }
+            { path: "thresholdId", select: "thresholdName thresholdCode value description status" },
+            { path: "createdBy", select: "username fullName email position" },
+            { path: "updatedBy", select: "username fullName email position" }
           ]
         })
         .populate('userId', 'fullName username email phone position department')

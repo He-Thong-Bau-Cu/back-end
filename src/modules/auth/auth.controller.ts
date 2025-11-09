@@ -1,6 +1,6 @@
 import { Body, Controller, HttpException, HttpStatus, Post } from '@nestjs/common';
 import { AuthService } from './auth.service';
-import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { BaseResponse } from 'src/common/dto/base-response.dto';
 import { LoginDto } from 'src/common/dto/login.dto';
 import { MESSAGE_STATUS } from 'src/common/enums/status.enum';
@@ -11,11 +11,12 @@ import { ChangePasswordDto } from 'src/common/dto/change-password.dto';
 import { SendOtpDto } from 'src/common/dto/send-otp.dto';
 import { VerifyOtpDto } from 'src/common/dto/verify-otp.dto';
 
-
 @ApiTags('Authentication')
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly authService: AuthService) { }
+  constructor(private readonly authService: AuthService) {}
+
+  
 
   @ApiOperation({ summary: 'Đăng nhập hệ thống' })
   @ApiResponse({
@@ -38,6 +39,8 @@ export class AuthController {
       );
     }
   }
+
+
 
   @ApiOperation({ summary: 'Cài đặt 2FA tạo qr code' })
   @ApiResponse({

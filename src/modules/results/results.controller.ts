@@ -1,10 +1,11 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, HttpStatus, HttpException, Put } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, HttpStatus, HttpException, Put, Req } from '@nestjs/common';
 import { ResultsService } from './results.service';
 import { CreateResultDto } from './dto/create-result.dto';
 import { UpdateResultDto } from './dto/update-result.dto';
 import { ApiBearerAuth, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { BaseResponse } from 'src/common/dto/base-response.dto';
 import { MESSAGE } from 'src/common/enums/message.enum';
+import { CustomRequest } from 'src/common/middleware/auth.middleware';
 
 @ApiBearerAuth('access-token')
 @Controller('results')
@@ -68,9 +69,11 @@ export class ResultsController {
   @ApiResponse({ status: 200, description: "Tạo kết quả thành công" })
   @ApiResponse({ status: 400, description: "Dữ liệu không hợp lệ" })
   @ApiResponse({ status: 500, description: "Lỗi server" })
-  async create(@Body() createResult: CreateResultDto): Promise<BaseResponse> {
+  async create(
+    @Body() createResult: CreateResultDto,
+    @Req() req: CustomRequest): Promise<BaseResponse> {
     try {
-      const resData = await this.resultsService.create(createResult);
+      const resData = await this.resultsService.create(createResult, req.user.sub);
       return BaseResponse.success(resData, MESSAGE.RESULT_CREATE_SUCCESS, HttpStatus.CREATED);
     } catch (error) {
       throw new HttpException(
@@ -85,9 +88,12 @@ export class ResultsController {
   @ApiResponse({ status: 200, description: "Cập nhật kết quả thành công" })
   @ApiResponse({ status: 400, description: "Dữ liệu không hợp lệ" })
   @ApiResponse({ status: 500, description: "Lỗi server" })
-  async update(@Param('id') id: string, @Body() updateResult: UpdateResultDto): Promise<BaseResponse> {
+  async update(
+    @Param('id') id: string,
+    @Body() updateResult: UpdateResultDto,
+    @Req() req: CustomRequest): Promise<BaseResponse> {
     try {
-      const resData = await this.resultsService.update(id, updateResult);
+      const resData = await this.resultsService.update(id, updateResult, req.user.sub);
       return BaseResponse.success(resData, MESSAGE.RESULT_UPDATE_SUCCESS, HttpStatus.OK);
     } catch (error) {
       throw new HttpException(

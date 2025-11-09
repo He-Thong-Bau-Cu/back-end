@@ -1,9 +1,10 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, Query, HttpException, HttpStatus } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, Query, HttpException, HttpStatus, Req } from '@nestjs/common';
 import { ElectionParticipantsService } from './election-participants.service';
 import { CreateElectionParticipantDto } from './dto/create-election-participant.dto';
 import { ApiBearerAuth, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { BaseResponse } from 'src/common/dto/base-response.dto';
 import { MESSAGE } from 'src/common/enums/message.enum';
+import { CustomRequest } from 'src/common/middleware/auth.middleware';
 
 @ApiBearerAuth('access-token')
 @Controller('election-participants')
@@ -86,10 +87,12 @@ export class ElectionParticipantsController {
   @ApiResponse({ status: 201, description: 'Người tham gia cuộc bầu cử đã được tạo thành công.' })
   @ApiResponse({ status: 400, description: 'Dữ liệu không hợp lệ.' })
   @ApiResponse({ status: 500, description: 'Lỗi server' })
-  async create(@Body() electionParticipants: CreateElectionParticipantDto): Promise<BaseResponse> {
+  async create(
+    @Body() electionParticipants: CreateElectionParticipantDto,
+    @Req() req: CustomRequest): Promise<BaseResponse> {
     try {
 
-      const resData = await this.electionParticipantsService.create(electionParticipants);
+      const resData = await this.electionParticipantsService.create(electionParticipants, req.user.sub);
       return BaseResponse.success(resData, MESSAGE.ELECTION_PARTICIPANT_CREATE_SUCCESS, HttpStatus.CREATED);
     } catch (error) {
       throw new HttpException(

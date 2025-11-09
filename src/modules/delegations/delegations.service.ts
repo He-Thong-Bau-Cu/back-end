@@ -38,7 +38,9 @@ export class DelegationsService {
         .populate('delegatorId', 'username fullName email position')
         .populate('delegateId', 'username fullName email position')
         .populate('confirmedBy', 'username fullName email position')
-        .populate('documentId')
+        .populate('documentId', 'title file_url status')
+        .populate("createdBy", 'username fullName email position')
+        .populate("updatedBy", 'username fullName email position')
         .exec();
       return delegation;
     } catch (error) {
@@ -48,6 +50,7 @@ export class DelegationsService {
 
   async getByElectionId(id: string) {
     try {
+
       const delegation = await this.delegationModel
         .findOne({ electionId: new Types.ObjectId(id) })
         .populate([
@@ -60,6 +63,8 @@ export class DelegationsService {
           { path: 'delegateId', select: 'username fullName email position' },
           { path: 'confirmedBy', select: 'username fullName email position' },
           { path: 'documentId', select: 'title file_url status' },
+          { path: 'createdBy', select: 'username fullName email position' },
+          { path: 'updatedBy', select: 'username fullName email position' },
         ])
         .exec();
 
@@ -92,6 +97,8 @@ export class DelegationsService {
         .populate('delegateId', 'username fullName email position')
         .populate('confirmedBy', 'username fullName email position')
         .populate('documentId', 'title file_url status')
+        .populate('createdBy', 'username fullName email position')
+        .populate('updatedBy', 'username fullName email position')
         .exec();
 
       //kiểm tra có delegation
@@ -129,6 +136,8 @@ export class DelegationsService {
         .populate('delegateId', 'username fullName email position')
         .populate('confirmedBy', 'username fullName email position')
         .populate('documentId', 'title file_url status')
+        .populate('createdBy', 'username fullName email position')
+        .populate('updatedBy', 'username fullName email position')
         .exec();
 
       // Chỉ populate documentId nếu nó tồn tại và là ObjectId hợp lệ
@@ -160,6 +169,8 @@ export class DelegationsService {
         .populate('delegateId', 'username fullName email position')
         .populate('confirmedBy', 'username fullName email position')
         .populate('documentId', 'title file_url status')
+        .populate('createdBy', 'username fullName email position')
+        .populate('updatedBy', 'username fullName email position')
         .exec();
 
       // Chỉ populate documentId nếu nó tồn tại và là ObjectId hợp lệ
@@ -183,7 +194,7 @@ export class DelegationsService {
     }
   }
 
-  async create(createDelegation: CreateDelegationDto) {
+  async create(createDelegation: CreateDelegationDto, userId:string) {
     try {
       //Check if the election is exist
       const electionExist = await this.electionModel.exists({
@@ -254,6 +265,8 @@ export class DelegationsService {
         confirmedBy: createDelegation.confirmedBy
           ? new Types.ObjectId(createDelegation.confirmedBy)
           : null,
+          createdBy: new Types.ObjectId(userId) || null,
+          
       });
 
       // Return delegation with all fields
@@ -263,7 +276,7 @@ export class DelegationsService {
     }
   }
 
-  async update(id: string, updateDelegation: UpdateDelegationDto) {
+  async update(id: string, updateDelegation: UpdateDelegationDto, userId:string) {
     try {
       //Check if the delegation is exist
       const delegationExist = await this.delegationModel.exists({ _id: id });
@@ -290,6 +303,7 @@ export class DelegationsService {
             confirmedBy: updateDelegation.confirmedBy
               ? new Types.ObjectId(updateDelegation.confirmedBy)
               : null,
+            updatedBy: new Types.ObjectId(userId) || null,
           },
           { new: true },
         )

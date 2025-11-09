@@ -1,10 +1,11 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, HttpException, HttpStatus, Put } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, HttpException, HttpStatus, Put, Req } from '@nestjs/common';
 import { MeetingsService } from './meetings.service';
 import { CreateMeetingDto } from './dto/create-meeting.dto';
 import { UpdateMeetingDto } from './dto/update-meeting.dto';
 import { ApiBearerAuth, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { BaseResponse } from 'src/common/dto/base-response.dto';
 import { MESSAGE } from 'src/common/enums/message.enum';
+import { CustomRequest } from 'src/common/middleware/auth.middleware';
 
 @ApiBearerAuth('access-token')
 @Controller('meetings')
@@ -54,9 +55,11 @@ export class MeetingsController {
   @ApiResponse({ status: 201, description: 'Cuộc họp đã được tạo thành công.' })
   @ApiResponse({ status: 400, description: 'Dữ liệu không hợp lệ.' })
   @ApiResponse({ status: 500, description: 'Lỗi server' })
-  async create(@Body() createMeeting: CreateMeetingDto): Promise<BaseResponse> {
+  async create(
+    @Body() createMeeting: CreateMeetingDto,
+    @Req() req: CustomRequest): Promise<BaseResponse> {
     try {
-      const resData = await this.meetingsService.create(createMeeting);
+      const resData = await this.meetingsService.create(createMeeting, req.user.sub);
       return BaseResponse.success(resData, MESSAGE.MEETING_CREATE_SUCCESS, HttpStatus.CREATED);
     } catch (error) {
       throw new HttpException(
@@ -72,9 +75,12 @@ export class MeetingsController {
   @ApiResponse({ status: 201, description: 'Cuộc họp đã được cập nhật thành công.' })
   @ApiResponse({ status: 400, description: 'Dữ liệu không hợp lệ.' })
   @ApiResponse({ status: 500, description: 'Lỗi server' })
-  async update(@Param('id') id: string, @Body() updateMeeting: UpdateMeetingDto): Promise<BaseResponse> {
+  async update(
+    @Param('id') id: string,
+    @Body() updateMeeting: UpdateMeetingDto,
+    @Req() req: CustomRequest): Promise<BaseResponse> {
     try {
-      const resData = await this.meetingsService.update(id, updateMeeting);
+      const resData = await this.meetingsService.update(id, updateMeeting, req.user.sub);
       return BaseResponse.success(resData, MESSAGE.MEETING_UPDATE_SUCCESS, HttpStatus.OK);
     } catch (error) {
       throw new HttpException(

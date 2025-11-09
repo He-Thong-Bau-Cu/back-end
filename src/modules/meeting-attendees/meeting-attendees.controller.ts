@@ -1,10 +1,11 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, HttpException, HttpStatus, Put } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, HttpException, HttpStatus, Put, Request, Req } from '@nestjs/common';
 import { MeetingAttendeesService } from './meeting-attendees.service';
 import { CreateMeetingAttendeeDto } from './dto/create-meeting-attendee.dto';
 import { UpdateMeetingAttendeeDto } from './dto/update-meeting-attendee.dto';
 import { ApiBearerAuth, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { BaseResponse } from 'src/common/dto/base-response.dto';
 import { MESSAGE } from 'src/common/enums/message.enum';
+import { CustomRequest } from 'src/common/middleware/auth.middleware';
 
 @ApiBearerAuth('access-token')
 @Controller('meeting-attendees')
@@ -87,9 +88,11 @@ export class MeetingAttendeesController {
   @ApiResponse({ status: 200, description: "Tạo người tham gia trong cuộc họp thành công" })
   @ApiResponse({ status: 400, description: "Dữ liệu không hợp lệ" })
   @ApiResponse({ status: 500, description: "Lỗi server" })
-  async create(@Body() createMeetingAttendeeDto: CreateMeetingAttendeeDto) {
+  async create(
+    @Body() createMeetingAttendeeDto: CreateMeetingAttendeeDto,
+    @Req() req: CustomRequest) {
     try {
-      const resData = await this.meetingAttendeesService.create(createMeetingAttendeeDto);
+      const resData = await this.meetingAttendeesService.create(createMeetingAttendeeDto, req.user.sub);
       return BaseResponse.success(resData, MESSAGE.MEETING_ATTENDEE_CREATE_SUCCESS, HttpStatus.OK);
     } catch (error) {
       throw new HttpException(
@@ -109,9 +112,10 @@ export class MeetingAttendeesController {
   async updateStatusAttendance(
     @Param('meetingId') meetingId: string,
     @Param('participantId') participantId: string,
-    @Body('attended') attended: boolean): Promise<BaseResponse> {
+    @Body('attended') attended: boolean,
+    @Req() req: CustomRequest): Promise<BaseResponse> {
     try {
-      const resData = await this.meetingAttendeesService.updateStatusAttendance(meetingId, participantId, attended);
+      const resData = await this.meetingAttendeesService.updateStatusAttendance(meetingId, participantId, attended, req.user.sub);
       return BaseResponse.success(resData, MESSAGE.MEETING_ATTENDEE_UPDATE_STATUS_SUCCESS, HttpStatus.OK);
     } catch (error) {
       throw new HttpException(
@@ -126,9 +130,12 @@ export class MeetingAttendeesController {
   @ApiResponse({ status: 200, description: "Cập nhật thông tin người tham gia trong cuộc họp thành công" })
   @ApiResponse({ status: 400, description: "Dữ liệu không hợp lệ" })
   @ApiResponse({ status: 500, description: "Lỗi server" })
-  async update(@Param('id') id: string, @Body() updateMeetingAttendeeDto: UpdateMeetingAttendeeDto) {
+  async update(
+    @Param('id') id: string,
+    @Body() updateMeetingAttendeeDto: UpdateMeetingAttendeeDto,
+    @Req() req: CustomRequest) {
     try {
-      const resData = await this.meetingAttendeesService.update(id, updateMeetingAttendeeDto);
+      const resData = await this.meetingAttendeesService.update(id, updateMeetingAttendeeDto, req.user.sub);
       return BaseResponse.success(resData, MESSAGE.MEETING_ATTENDEE_UPDATE_SUCCESS, HttpStatus.OK);
     } catch (error) {
       throw new HttpException(

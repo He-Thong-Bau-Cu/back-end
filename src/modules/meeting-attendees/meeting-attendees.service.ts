@@ -44,7 +44,9 @@ export class MeetingAttendeesService {
           path: 'participantId',
           populate: [
             { path: 'electionId' },
-            { path: 'userId', select: 'fullName username email phone position department' }
+            { path: 'userId', select: 'fullName username email phone position department' },
+            {path:'createdBy', select:'username fullName position department'},
+            {path:'updatedBy', select:'username fullName position department'}
           ]
         })
         .exec();
@@ -53,7 +55,7 @@ export class MeetingAttendeesService {
     }
   }
 
-  async create(createMeetingAttendee: CreateMeetingAttendeeDto) {
+  async create(createMeetingAttendee: CreateMeetingAttendeeDto, userId: string) {
     try {
       //Check if meetingId is exist or IsNotEmpty
       const meetingExist = await this.meetingsModel.exists({ _id: createMeetingAttendee.meetingId });
@@ -69,6 +71,7 @@ export class MeetingAttendeesService {
         ...createMeetingAttendee,
         meetingId: new Types.ObjectId(createMeetingAttendee.meetingId),
         participantId: new Types.ObjectId(createMeetingAttendee.participantId),
+        createdBy: userId ? new Types.ObjectId(userId) : null,
       });
 
       return meetingAttendee;
@@ -77,7 +80,7 @@ export class MeetingAttendeesService {
     }
   }
 
-  async updateStatusAttendance(meetingId: string, participantId: string, attended: boolean) {
+  async updateStatusAttendance(meetingId: string, participantId: string, attended: boolean, userId: string) {
     try {
       //Check if meetingId is exist or IsNotEmpty
       const meetingExist = await this.meetingsModel.exists({ _id: meetingId });
@@ -91,7 +94,9 @@ export class MeetingAttendeesService {
       }
       return await this.meetingAttendeesModel.findOneAndUpdate(
         { meetingId: meetingId, participantId: participantId },
-        { attended: attended },
+        { attended: attended,
+          updatedBy: userId ? new Types.ObjectId(userId) : null,
+         },
         { new: true }).exec();
 
     } catch (error) {
@@ -99,7 +104,7 @@ export class MeetingAttendeesService {
     }
   }
 
-  async update(meetingAttendeeId: string, updateMeetingAttendee: UpdateMeetingAttendeeDto) {
+  async update(meetingAttendeeId: string, updateMeetingAttendee: UpdateMeetingAttendeeDto, userId: string) {
     try {
       //Check if meetingAttendeeId is exist or IsNotEmpty
       const meetingAttendeeExist = await this.meetingAttendeesModel.exists({ _id: meetingAttendeeId });
@@ -111,6 +116,7 @@ export class MeetingAttendeesService {
           ...updateMeetingAttendee,
           meetingId: updateMeetingAttendee.meetingId ? new Types.ObjectId(updateMeetingAttendee.meetingId) : null,
           participantId: updateMeetingAttendee.participantId ? new Types.ObjectId(updateMeetingAttendee.participantId) : null,
+          updatedBy: userId ? new Types.ObjectId(userId) : null,
         }, { new: true })
         .populate('meetingId')
         .populate({
@@ -144,7 +150,9 @@ export class MeetingAttendeesService {
           populate: [
             { path: 'electionId' },
             { path: 'userId', select: 'fullName username email phone position department' },
-            { path: 'roleId', select: 'roleName roleCode description status' }
+            { path: 'roleId', select: 'roleName roleCode description status' },
+            {path:'createdBy', select:'username fullName position department'},
+            {path:'updatedBy', select:'username fullName position department'}
           ]
         })
         .exec();
@@ -177,7 +185,9 @@ export class MeetingAttendeesService {
           populate: [
             { path: 'electionId' },
             { path: 'userId', select: 'fullName username email phone position department' },
-            { path: 'roleId', select: 'roleName roleCode description status' }
+            { path: 'roleId', select: 'roleName roleCode description status' },
+            {path:'createdBy', select:'username fullName position department'},
+            {path:'updatedBy', select:'username fullName position department'}
           ]
         })
         .exec();

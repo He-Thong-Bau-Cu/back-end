@@ -8,6 +8,7 @@ import {
   Param,
   Post,
   Put,
+  Req,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiBearerAuth } from '@nestjs/swagger';
 import { BaseResponse } from 'src/common/dto/base-response.dto';
@@ -18,6 +19,7 @@ import { ElectionsDocumentDto } from './dto/electionsDocument.dto';
 import { CreateElectionDto } from './dto/create-elections-dto';
 import { SearchDTO } from 'src/common/dto/search.dto';
 import { UpdateElectionDto } from './dto/update-elections-dto';
+import { CustomRequest } from 'src/common/middleware/auth.middleware';
 
 @ApiBearerAuth('access-token')
 @ApiTags('Elections')
@@ -70,11 +72,12 @@ export class ElectionsController {
   @ApiResponse({ status: 200, description: 'Cập nhật thành công' })
   @ApiResponse({ status: 500, description: 'Lỗi server' })
   async updateElections(
+    @Req() req: CustomRequest,
     @Param('id') id: string,
-    @Body() req: UpdateElectionDto,
+    @Body() body: UpdateElectionDto,
   ): Promise<BaseResponse> {
     try {
-      const resData = await this.electionsService.updateElections(id, req);
+      const resData = await this.electionsService.updateElections(id, body, req.user.sub);
       return BaseResponse.success(resData, MESSAGE.ELECTION_UPDATE_SUCCESS, HttpStatus.OK);
     } catch (e) {
       throw new HttpException(
@@ -147,9 +150,12 @@ export class ElectionsController {
   @ApiOperation({ summary: "Tạo mới cuộc bầu cử" })
   @ApiResponse({ status: 200, description: 'Tạo mới cuộc bầu cử thành công' })
   @ApiResponse({ status: 500, description: 'Lỗi server' })
-  async createElection(@Body() createElection: CreateElectionDto): Promise<BaseResponse> {
+  async createElection(
+    @Req() req: CustomRequest,
+    @Body() createElection: CreateElectionDto)
+    : Promise<BaseResponse> {
     try {
-      const resData = await this.electionsService.createElection(createElection);
+      const resData = await this.electionsService.createElection(createElection, req.user.sub);
       return BaseResponse.success(resData, MESSAGE.ELECTION_CREATE_SUCCESS, HttpStatus.CREATED);
     } catch (error) {
       throw new HttpException(

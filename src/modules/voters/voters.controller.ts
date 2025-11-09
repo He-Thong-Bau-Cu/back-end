@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, HttpException, HttpStatus, Put } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, HttpException, HttpStatus, Put, Req } from '@nestjs/common';
 import { VotersService } from './voters.service';
 import { CreateVoterDto } from './dto/create-voter.dto';
 import { UpdateVoterDto } from './dto/update-voter.dto';
@@ -6,6 +6,7 @@ import Api from 'twilio/lib/rest/Api';
 import { BaseResponse } from 'src/common/dto/base-response.dto';
 import { ApiBearerAuth, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { MESSAGE } from 'src/common/enums/message.enum';
+import { CustomRequest } from 'src/common/middleware/auth.middleware';
 
 @ApiBearerAuth('access-token')
 @Controller('voters')
@@ -17,9 +18,11 @@ export class VotersController {
   @ApiResponse({ status: 201, description: 'Cử tri được tạo thành công.' })
   @ApiResponse({ status: 400, description: 'Dữ liệu không hợp lệ.' })
   @ApiResponse({ status: 500, description: 'Lỗi server' })
-  async create(@Body() createVoter: CreateVoterDto): Promise<BaseResponse> {
+  async create(
+    @Body() createVoter: CreateVoterDto,
+    @Req() req:CustomRequest): Promise<BaseResponse> {
     try {
-      const resData = await this.votersService.create(createVoter);
+      const resData = await this.votersService.create(createVoter, req.user.sub);
       return BaseResponse.success(resData, MESSAGE.VOTER_CREATE_SUCCESS, HttpStatus.CREATED);
     } catch (error) {
       throw new HttpException(
@@ -34,9 +37,12 @@ export class VotersController {
   @ApiResponse({ status: 200, description: 'Cử tri được cập nhật thành công.' })
   @ApiResponse({ status: 400, description: 'Dữ liệu không hợp lệ.' })
   @ApiResponse({ status: 500, description: 'Lỗi server' })
-  async update(@Param('id') id: string, @Body() updateVoter: UpdateVoterDto): Promise<BaseResponse> {
+  async update(
+    @Param('id') id: string, 
+    @Body() updateVoter: UpdateVoterDto,
+    @Req() req:CustomRequest): Promise<BaseResponse> {
     try {
-      const resData = await this.votersService.update(id, updateVoter);
+      const resData = await this.votersService.update(id, updateVoter, req.user.sub);
       return BaseResponse.success(resData, MESSAGE.VOTER_UPDATE_SUCCESS, HttpStatus.OK);
     } catch (error) {
       throw new HttpException(
