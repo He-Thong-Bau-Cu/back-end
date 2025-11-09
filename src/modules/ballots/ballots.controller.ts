@@ -155,4 +155,23 @@ export class BallotsController {
       )
     }
   }
+
+  @Patch('status')
+  @ApiOperation({ summary: 'Cập nhật trạng thái phiếu bầu' })
+  @ApiResponse({ status: 200, description: 'Cập nhật trạng thái phiếu bầu thành công' })
+  @ApiResponse({ status: 400, description: 'Dữ liệu không hợp lệ' })
+  @ApiResponse({ status: 500, description: 'Lỗi server' })
+  async updateStatus(
+    @Param('id') id: string, 
+    @Req() req: CustomRequest): Promise<BaseResponse> {
+    try {
+      const resData = await this.ballotsService.updateStatus(id, req.user.sub);
+      return BaseResponse.success(resData, MESSAGE.BALLOT_UPDATE_STATUS_SUCCESS, HttpStatus.OK);
+    } catch (error) {
+      throw new HttpException(
+        { message: error.message },
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      )
+    }
+  }
 }

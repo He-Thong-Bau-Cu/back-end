@@ -114,6 +114,25 @@ export class VotersService {
     }
   }
 
+  async updateStatus(id: string, status: string, userId:string) {
+    try {
+      //Check if the voter exists
+      const voterExists = await this.voterModel.exists({ _id: id });
+      if (!voterExists) {
+        throw new Error(MESSAGE.VOTER_NOT_FOUND);
+      }
+      const voter = await this.voterModel
+        .findByIdAndUpdate(new Types.ObjectId(id), {
+          status,
+          updatedBy: new Types.ObjectId(userId) || null
+        }, { new: true })
+        .exec();
+      return voter;
+    } catch (error) {
+      throw error;
+    }
+  }
+
   //Kiểm tra những cử tri đủ điều kiện phát hành phiếu
   async getEligibleVoters(electionId: string) {
     try {
@@ -275,4 +294,6 @@ export class VotersService {
       throw error;
     }
   }
+
+
 }

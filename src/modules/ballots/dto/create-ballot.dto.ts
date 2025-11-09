@@ -19,13 +19,13 @@ export class CreateBallotDto {
     @IsString()
     voterId: string
 
-    @ApiProperty({
-        description: "ID của ứng viên",
-        example: "60d21b4667d0d8992e610c87"
-    })
-    @IsNotEmpty()
-    @IsString()
-    entityId: string
+    // @ApiProperty({
+    //     description: "ID của ứng viên",
+    //     example: "60d21b4667d0d8992e610c87"
+    // })
+    // @IsNotEmpty()
+    // @IsString()
+    // entityId: string
 
     @ApiPropertyOptional({
         description: "Giá trị bầu cử của cử tri",
@@ -50,21 +50,21 @@ export class CreateBallotDto {
     @IsString()
     signature: string
 
-    @ApiProperty({
-        description: "Số lần cử tri nhập OTP",
-        example: "123456"
-    })
-    @IsOptional()
-    @IsNumber()
-    attempts: number
+    // @ApiProperty({
+    //     description: "Số lần cử tri nhập OTP",
+    //     example: "123456"
+    // })
+    // @IsOptional()
+    // @IsNumber()
+    // attempts: number
 
-    @ApiProperty({
-        description: "Giá trị bầu cử mã hóa",
-        example: "123456"
-    })
-    @IsOptional()
-    @IsString()
-    encryptedVote: string
+    // @ApiProperty({
+    //     description: "Giá trị bầu cử mã hóa",
+    //     example: "123456"
+    // })
+    // @IsOptional()
+    // @IsString()
+    // encryptedVote: string
 
     @ApiProperty({
         description: "Trạng thái của phiếu bầu",

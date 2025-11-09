@@ -21,8 +21,8 @@ export class Ballots extends BaseSchema {
   @Prop({ type: Types.ObjectId, ref: Voters.name, required: true })
   voterId: Types.ObjectId;
 
-  @Prop({ type: Types.ObjectId, ref: ElectionEntities.name, required: true })
-  entityId: Types.ObjectId;
+  // @Prop({ type: Types.ObjectId, ref: ElectionEntities.name, required: true })
+  // entityId: Types.ObjectId;
 
   @Prop({ default: null })
   voteValue: number;

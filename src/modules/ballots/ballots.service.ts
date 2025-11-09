@@ -154,7 +154,7 @@ export class BallotsService {
     }
   }
 
-  async create(createBallot: CreateBallotDto, userId:string) {
+  async create(createBallot: CreateBallotDto, userId: string) {
     try {
       //Check election exists
       const electionExists = await this.electionsModel.findOne({ _id: createBallot.electionId });
@@ -186,20 +186,11 @@ export class BallotsService {
         throw new Error(MESSAGE.VOTING_RIGHT_NOT_FOUND);
       }
 
-      //Check electionEntity exists
-      const electionEntityExists = await this.electionEntitiesModel.findOne({ _id: createBallot.entityId });
-      if (electionEntityExists) {
-        if (electionEntityExists.status && electionEntityExists.status !== STATUS.ACTIVE) {
-          throw new Error(MESSAGE.ELECTION_ENTITY_IS_NOT_ACTIVE);
-        }
-      } else {
-        throw new Error(MESSAGE.ELECTION_ENTITY_NOT_FOUND);
-      }
+     
       const ballot = await this.ballotsModel.create({
         ...createBallot,
         electionId: new Types.ObjectId(createBallot.electionId),
         voterId: new Types.ObjectId(createBallot.voterId),
-        entityId: new Types.ObjectId(createBallot.entityId),
         createdBy: new Types.ObjectId(userId) ? new Types.ObjectId(userId) : null,
       });
       return ballot;
@@ -208,7 +199,7 @@ export class BallotsService {
     }
   }
 
-  async update(id: string, updateBalllot: UpdateBallotDto, userId:string) {
+  async update(id: string, updateBalllot: UpdateBallotDto, userId: string) {
     try {
       //Check if the ballot is exist
       const ballotExist = await this.ballotsModel.exists({ _id: id });
@@ -223,7 +214,6 @@ export class BallotsService {
           ...updateBalllot,
           electionId: updateBalllot.electionId ? new Types.ObjectId(updateBalllot.electionId) : null,
           voterId: updateBalllot.voterId ? new Types.ObjectId(updateBalllot.voterId) : null,
-          entityId: updateBalllot.entityId ? new Types.ObjectId(updateBalllot.entityId) : null,
           updatedBy: new Types.ObjectId(userId) ? new Types.ObjectId(userId) : null,
         }, { new: true })
         .populate('electionId', 'title startDate endDate delegationStart delegationEnd status statusData decisionNumber decisionName')
@@ -243,48 +233,96 @@ export class BallotsService {
       throw error;
     }
   }
-  
-  async getStatistics() {
+  async updateStatus(id: string, userId:string) {
     try {
-      //Lấy tổng số phiếu của cuộc bầu cử
-      const ballots = await this.ballotsModel.countDocuments();
-
-      //Lấy tổng số phiếu đã bình chọn và chưa bình chonk => pending và active
-      const ballotStatus = await this.ballotsModel.aggregate([
-        {
-          $match: {
-            status: { $in: [STATUS.PENDING, STATUS.CAST] },
-          },
-        },
-        {
-          $group: {
-            _id: '$status',
-            totalBallots: { $sum: 1 },
-          },
-        },
-      ]);
-      return {
-        total: ballots,
-        ballotStatus,
-      };
-    } catch (error) {
-      throw error;
-    }
-  }
-
-  async delete(id: string) {
-    try {
-      const ballot = await this.ballotsModel.findById(new Types.ObjectId(id));
-      if (!ballot) {
+      //Check if the ballot is exist
+      const ballotExist = await this.ballotsModel.findById(new Types.ObjectId(id));
+      if (!ballotExist) {
         throw new Error(MESSAGE.BALLOT_NOT_FOUND);
       }
 
-      ballot.status = STATUS.INACTIVE;
-      await ballot.save();
-      
-      return ballot;
-    } catch (error) {
+      //Check if the election is valid
+      const electionExist = await this.electionsModel.findById(new Types.ObjectId(ballotExist.electionId));
+      if (!electionExist) {
+        throw new Error(MESSAGE.ELECTION_NOT_FOUND);
+      }
+      if (electionExist.status && electionExist.status !== STATUS.ACTIVE) {
+        throw new Error(MESSAGE.ELECTION_IS_NOT_ACTIVE);
+      }
+
+      //Check if the voter is valid
+      const voterExist = await this.votersModel.findById(new Types.ObjectId(ballotExist.voterId));
+      if (!voterExist) {
+        throw new Error(MESSAGE.VOTER_NOT_FOUND);
+      }
+      if (voterExist.status && voterExist.status !== STATUS.ACTIVE) {
+        throw new Error(MESSAGE.VOTER_IS_NOT_ACTIVE);
+      }
+
+      //Check the status of ballots is valid
+      if (ballotExist.status === 'Active') {
+      throw new Error('Ballot is already active');
+    }
+    if (ballotExist.status === 'Locked' || ballotExist.status === 'Invalid') {
+      throw new Error('Ballot cannot be activated');
+    }
+
+    //genertate OTP
+
+    ballotExist.status = 'Active';
+    ballotExist.issuedAt = new Date();
+    ballotExist.updatedBy = new Types.ObjectId(userId);
+
+
+    await ballotExist.save();
+    return ballotExist;
+    }catch(error){
       throw error;
     }
   }
-}
+      
+  
+  async getStatistics() {
+        try {
+          //Lấy tổng số phiếu của cuộc bầu cử
+          const ballots = await this.ballotsModel.countDocuments();
+
+          //Lấy tổng số phiếu đã bình chọn và chưa bình chonk => pending và active
+          const ballotStatus = await this.ballotsModel.aggregate([
+            {
+              $match: {
+                status: { $in: [STATUS.PENDING, STATUS.CAST] },
+              },
+            },
+            {
+              $group: {
+                _id: '$status',
+                totalBallots: { $sum: 1 },
+              },
+            },
+          ]);
+          return {
+            total: ballots,
+            ballotStatus,
+          };
+        } catch (error) {
+          throw error;
+        }
+      }
+
+  async delete (id: string) {
+        try {
+          const ballot = await this.ballotsModel.findById(new Types.ObjectId(id));
+          if (!ballot) {
+            throw new Error(MESSAGE.BALLOT_NOT_FOUND);
+          }
+
+          ballot.status = STATUS.INACTIVE;
+          await ballot.save();
+
+          return ballot;
+        } catch (error) {
+          throw error;
+        }
+      }
+    }

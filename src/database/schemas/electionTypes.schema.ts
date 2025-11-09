@@ -3,6 +3,7 @@ import { Document, Types } from 'mongoose';
 import { USER_ROLE } from 'src/common/enums/config.enum';
 import { BaseSchema } from './base.schema';
 import { Roles } from './roles.schema';
+import { STATUS } from 'src/common/enums/status.enum';
 
 export type ElectionTypesDocument = ElectionTypes & Document;
 
@@ -17,7 +18,7 @@ export class ElectionTypes extends BaseSchema {
   @Prop({ default: null })
   description: string;
 
-  @Prop({ required: true })
+  @Prop({ default: STATUS.ACTIVE })
   status: string;
 }
 
