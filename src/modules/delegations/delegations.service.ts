@@ -23,7 +23,7 @@ export class DelegationsService {
     private readonly userModel: Model<Users>,
     @InjectModel(ElectionDocuments.name)
     private readonly documentModel: Model<ElectionDocuments>,
-  ) {}
+  ) { }
   async getDelegatorIdAndElectionId(delegatorId: string, electionId: string) {
     try {
       const delegation = await this.delegationModel
@@ -59,8 +59,8 @@ export class DelegationsService {
           { path: 'delegatorId', select: 'username fullName email position' },
           { path: 'delegateId', select: 'username fullName email position' },
           { path: 'confirmedBy', select: 'username fullName email position' },
+          { path: 'documentId', select: 'title file_url status' },
         ])
-        .lean()
         .exec();
 
       // Chỉ populate documentId nếu nó tồn tại và là ObjectId hợp lệ
@@ -91,11 +91,11 @@ export class DelegationsService {
         .populate('delegatorId', 'username fullName email position')
         .populate('delegateId', 'username fullName email position')
         .populate('confirmedBy', 'username fullName email position')
-        .lean()
+        .populate('documentId', 'title file_url status')
         .exec();
 
       //kiểm tra có delegation
-      if (!delegations || delegations.length === 0) {
+      if (!delegations) {
         throw new Error(MESSAGE.DELEGATION_NOT_FOUND);
       }
 
@@ -128,7 +128,7 @@ export class DelegationsService {
         .populate('delegatorId', 'username fullName email position')
         .populate('delegateId', 'username fullName email position')
         .populate('confirmedBy', 'username fullName email position')
-        .lean()
+        .populate('documentId', 'title file_url status')
         .exec();
 
       // Chỉ populate documentId nếu nó tồn tại và là ObjectId hợp lệ
@@ -159,7 +159,7 @@ export class DelegationsService {
         .populate('delegatorId', 'username fullName email position')
         .populate('delegateId', 'username fullName email position')
         .populate('confirmedBy', 'username fullName email position')
-        .lean()
+        .populate('documentId', 'title file_url status')
         .exec();
 
       // Chỉ populate documentId nếu nó tồn tại và là ObjectId hợp lệ
