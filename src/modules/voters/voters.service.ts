@@ -73,7 +73,7 @@ export class VotersService {
         await this.electionParticipantsModel.create({
           electionId: electionId,
           userId: userId,
-          roleId: userExists.roleId,
+          roleId: USER_ROLE.VOTER,
           position: userExists.position || 'Voter',
         });
       }

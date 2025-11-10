@@ -242,4 +242,8 @@ export enum MESSAGE {
 
     // Success Messages - System
     SYSTEM_LOG_SEARCH_SUCCESS = 'Tìm kiếm log hệ thống thành công',
+
+
+    //statistic
+    STATISTICS_GET_DASHBOARD_PRESIDENT_SUCCESS = 'Lấy thông tin thống kê cho chủ tọa thành công',
 }

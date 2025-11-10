@@ -177,16 +177,19 @@ export class BallotsService {
       }
 
       //Check votingRight shares and count > 0
-      const votingRight = await this.votingRightsModel.findOne({ voterId: createBallot.voterId, electionId: createBallot.electionId });
+      const votingRight = await this.votingRightsModel.findOne({
+        voterId: createBallot.voterId,
+        electionId: createBallot.electionId
+      });
       if (votingRight) {
         if (votingRight.shares <= 0 || votingRight.votes <= 0) {
           throw new Error(MESSAGE.VOTING_RIGHT_NOT_ELIGIBLE);
         }
-      } else {
+      } else if (!votingRight) {
         throw new Error(MESSAGE.VOTING_RIGHT_NOT_FOUND);
       }
 
-     
+
       const ballot = await this.ballotsModel.create({
         ...createBallot,
         electionId: new Types.ObjectId(createBallot.electionId),
@@ -233,7 +236,7 @@ export class BallotsService {
       throw error;
     }
   }
-  async updateStatus(id: string, userId:string) {
+  async updateStatus(id: string, userId: string) {
     try {
       //Check if the ballot is exist
       const ballotExist = await this.ballotsModel.findById(new Types.ObjectId(id));
@@ -261,68 +264,68 @@ export class BallotsService {
 
       //Check the status of ballots is valid
       if (ballotExist.status === 'Active') {
-      throw new Error('Ballot is already active');
-    }
-    if (ballotExist.status === 'Locked' || ballotExist.status === 'Invalid') {
-      throw new Error('Ballot cannot be activated');
-    }
+        throw new Error('Ballot is already active');
+      }
+      if (ballotExist.status === 'Locked' || ballotExist.status === 'Invalid') {
+        throw new Error('Ballot cannot be activated');
+      }
 
-    //genertate OTP
+      //genertate OTP
 
-    ballotExist.status = 'Active';
-    ballotExist.issuedAt = new Date();
-    ballotExist.updatedBy = new Types.ObjectId(userId);
+      ballotExist.status = 'Active';
+      ballotExist.issuedAt = new Date();
+      ballotExist.updatedBy = new Types.ObjectId(userId);
 
 
-    await ballotExist.save();
-    return ballotExist;
-    }catch(error){
+      await ballotExist.save();
+      return ballotExist;
+    } catch (error) {
       throw error;
     }
   }
-      
-  
+
+
   async getStatistics() {
-        try {
-          //Lấy tổng số phiếu của cuộc bầu cử
-          const ballots = await this.ballotsModel.countDocuments();
+    try {
+      //Lấy tổng số phiếu của cuộc bầu cử
+      const ballots = await this.ballotsModel.countDocuments();
 
-          //Lấy tổng số phiếu đã bình chọn và chưa bình chonk => pending và active
-          const ballotStatus = await this.ballotsModel.aggregate([
-            {
-              $match: {
-                status: { $in: [STATUS.PENDING, STATUS.CAST] },
-              },
-            },
-            {
-              $group: {
-                _id: '$status',
-                totalBallots: { $sum: 1 },
-              },
-            },
-          ]);
-          return {
-            total: ballots,
-            ballotStatus,
-          };
-        } catch (error) {
-          throw error;
-        }
-      }
-
-  async delete (id: string) {
-        try {
-          const ballot = await this.ballotsModel.findById(new Types.ObjectId(id));
-          if (!ballot) {
-            throw new Error(MESSAGE.BALLOT_NOT_FOUND);
-          }
-
-          ballot.status = STATUS.INACTIVE;
-          await ballot.save();
-
-          return ballot;
-        } catch (error) {
-          throw error;
-        }
-      }
+      //Lấy tổng số phiếu đã bình chọn và chưa bình chonk => pending và active
+      const ballotStatus = await this.ballotsModel.aggregate([
+        {
+          $match: {
+            status: { $in: [STATUS.PENDING, STATUS.CAST] },
+          },
+        },
+        {
+          $group: {
+            _id: '$status',
+            totalBallots: { $sum: 1 },
+          },
+        },
+      ]);
+      return {
+        total: ballots,
+        ballotStatus,
+      };
+    } catch (error) {
+      throw error;
     }
+  }
+
+  async delete(id: string) {
+    try {
+      const ballot = await this.ballotsModel.findById(new Types.ObjectId(id));
+      if (!ballot) {
+        throw new Error(MESSAGE.BALLOT_NOT_FOUND);
+      }
+
+      ballot.status = STATUS.INACTIVE;
+      await ballot.save();
+
+      return ballot;
+    } catch (error) {
+      throw error;
+    }
+  }
+}
