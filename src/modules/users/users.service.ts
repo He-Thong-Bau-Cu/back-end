@@ -24,7 +24,7 @@ export class UsersService {
     private roleModel: Model<RolesDocument>,
     private mailService: MailService,
     private fileService: MinioService,
-  ) {}
+  ) { }
 
   async getAll() {
     try {
@@ -124,6 +124,8 @@ export class UsersService {
       throw e;
     }
   }
+
+
 
   async updateUser(userId: string, req: UserDto) {
     try {

@@ -1,5 +1,9 @@
 import {Injectable} from '@nestjs/common';
+
 import * as nodemailer from 'nodemailer';
+import { InjectModel } from '@nestjs/mongoose';
+
+
 
 @Injectable()
 export class MailService {
@@ -30,6 +34,21 @@ export class MailService {
         console.log('Email sent: %s', info.messageId);
     }
 
+    async sendMailInvitation(to: string, fullName: string, username: string, password: string, token:string) {
+        const htmlTemplate = this.getHtmlTemplateInvitation(fullName, username, password, token);
+        const info = await this.transporter.sendMail({
+            from: `"Hệ thống bầu cử" <${process.env.EMAIL_USERNAME}>`,
+            to,
+            subject: '🎉 Chào mừng bạn đến với hệ thống!',
+            html: htmlTemplate,
+        });
+
+        
+
+
+        console.log('Email sent: %s', info.messageId);
+    }
+
     async sendPasswordResetMail(to: string, fullName: string, username: string, password: string) {
         const htmlTemplate = this.getPasswordResetHtmlTemplate(fullName, username, password);
         const info = await this.transporter.sendMail({
@@ -38,7 +57,7 @@ export class MailService {
             subject: '🔐 Mật khẩu mới của bạn',
             html: htmlTemplate,
         });
-
+       
         console.log('Password reset email sent: %s', info.messageId);
     }
 
@@ -53,11 +72,36 @@ export class MailService {
           <p><b>Mật khẩu:</b> ${password}</p>
         </div>
         <p style="color:#f59e0b;font-size:14px;">⚠️ Vui lòng đổi mật khẩu sau khi đăng nhập lần đầu để đảm bảo an toàn.</p>
+
+        
         <hr/>
         <p style="font-size:13px;color:#6b7280;">Nếu có thắc mắc, vui lòng liên hệ <b>employee.system.work@gmail.com</b></p>
       </div>
     `;
     }
+
+        private getHtmlTemplateInvitation(fullName: string, username: string, password: string, token:string): string {
+        const createdDate = new Date().toLocaleDateString('vi-VN');
+        return `
+      <div style="font-family:sans-serif;max-width:600px;margin:auto;padding:20px;background:#f9fafb;border-radius:12px;">
+        <h2>Xin chào ${fullName} 👋</h2>
+        <p>Tài khoản của bạn đã được tạo thành công vào ngày <b>${createdDate}</b>.</p>
+        <div style="background:#fff;padding:15px;border-radius:10px;border:1px solid #e5e7eb;">
+          <p><b>Tên đăng nhập:</b> ${username}</p>
+          <p><b>Mật khẩu:</b> ${password}</p>
+        </div>
+        <p style="color:#f59e0b;font-size:14px;">⚠️ Vui lòng đổi mật khẩu sau khi đăng nhập lần đầu để đảm bảo an toàn.</p>
+
+        <p style="font-size:13px;color:#6b7280;text-align:center;margin-top:10px;">
+        CLick vào link để vào hệ thống: <a href="${process.env.FRONTEND_URL}/invited?token=${token}" style="color:#1d4ed8;">${process.env.FRONTEND_URL}/invited?token=${token}</a>
+      </p>
+        <hr/>
+        <p style="font-size:13px;color:#6b7280;">Nếu có thắc mắc, vui lòng liên hệ <b>employee.system.work@gmail.com</b></p>
+      </div>
+    `;
+    }
+
+
 
     async sendOtpMail(to: string, fullName: string, otp: string) {
         const htmlTemplate = this.getOtpHtmlTemplate(fullName, otp);

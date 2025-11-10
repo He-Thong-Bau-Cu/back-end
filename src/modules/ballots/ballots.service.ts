@@ -42,7 +42,6 @@ export class BallotsService {
             }
           ]
         })
-        .populate('entityId')
         .populate('createdBy', 'username fullName email position')
         .populate('updatedBy', 'username fullName email position')
         .exec();
@@ -72,7 +71,6 @@ export class BallotsService {
             }
           ]
         })
-        .populate('entityId')
         .populate('createdBy', 'username fullName email position')
         .populate('updatedBy', 'username fullName email position')
         .exec();
@@ -104,7 +102,6 @@ export class BallotsService {
             }
           ]
         })
-        .populate('entityId')
         .populate('createdBy', 'username fullName email position')
         .populate('updatedBy', 'username fullName email position')
         .exec();
@@ -138,7 +135,6 @@ export class BallotsService {
             }
           ]
         })
-        .populate('entityId')
         .populate('createdBy', 'username fullName email position')
         .populate('updatedBy', 'username fullName email position')
         .exec();

@@ -1,12 +1,10 @@
 import { Controller, Get, Post, Body, Patch, Param, Delete, HttpStatus, HttpException, Req } from '@nestjs/common';
 import { VoterInvitationsService } from './voter-invitations.service';
-import { CreateVoterInvitationDto } from './dto/create-voter-invitation.dto';
-import { UpdateVoterInvitationDto } from './dto/update-voter-invitation.dto';
 import { ApiBearerAuth, ApiOperation, ApiResponse } from '@nestjs/swagger';
-import Api from 'twilio/lib/rest/Api';
 import { BaseResponse } from 'src/common/dto/base-response.dto';
 import { MESSAGE } from 'src/common/enums/message.enum';
 import { CustomRequest } from 'src/common/middleware/auth.middleware';
+import { CreateVoterInvitationDto } from './dto/create-voter-invitation.dto';
 
 @ApiBearerAuth('access-token')
 @Controller('voter-invitations')
@@ -86,14 +84,36 @@ export class VoterInvitationsController {
   @ApiResponse({ status: 400, description: 'Dữ liệu không hợp lệ.' })
   @ApiResponse({ status: 500, description: 'Lỗi máy chủ nội bộ.' })
   async create(
-    @Body() createVoterInvitationDto: CreateVoterInvitationDto,
+    @Body() body: CreateVoterInvitationDto,
     @Req() req:CustomRequest): Promise<BaseResponse> {
     try {
-      const resData = await this.voterInvitationsService.create(createVoterInvitationDto, req.user.sub);
+      const resData = await this.voterInvitationsService.create(body, req.user.sub);
       return BaseResponse.success(
         resData,
         MESSAGE.VOTER_INVITATION_CREATE_SUCCESS,
         HttpStatus.CREATED,
+      );
+    } catch (error) {
+      throw new HttpException(
+        { message: error.message },
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      )
+    }
+  }
+
+  @Get('invited')
+  @ApiOperation({ summary: 'Xác nhận lời mời cử tri' })
+  @ApiResponse({ status: 200, description: 'Xác nhận lời mời cử tri thành công.' })
+  @ApiResponse({ status: 404, description: 'Lời mời cử tri không tồn tại.' })
+  @ApiResponse({ status: 400, description: 'Dữ liệu không hợp lệ.' })
+  @ApiResponse({ status: 500, description: 'Lỗi máy chủ nội bộ.' })
+  async invited(@Param('token') token: string): Promise<BaseResponse> {
+    try {
+      const resData = await this.voterInvitationsService.confirmationVoterInvitation(token);
+      return BaseResponse.success(
+        resData,
+        MESSAGE.VOTER_INVITATION_INVITED_SUCCESS,
+        HttpStatus.OK,
       );
     } catch (error) {
       throw new HttpException(

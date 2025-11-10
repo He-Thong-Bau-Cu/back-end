@@ -54,6 +54,8 @@ export enum STATUS {
   SENT = 'SENT',
   DELIVERED = 'DELIVERED',
   OPENED = 'OPENED',
+  INVITED = 'INVITED',
+  CONFIRMED = 'CONFIRMED',  //voter click vào mail
 
   CAST = 'CAST', //ballots was casted
 
