@@ -1,13 +1,14 @@
 import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose";
 import { Document, Types } from "mongoose";
 import { Users } from "./users.schema";
+import moment from 'moment-timezone';
 
 @Schema()
 export class BaseSchema extends Document {
-  @Prop({ default: Date.now })
+  @Prop({ default: () => new Date() })
   updatedAt: Date;
 
-  @Prop({ default: Date.now })
+  @Prop({ default: () => new Date() })
   createdAt: Date;
 
   @Prop({ type: Types.ObjectId, ref: 'Users' })
@@ -15,6 +16,14 @@ export class BaseSchema extends Document {
 
   @Prop({ type: Types.ObjectId, ref: 'Users' })
   updatedBy: Types.ObjectId;
+
+  get createdAtVN(): string {
+    return moment(this.createdAt).tz('Asia/Ho_Chi_Minh').format('YYYY-MM-DD HH:mm:ss');
+  }
+
+  get updatedAtVN(): string {
+    return moment(this.updatedAt).tz('Asia/Ho_Chi_Minh').format('YYYY-MM-DD HH:mm:ss');
+  }
 }
 
 export const BaseSchemaSchema = SchemaFactory.createForClass(BaseSchema);

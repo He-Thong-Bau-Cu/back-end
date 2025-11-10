@@ -16,6 +16,9 @@ export class SearchDTO extends BaseRequest {
   @ApiPropertyOptional({ description: "Status", example: "PENDING" })
   @IsOptional()
   status: string;
+  @ApiPropertyOptional({ description: "Status", example: "PENDING" })
+  @IsOptional()
+  statusData: string;
   @ApiPropertyOptional({ description: "Decision name", example: "abc" })
   @IsOptional()
   decisionName: string;

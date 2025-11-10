@@ -493,4 +493,57 @@ export class MinioService {
     if (lowerKey.endsWith('.xls') || lowerKey.endsWith('.xlsx')) return 'application/vnd.ms-excel';
     return 'application/octet-stream';
   }
+
+
+  async uploadFileNoEncrypt(
+    fileType: FileType,
+    userId: string,
+    file: Express.Multer.File,
+    isSignFile = false,
+  ): Promise<FileResponseDto> {
+    if (!file) {
+      throw new BadRequestException('File is required');
+    }
+
+    if (!userId) {
+      throw new BadRequestException('User ID is required');
+    }
+
+    let key: string;
+    const uniqueFileName = this.generateUniqueFileName(file.originalname);
+
+    if (isSignFile) {
+      // For signed files, use special prefix
+      key = this.generateFilePath(FileType.SIGNED_DOCUMENT, userId, uniqueFileName);
+    } else {
+      // Normal file upload
+      key = this.generateFilePath(fileType, userId, uniqueFileName);
+    }
+
+    const command = new PutObjectCommand({
+      Bucket: this.bucketName,
+      Key: key,
+      Body: file.buffer,
+      ContentType: file.mimetype,
+      Metadata: {
+        'original-name': file.originalname,
+        'content-type': file.mimetype,
+        'file-size': file.size.toString(),
+        encrypted: 'true',
+        'user-id': userId,
+        'file-type': fileType,
+      },
+    });
+
+    await this.s3Client.send(command);
+
+    return new FileResponseDto({
+      key,
+      originalName: file.originalname,
+      mimeType: file.mimetype,
+      size: file.size,
+      uploadDate: new Date(),
+      url: `${this.minioEndpoint}/${this.bucketName}/${key}`,
+    });
+  }
 }

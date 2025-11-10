@@ -32,28 +32,33 @@ export class ElectionsService {
     private readonly thresholdModel: Model<Thresholds>,
     @InjectModel(Users.name)
     private readonly userModel: Model<Users>,
-  ) { }
+  ) {}
 
   async searchElections(req: SearchDTO) {
     try {
+      const query: any = {};
+      if (req.textSearch) {
+        query.title = { $regex: req.textSearch, $options: 'i' };
+      }
+      if (req.statusData) {
+        query.statusData = req.statusData;
+      }
+      if (req.decisionName) {
+        query.decisionName = { $regex: req.decisionName, $options: 'i' };
+      }
+      if (req.decisionNumber) {
+        query.decisionNumber = { $regex: req.decisionNumber, $options: 'i' };
+      }
+      if (req.status) {
+        query.status = req.status;
+      }
+
       const elections = await this.electionsModel
-        .find({
-          $or: [
-            { title: { $regex: removeVietnameseTones(req.textSearch || ''), $options: 'i' } },
-            {
-              decisionName: {
-                $regex: removeVietnameseTones(req.decisionName || ''),
-                $options: 'i',
-              },
-            },
-            { decisionNumber: { $regex: req.decisionNumber || '', $options: 'i' } },
-            { statusData: { $regex: req.status || '', $options: 'i' } },
-          ],
-        })
+        .find(query)
         .populate('typeId')
         .populate('votingMethodId')
         .populate('thresholdId')
-        .populate('createdByUserId', 'username fullName email position')
+        .populate('createdBy', 'username fullName email position')
         .exec();
       return paginate(elections, req.page, req.limit);
     } catch (error) {
@@ -115,7 +120,6 @@ export class ElectionsService {
           }
         }
       }
-
 
       const election = await this.electionsModel.create({
         ...createElection,
