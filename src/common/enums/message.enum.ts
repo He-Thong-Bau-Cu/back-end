@@ -43,6 +43,8 @@ export enum MESSAGE {
     VOTING_RIGHT_CREATE_SUCCESS = 'Tạo quyền bầu cử thành công',
     VOTING_RIGHT_UPDATE_SUCCESS = 'Cập nhật quyền bầu cử thành công',
     VOTING_RIGHT_ALREADY_EXISTS = 'Quyền bầu cử đã tồn tại',
+    VOTING_RIGHT_DELETE_SUCCESS = 'Xóa quyền bầu cử thành công',
+
 
     //Voter Invitations
     VOTER_INVITATION_NOT_FOUND = 'Không tìm thấy lời mời cử tri',
@@ -64,6 +66,7 @@ export enum MESSAGE {
     BALLOT_DELETE_SUCCESS = 'Xóa phiếu bầu thành công',
     BALLOT_STATISTICS_SUCCESS = 'Lấy thống kê phiếu bầu thành công',
     BALLOT_UPDATE_STATUS_SUCCESS = 'Cập nhật trạng thái phiếu bầu thành công',
+    BALLOT_VOTE_VALUE_INVALID = "Giá trị phiếu không hợp lệ. Giá trị phiếu phải nhỏ hơn hoặc bằng số phiếu mà cử tri đó đó",
 
 
     // Results

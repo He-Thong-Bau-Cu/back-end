@@ -185,10 +185,13 @@ export class BallotsService {
         if (votingRight.shares <= 0 || votingRight.votes <= 0) {
           throw new Error(MESSAGE.VOTING_RIGHT_NOT_ELIGIBLE);
         }
+        if (votingRight.votes < createBallot.voteValue) {
+          throw new Error(MESSAGE.BALLOT_VOTE_VALUE_INVALID);
+        }
       } else if (!votingRight) {
         throw new Error(MESSAGE.VOTING_RIGHT_NOT_FOUND);
       }
-      console.log("votingRight, ", votingRight);
+
 
 
       const ballot = await this.ballotsModel.create({

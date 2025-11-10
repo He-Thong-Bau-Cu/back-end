@@ -27,10 +27,10 @@ export class CreateBallotDto {
     // @IsString()
     // entityId: string
 
-    @ApiPropertyOptional({
-        description: "Giá trị bầu cử của cử tri",
-        example: "1000"
-    })
+    // @ApiPropertyOptional({
+    //     description: "Giá trị bầu cử của cử tri",
+    //     example: "1000"
+    // })
     @IsNumber()
     voteValue: number
 
