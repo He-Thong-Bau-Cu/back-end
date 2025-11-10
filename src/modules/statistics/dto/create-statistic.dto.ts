@@ -1,1 +1,3 @@
-export class CreateStatisticDto {}
+import { BaseRequest } from "src/common/dto/base-request.dto";
+
+export class CreateStatisticDto extends BaseRequest { }

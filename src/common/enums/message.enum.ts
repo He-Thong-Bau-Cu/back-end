@@ -42,6 +42,7 @@ export enum MESSAGE {
     VOTING_RIGHT_GET_BY_ID_SUCCESS = 'Lấy thông tin quyền bầu cử thành công',
     VOTING_RIGHT_CREATE_SUCCESS = 'Tạo quyền bầu cử thành công',
     VOTING_RIGHT_UPDATE_SUCCESS = 'Cập nhật quyền bầu cử thành công',
+    VOTING_RIGHT_ALREADY_EXISTS = 'Quyền bầu cử đã tồn tại',
 
     //Voter Invitations
     VOTER_INVITATION_NOT_FOUND = 'Không tìm thấy lời mời cử tri',

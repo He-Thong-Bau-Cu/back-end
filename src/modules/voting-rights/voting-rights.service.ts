@@ -104,6 +104,16 @@ export class VotingRightsService {
       if (!voterExists) {
         throw new Error(MESSAGE.VOTER_NOT_FOUND);
       }
+
+      //Kiểm tra votingRights đã tồn tại chưa
+      const votingRightExists = await this.votingRightModel.exists({
+        electionId: createVotingRightDto.electionId,
+        voterId: createVotingRightDto.voterId,
+      });
+      if (votingRightExists) {
+        throw new Error(MESSAGE.VOTING_RIGHT_ALREADY_EXISTS);
+      }
+
       const votingRight = await this.votingRightModel.create({
         ...createVotingRightDto,
         electionId: new Types.ObjectId(createVotingRightDto.electionId),
