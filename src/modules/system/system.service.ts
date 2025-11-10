@@ -11,7 +11,10 @@ import { Results, ResultsDocument } from 'src/database/schemas/results.schema';
 import { Users, UserDocument } from 'src/database/schemas/users.schema';
 import { Voters, VotersDocument } from 'src/database/schemas/voters.schema';
 import { SystemLog, SystemLogDocument } from 'src/database/schemas/systemLog.schema';
-import { ElectionsParticipants, ElectionsParticipantsDocument } from 'src/database/schemas/electionParticipants.schema';
+import {
+  ElectionsParticipants,
+  ElectionsParticipantsDocument,
+} from 'src/database/schemas/electionParticipants.schema';
 
 @Injectable()
 export class SystemService {
@@ -22,8 +25,9 @@ export class SystemService {
     @InjectModel(Users.name) private readonly usersModel: Model<UserDocument>,
     @InjectModel(Results.name) private readonly resultsModel: Model<ResultsDocument>,
     @InjectModel(SystemLog.name) private readonly systemLogModel: Model<SystemLogDocument>,
-    @InjectModel(ElectionsParticipants.name) private readonly electionParticipantsModel: Model<ElectionsParticipantsDocument>,
-   ) {}
+    @InjectModel(ElectionsParticipants.name)
+    private readonly electionParticipantsModel: Model<ElectionsParticipantsDocument>,
+  ) {}
 
   async searchSystemLogs(req: SearchDTO) {
     try {
@@ -49,10 +53,12 @@ export class SystemService {
       }
       let from = formatDateVN(req.fromDate);
       let to = formatDateVN(req.toDate);
-      const systemLogData = await this.systemLogModel.find({
-        createdAt: { $gte: from, $lte: to },
-        statusCode: { $gte: statusCodeRange[0], $lte: statusCodeRange[1] },
-      }).exec();
+      const systemLogData = await this.systemLogModel
+        .find({
+          createdAt: { $gte: from, $lte: to },
+          statusCode: { $gte: statusCodeRange[0], $lte: statusCodeRange[1] },
+        })
+        .exec();
       return paginate(systemLogData, req.page, req.limit);
     } catch (e) {
       throw e;
@@ -60,9 +66,13 @@ export class SystemService {
   }
   async getStatisticsCards() {
     const totalElections = await this.electionsModel.countDocuments();
-    const totalVoters = await this.electionParticipantsModel.countDocuments({roleId: new Types.ObjectId('6906ebaf3bb016c908c61ba0')})
+    const totalVoters = await this.electionParticipantsModel.countDocuments({
+      roleId: new Types.ObjectId('6906ebaf3bb016c908c61ba0'),
+    });
 
-    const completedElections = await this.electionsModel.countDocuments({ status: STATUS.COMPLETED });
+    const completedElections = await this.electionsModel.countDocuments({
+      status: STATUS.COMPLETED,
+    });
 
     const eligibleVoters = await this.votersModel.countDocuments({ eligible: true });
     const votedVoters = await this.votersModel.countDocuments({ status: STATUS.ACTIVE });
@@ -102,40 +112,40 @@ export class SystemService {
   }
 
   async getParticipationRateChart() {
-    const participationData = await this.votersModel.aggregate([
+    const participationData = await this.electionParticipantsModel.aggregate([
       {
-        $sort: { _id: 1 },
+        $group: {
+          _id: { month: { $month: '$createdAt' }, year: { $year: '$createdAt' } },
+          total: { $sum: 1 },
+        },
       },
       {
-        $limit: 5,
+        $sort: { '_id.year': 1, '_id.month': 1 },
       },
     ]);
 
-    const labels = participationData.map(item => item._id);
-    const series = [
-      {
-        name: 'Tỷ lệ tham gia',
-        data: participationData.map(item => (item.total > 0 ? (item.voted / item.total) * 100 : 0)),
-      },
-    ];
+    const lineData = participationData.map((item) => ({
+      month: `Th${item._id.month}`,
+      rate: item.total,
+    }));
 
-    return { labels, series };
+    return lineData;
   }
 
   async getResultDistributionChart() {
     const userData = await this.usersModel.find().exec();
-    let userActive = userData.filter(user => user.status === STATUS.ACTIVE).length;
-    let userInactive = userData.filter(user => user.status === STATUS.INACTIVE).length;
+    let userActive = userData.filter((user) => user.status === STATUS.ACTIVE).length;
+    let userInactive = userData.filter((user) => user.status === STATUS.INACTIVE).length;
     return {
       active: userActive,
-      inactive: userInactive
-    }
+      inactive: userInactive,
+    };
   }
 
   async getOngoingPolls() {
     const ongoingPolls = await this.electionsModel.find().sort({ startDate: 1 });
 
-    return ongoingPolls.map(poll => {
+    return ongoingPolls.map((poll) => {
       const remainingTime = poll.endDate ? formatDateVN(new Date(poll.endDate)) : 'N/A';
       return {
         name: poll.title,
@@ -146,8 +156,12 @@ export class SystemService {
   }
 
   async getRecentActivities() {
-    const recentActivities = await this.auditLogsModel.find().sort({ createdAt: -1 }).limit(5).populate('userId', 'fullName');
-    return recentActivities.map(activity => {
+    const recentActivities = await this.auditLogsModel
+      .find()
+      .sort({ createdAt: -1 })
+      .limit(5)
+      .populate('userId', 'fullName');
+    return recentActivities.map((activity) => {
       const timeAgo = formatDateVN(new Date(activity.createdAt));
       return {
         activity: `${(activity.userId as any).fullName} ${activity.action} in ${activity.module}`,
