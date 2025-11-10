@@ -6,6 +6,7 @@ import { UpdateVotingMethodDto } from './dto/update-voting-method.dto';
 import { BaseResponse } from 'src/common/dto/base-response.dto';
 import { MESSAGE } from 'src/common/enums/message.enum';
 import { ApiBearerAuth, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { VotingMethodSearchDTO } from './dto/search.dto';
 
 @ApiBearerAuth('access-token')
 @Controller('voting-methods')
@@ -20,6 +21,22 @@ export class VotingMethodsController {
     try {
       const resData = await this.votingMethodsService.findOne(methodCode);
       return BaseResponse.success(resData, MESSAGE.VOTING_METHOD_GET_BY_CODE_SUCCESS, HttpStatus.OK);
+    } catch (error) {
+      throw new HttpException(
+        { message: error.message },
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @Post('search')
+  @ApiOperation({ summary: 'Tim kiếm phương thức bầu cử' })
+  @ApiResponse({ status: 200, description: 'Tim kiếm phương thức bầu cử thành công' })
+  @ApiResponse({ status: 500, description: 'Lỗi server' })
+  async search(@Body() searchDto: VotingMethodSearchDTO): Promise<BaseResponse> {
+    try {
+      const resData = await this.votingMethodsService.search(searchDto);
+      return BaseResponse.success(resData, MESSAGE.VOTING_METHOD_SEARCH_SUCCESS, HttpStatus.OK);
     } catch (error) {
       throw new HttpException(
         { message: error.message },

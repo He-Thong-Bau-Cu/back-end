@@ -137,8 +137,17 @@ export enum MESSAGE {
     // Thresholds & Voting Methods
     THRESHOLD_CODE_NOT_FOUND = 'Không tìm thấy mã của ngưỡng thông qua',
     THRESHOLD_NOT_FOUND = 'Ngưỡng thông qua không tồn tại',
+
+    //voting method
+    VOTING_METHOD_SEARCH_SUCCESS = 'Tim kiếm phương thức bầu cử thành công',
     VOTING_METHOD_CODE_NOT_FOUND = 'Không tìm thấy mã của phương thức bầu cử',
     VOTING_METHOD_NOT_FOUND = 'Phương thức bầu cử không tồn tại',
+    VOTING_METHOD_CREATE_SUCCESS = 'Tạo phương thức bầu cử thành công',
+    VOTING_METHOD_UPDATE_SUCCESS = 'Cập nhật phương thức bầu cử thành công',
+    VOTING_METHOD_DELETE_SUCCESS = 'Xóa phương thức bầu cử thành công',
+    VOTING_METHOD_GET_BY_ID_SUCCESS = 'Lấy thông tin phương thức bầu cử thành công',
+    VOTING_METHOD_GET_BY_CODE_SUCCESS = 'Lấy thông tin phương thức bầu cử thông qua mã thành công',
+    VOTING_METHOD_GET_ALL_SUCCESS = 'Lấy danh sách phương thức bầu cử thành công',
 
     // SMS
     SMS_SEND_ERROR = 'Lỗi không xác định xảy ra khi gửi SMS',
@@ -210,14 +219,14 @@ export enum MESSAGE {
     ELECTION_PARTICIPANT_GET_VOTERS_SUCCESS = 'Lấy danh sách participants có role là VOTER thành công',
     ELECTION_PARTICIPANT_ID_DOES_NOT_EXIST = 'ID người tham gia không tồn tại',
     ELECTION_PARTICIPANT_ROLE_NOT_FOUND = 'Không tìm thấy vai trò',
+    ELECTION_PARTICIPANT_ALREADY_EXIST = "Người dùng này đã tham gia cuộc bầu cử rồi",
 
 
 
     // Success Messages - Election Types
     ELECTION_TYPE_GET_BY_CODE_SUCCESS = 'Lấy thông tin loại bầu cử theo mã thành công',
 
-    // Success Messages - Voting Methods
-    VOTING_METHOD_GET_BY_CODE_SUCCESS = 'Lấy thông tin phương thức bầu cử theo mã thành công',
+
 
     // Success Messages - Thresholds
     THRESHOLD_GET_BY_CODE_SUCCESS = 'Lấy thông tin ngưỡng thông qua theo mã thành công',

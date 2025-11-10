@@ -2,14 +2,14 @@
 import { IsOptional, IsString, IsInt, Min } from 'class-validator';
 import { Type } from 'class-transformer';
 
-export class SearchDto {
+export class BaseSearchDTO {
     @IsOptional()
     @IsString()
     keyword?: string;
 
-    @IsOptional()
-    @IsString()
-    status?: string;
+    // @IsOptional()
+    // @IsString()
+    // status?: string;
 
     @IsOptional()
     @Type(() => Number)

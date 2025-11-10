@@ -146,6 +146,15 @@ export class ElectionParticipantsService {
                                 throw new NotFoundException(MESSAGE.USER_NOT_FOUND);
                         }
 
+                        //Kiểm tra user đã trong cuộc bầu cử chưa
+                        const participantsExist = await this.electionParticipantsModel.findOne({
+                                electionId: electionParticipants.electionId,
+                                userId: electionParticipants.userId
+                        })
+                        if (participantsExist) {
+                                throw new Error(MESSAGE.ELECTION_PARTICIPANT_ALREADY_EXIST);
+                        }
+
                         // 3. Kiểm tra roleId có tồn tại không
                         const roleExists = await this.rolesModel.exists({ _id: electionParticipants.roleId });
                         if (!roleExists) {
