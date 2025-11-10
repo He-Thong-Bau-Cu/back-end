@@ -84,7 +84,7 @@ export enum MESSAGE {
     ELECTION_TYPE_NOT_FOUND = 'Không tìm thấy loại cuộc bầu cử',
     ELECTION_TYPE_CREATE_SUCCESS = 'Tạo loại bầu cử thành công',
     ELECTION_TYPE_CODE_NOT_FOUND = 'Không tìm thấy loại bầu cử',
-    NO_PARTICIPANTS_LINKED = 'Không có người tham gia liên kết với cuộc bầu cử',
+    NO_PARTICIPANTS_LINKED = 'Người đề xuất không có trong cuộc bầu cử',
 
 
     // Meetings

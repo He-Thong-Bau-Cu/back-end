@@ -86,7 +86,7 @@ export class ElectionEntitiesService {
       }
 
       //Kiểm tra xem có participant nào liên kết với electionId không
-      const participantExists = await this.electionParticipants.exists({ electionId: electionEntity.electionId });
+      const participantExists = await this.electionParticipants.exists({ _id: electionEntity.proposerId });
       if (!participantExists) {
         throw new Error(MESSAGE.NO_PARTICIPANTS_LINKED);
       }
