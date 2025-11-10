@@ -54,7 +54,8 @@ export enum MESSAGE {
     VOTER_INVITATION_CREATE_SUCCESS = 'Tạo lời mời cử tri thành công',
     VOTER_INVITATION_UPDATE_SUCCESS = 'Cập nhật lời mời cử tri thành công',
     VOTER_INVITATION_DELETE_SUCCESS = 'Xóa lời mời cử tri thành công',
-
+    VOTER_INVITATION_INVITED_SUCCESS = 'Xác nhận lời mời cử tri thành công',
+    
     // Ballots
     BALLOT_GET_ALL_SUCCESS = 'Lấy danh sách phiếu bầu cử thành công',
     BALLOT_NOT_FOUND = 'Không tìm thấy phiếu bầu',

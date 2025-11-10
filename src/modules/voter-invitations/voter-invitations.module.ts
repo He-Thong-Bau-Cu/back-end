@@ -9,29 +9,34 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { Voters, VotersSchema } from 'src/database/schemas/voters.schema';
 import { Elections, ElectionsSchema } from 'src/database/schemas/elections.schema';
 import { MailModule } from '../mail/mail.module';
+import { Users, UsersSchema } from 'src/database/schemas/users.schema';
+import { UsersModule } from '../users/users.module';
 
 @Module({
   imports: [
     MongooseModule.forFeature([
-      {name:VoterInvitations.name, schema:VoterInvitationsSchema},
-      {name:Voters.name, schema:VotersSchema},
-      {name:Elections.name, schema:ElectionsSchema},
+      { name: VoterInvitations.name, schema: VoterInvitationsSchema },
+      { name: Voters.name, schema: VotersSchema },
+      { name: Elections.name, schema: ElectionsSchema },
+      { name: Users.name, schema: UsersSchema },
+
     ]),
 
     JwtModule.registerAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
-      useFactory:(configService: ConfigService) => ({
+      useFactory: (configService: ConfigService) => ({
         secret: configService.get<string>('JWT_SECRET'),
         signOptions: {
-          expiresIn:'24h',
+          expiresIn: '24h',
         },
       }),
     }),
 
     MailModule,
+    UsersModule
   ],
   controllers: [VoterInvitationsController],
   providers: [VoterInvitationsService],
 })
-export class VoterInvitationsModule {}
+export class VoterInvitationsModule { }
