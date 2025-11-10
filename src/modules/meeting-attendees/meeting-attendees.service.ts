@@ -38,7 +38,7 @@ export class MeetingAttendeesService {
 
   async findOne(id: string) {
     try {
-      return await this.meetingAttendeesModel.findById(id)
+      return await this.meetingAttendeesModel.findById(new Types.ObjectId(id))
         .populate('meetingId')
         .populate({
           path: 'participantId',
@@ -93,7 +93,10 @@ export class MeetingAttendeesService {
         throw new Error(MESSAGE.ELECTION_PARTICIPANT_NOT_FOUND);
       }
       return await this.meetingAttendeesModel.findOneAndUpdate(
-        { meetingId: meetingId, participantId: participantId },
+        { 
+          meetingId: new Types.ObjectId(meetingId), 
+          participantId: new Types.ObjectId(participantId) 
+        },
         { attended: attended,
           updatedBy: userId ? new Types.ObjectId(userId) : null,
          },
