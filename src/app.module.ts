@@ -39,7 +39,7 @@ import { ResultsModule } from './modules/results/results.module';
 import { MailModule } from './modules/mail/mail.module';
 import { ElectionDocumentsModule } from './modules/election-documents/election-documents.module';
 import { RedisModule } from './modules/redis/redis.module';
-import { TwilioModule } from './modules/twilio/twilio.module';
+import { StatisticsModule } from './modules/statistics/statistics.module';
 
 
 @Module({
@@ -84,7 +84,7 @@ import { TwilioModule } from './modules/twilio/twilio.module';
     ResultsModule,
     ElectionDocumentsModule,
     RedisModule,
-    TwilioModule,
+    StatisticsModule,
   ],
   controllers: [],
   providers: [

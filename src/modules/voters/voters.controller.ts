@@ -52,6 +52,26 @@ export class VotersController {
     }
   }
 
+  @Patch('status/:id')
+  @ApiOperation({ summary: 'Cập nhật trạng thái cử tri' })
+  @ApiResponse({ status: 200, description: 'Cập nhật trạng thái cử tri thành công.' })
+  @ApiResponse({ status: 400, description: 'Dữ liệu không hợp lệ.' })
+  @ApiResponse({ status: 500, description: 'Lỗi server' })
+  async updateStatus(
+    @Param('id') id: string, 
+    @Body() status: string,
+    @Req() req: CustomRequest): Promise<BaseResponse> {
+    try {
+      const resData = await this.votersService.updateStatus(id, status, req.user.sub);
+      return BaseResponse.success(resData, MESSAGE.VOTER_UPDATE_STATUS_SUCCESS, HttpStatus.OK);
+    } catch (error) {
+      throw new HttpException(
+        { message: error.message },
+        HttpStatus.INTERNAL_SERVER_ERROR
+      )
+    }
+  }
+
   //Danh sách cử tri đủ điều kiện phát hành phiếu
   @Get('eligible/:electionId')
   @ApiOperation({ summary: 'Danh sách cử tri đủ điều kiện phát hành phiếu' })
