@@ -148,8 +148,8 @@ export class ElectionParticipantsService {
 
                         //Kiểm tra user đã trong cuộc bầu cử chưa
                         const participantsExist = await this.electionParticipantsModel.findOne({
-                                electionId: electionParticipants.electionId,
-                                userId: electionParticipants.userId
+                                electionId: new Types.ObjectId(electionParticipants.electionId),
+                                userId: new Types.ObjectId(electionParticipants.userId)
                         })
                         if (participantsExist) {
                                 throw new Error(MESSAGE.ELECTION_PARTICIPANT_ALREADY_EXIST);

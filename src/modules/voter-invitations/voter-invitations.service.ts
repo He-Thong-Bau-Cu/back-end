@@ -33,7 +33,7 @@ export class VoterInvitationsService {
     try {
       // Check if the voterId exists in the database
       const voterExists = await this.votersModel
-        .findOne({ _id: voterInvitation.voterId })
+        .findOne({ _id: new Types.ObjectId(voterInvitation.voterId) })
         .populate('userId')
         .exec();
       if (!voterExists) {

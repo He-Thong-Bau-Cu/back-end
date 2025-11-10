@@ -31,6 +31,7 @@ export class CreateBallotDto {
     //     description: "Giá trị bầu cử của cử tri",
     //     example: "1000"
     // })
+    @IsOptional()
     @IsNumber()
     voteValue: number
 
