@@ -165,7 +165,7 @@ export class UsersController {
   async uploadAvatar(@UploadedFile() file: Express.Multer.File, @Req() req: CustomRequest) {
     try {
       const userId = req.user.sub;
-      const result = await this.fileService.uploadFile(FileType.PROFILE_IMAGE, userId, file) as FileResponseDto;
+      const result = await this.fileService.uploadFileNoEncrypt(FileType.PROFILE_IMAGE, userId, file) as FileResponseDto;
       const resData = await this.usersService.updateAvatar(userId, result.key as string);
       return BaseResponse.success(resData, MESSAGE_STATUS.USER_VIEW, HttpStatus.OK);
     } catch (error) {

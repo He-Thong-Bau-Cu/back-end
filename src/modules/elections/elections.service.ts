@@ -53,7 +53,7 @@ export class ElectionsService {
         .populate('typeId')
         .populate('votingMethodId')
         .populate('thresholdId')
-        .populate('createdByUserId', 'username fullName email position')
+        .populate('createdBy', 'username fullName email position')
         .exec();
       return paginate(elections, req.page, req.limit);
     } catch (error) {

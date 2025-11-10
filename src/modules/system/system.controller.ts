@@ -12,13 +12,108 @@ import { PermissionDto } from "../../common/dto/permission.dto";
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from "@nestjs/swagger";
 
 @ApiBearerAuth('access-token')
-@ApiTags('Hệ thống')
+@ApiTags('System')
 @Controller('system')
 export class SystemController {
     constructor(
         private readonly systemService: SystemService,
         private readonly roleService: RoleService
     ) {
+    }
+
+    @ApiOperation({ summary: 'Lấy dữ liệu cho các thẻ thống kê' })
+    @ApiResponse({
+        status: HttpStatus.OK,
+        description: 'Lấy dữ liệu cho các thẻ thống kê thành công',
+    })
+    @ApiResponse({ status: HttpStatus.INTERNAL_SERVER_ERROR, description: MESSAGE_STATUS.SERVER_ERROR })
+    @Get('statistic-cards')
+    async getStatisticsCards() {
+        try {
+            const resData = await this.systemService.getStatisticsCards();
+            return BaseResponse.success(resData, 'Lấy dữ liệu cho các thẻ thống kê thành công', HttpStatus.OK);
+        } catch (e) {
+            throw new HttpException(
+                { message: e.message },
+                HttpStatus.INTERNAL_SERVER_ERROR,
+            );
+        }
+    }
+
+    @ApiOperation({ summary: 'Lấy dữ liệu cho biểu đồ đường tỷ lệ tham gia' })
+    @ApiResponse({
+        status: HttpStatus.OK,
+        description: 'Lấy dữ liệu cho biểu đồ đường tỷ lệ tham gia thành công',
+    })
+    @ApiResponse({ status: HttpStatus.INTERNAL_SERVER_ERROR, description: MESSAGE_STATUS.SERVER_ERROR })
+    @Get('participation-rate-chart')
+    async getParticipationRateChart() {
+        try {
+            const resData = await this.systemService.getParticipationRateChart();
+            return BaseResponse.success(resData, 'Lấy dữ liệu cho biểu đồ đường tỷ lệ tham gia thành công', HttpStatus.OK);
+        } catch (e) {
+            throw new HttpException(
+                { message: e.message },
+                HttpStatus.INTERNAL_SERVER_ERROR,
+            );
+        }
+    }
+
+    @ApiOperation({ summary: 'Lấy dữ liệu cho biểu đồ tròn' })
+    @ApiResponse({
+        status: HttpStatus.OK,
+        description: 'Lấy dữ liệu cho biểu đồ tròn thành công',
+    })
+    @ApiResponse({ status: HttpStatus.INTERNAL_SERVER_ERROR, description: MESSAGE_STATUS.SERVER_ERROR })
+    @Get('result-distribution-chart')
+    async getResultDistributionChart() {
+        try {
+            const resData = await this.systemService.getResultDistributionChart();
+            return BaseResponse.success(resData, 'Lấy dữ liệu cho biểu đồ tròn thành công', HttpStatus.OK);
+        } catch (e) {
+            throw new HttpException(
+                { message: e.message },
+                HttpStatus.INTERNAL_SERVER_ERROR,
+            );
+        }
+    }
+
+    @ApiOperation({ summary: 'Lấy dữ liệu cho danh sách bầu cử' })
+    @ApiResponse({
+        status: HttpStatus.OK,
+        description: 'Lấy dữ liệu cho danh sách bầu cử thành công',
+    })
+    @ApiResponse({ status: HttpStatus.INTERNAL_SERVER_ERROR, description: MESSAGE_STATUS.SERVER_ERROR })
+    @Get('ongoing-polls')
+    async getOngoingPolls() {
+        try {
+            const resData = await this.systemService.getOngoingPolls();
+            return BaseResponse.success(resData, 'Lấy dữ liệu cho danh sách bầu cử thành công', HttpStatus.OK);
+        } catch (e) {
+            throw new HttpException(
+                { message: e.message },
+                HttpStatus.INTERNAL_SERVER_ERROR,
+            );
+        }
+    }
+
+    @ApiOperation({ summary: 'Lấy dữ liệu cho hoạt động gần đây' })
+    @ApiResponse({
+        status: HttpStatus.OK,
+        description: 'Lấy dữ liệu cho hoạt động gần đây thành công',
+    })
+    @ApiResponse({ status: HttpStatus.INTERNAL_SERVER_ERROR, description: MESSAGE_STATUS.SERVER_ERROR })
+    @Get('recent-activities')
+    async getRecentActivities() {
+        try {
+            const resData = await this.systemService.getRecentActivities();
+            return BaseResponse.success(resData, 'Lấy dữ liệu cho hoạt động gần đây thành công', HttpStatus.OK);
+        } catch (e) {
+            throw new HttpException(
+                { message: e.message },
+                HttpStatus.INTERNAL_SERVER_ERROR,
+            );
+        }
     }
 
     @ApiOperation({ summary: 'Tìm kiếm danh sách system log' })
