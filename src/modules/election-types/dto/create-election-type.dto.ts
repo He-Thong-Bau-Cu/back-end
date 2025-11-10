@@ -9,7 +9,7 @@ export class CreateElectionTypeDto {
     })
     @IsNotEmpty()
     @IsString()
-    name: string;
+    typeName: string;
 
     @ApiProperty({
         description: "Mã kiểu bầu cử",
@@ -17,7 +17,7 @@ export class CreateElectionTypeDto {
     })
     @IsNotEmpty()
     @IsString()
-    code: string;
+    typeCode: string;
 
 
     @ApiPropertyOptional({

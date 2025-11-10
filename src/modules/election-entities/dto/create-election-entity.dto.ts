@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
-import { IsNotEmpty, IsOptional, IsString } from "class-validator";
+import { IsNotEmpty, IsObject, IsOptional, IsString } from "class-validator";
 
 
 export class CreateElectionEntityDto {
@@ -39,6 +39,8 @@ export class CreateElectionEntityDto {
         description: 'Dữ liệu meta bổ sung dưới dạng đối tượng JSON',
         example: { name: "Nguyễn Văn A", age: 38 }
     })
+    @IsNotEmpty()
+    @IsObject()
     metaData: Record<string, any>;
 
     @ApiPropertyOptional({

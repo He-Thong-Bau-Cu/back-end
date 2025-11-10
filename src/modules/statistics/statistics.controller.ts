@@ -27,4 +27,16 @@ export class StatisticsController {
     }
   }
 
+  @Get('preside/recent-participation')
+  @ApiOperation({ summary: 'Lấy tỷ lệ tham gia của các cuộc bầu cử gần nhất' })
+  @ApiResponse({ status: 200, description: 'Lấy tỷ lệ tham gia thành công' })
+  @ApiResponse({ status: 500, description: 'Lỗi server' })
+  async getRecentParticipation(): Promise<BaseResponse> {
+    try {
+      const data = await this.statisticsService.getRecentParticipation();
+      return BaseResponse.success(data, MESSAGE.STATISTICS_GET_DASHBOARD_PRESIDENT_SUCCESS, HttpStatus.OK);
+    } catch (error) {
+      throw new HttpException({ message: error.message }, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+  }
 }
