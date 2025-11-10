@@ -157,7 +157,7 @@ export class BallotsService {
   async create(createBallot: CreateBallotDto, userId: string) {
     try {
       //Check election exists
-      const electionExists = await this.electionsModel.findOne({ _id: createBallot.electionId });
+      const electionExists = await this.electionsModel.findOne({ _id: new Types.ObjectId(createBallot.electionId) });
       if (electionExists) {
         if (electionExists.status && electionExists.status !== STATUS.ACTIVE) {
           throw new Error(MESSAGE.ELECTION_IS_NOT_ACTIVE);
@@ -167,7 +167,7 @@ export class BallotsService {
       }
 
       //Check voter exists
-      const voterExists = await this.votersModel.findOne({ _id: createBallot.voterId });
+      const voterExists = await this.votersModel.findOne({ _id: new Types.ObjectId(createBallot.voterId) });
       if (voterExists) {
         if (voterExists.status && voterExists.status !== STATUS.ACTIVE) {
           throw new Error(MESSAGE.VOTER_IS_NOT_ACTIVE);
@@ -178,8 +178,8 @@ export class BallotsService {
 
       //Check votingRight shares and count > 0
       const votingRight = await this.votingRightsModel.findOne({
-        voterId: createBallot.voterId,
-        electionId: createBallot.electionId
+        voterId: new Types.ObjectId(createBallot.voterId),
+        electionId: new Types.ObjectId(createBallot.electionId)
       });
       if (votingRight) {
         if (votingRight.shares <= 0 || votingRight.votes <= 0) {
@@ -188,6 +188,7 @@ export class BallotsService {
       } else if (!votingRight) {
         throw new Error(MESSAGE.VOTING_RIGHT_NOT_FOUND);
       }
+      console.log("votingRight, ", votingRight);
 
 
       const ballot = await this.ballotsModel.create({

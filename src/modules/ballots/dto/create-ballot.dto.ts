@@ -34,18 +34,18 @@ export class CreateBallotDto {
     @IsNumber()
     voteValue: number
 
-    @ApiProperty({
-        description: "OTP xác thực của cử tri",
-        example: "123456"
-    })
+    // @ApiProperty({
+    //     description: "OTP xác thực của cử tri",
+    //     example: "123456"
+    // })
     @IsOptional()
     @IsString()
     otpCode: string
 
-    @ApiProperty({
-        description: "Chữ kí của cử tri",
-        example: "Nguyễn Văn A"
-    })
+    // @ApiProperty({
+    //     description: "Chữ kí của cử tri",
+    //     example: "Nguyễn Văn A"
+    // })
     @IsOptional()
     @IsString()
     signature: string
@@ -66,25 +66,25 @@ export class CreateBallotDto {
     // @IsString()
     // encryptedVote: string
 
-    @ApiProperty({
-        description: "Trạng thái của phiếu bầu",
-        example: "Draft"
-    })
+    // @ApiProperty({
+    //     description: "Trạng thái của phiếu bầu",
+    //     example: "Draft"
+    // })
     @IsOptional()
     @IsString()
     status: string
 
-    @ApiProperty({
-        description: "Ngày phát hành phiếu bầu",
-        example: "2025-10-30T18:25:26.703+00:00"
-    })
+    // @ApiProperty({
+    //     description: "Ngày phát hành phiếu bầu",
+    //     example: "2025-10-30T18:25:26.703+00:00"
+    // })
     @IsOptional()
     issuedAt: Date
 
-    @ApiProperty({
-        description: "Thời gian cử tri hoàn thành bỏ phiếu thành công",
-        example: "2025-10-30T18:25:26.703+00:00"
-    })
+    // @ApiProperty({
+    //     description: "Thời gian cử tri hoàn thành bỏ phiếu thành công",
+    //     example: "2025-10-30T18:25:26.703+00:00"
+    // })
     @IsOptional()
     castAt: Date
 
