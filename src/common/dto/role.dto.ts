@@ -13,15 +13,11 @@ export class RoleDto extends BaseRequest{
         description: 'Tên vai trò',
         example: 'Quản trị viên',
     })
-    @IsNotEmpty()
-    @IsString()
     roleName: string;
     @ApiPropertyOptional({
         description: 'Mã vai trò',
         example: 'ADMIN',
     })
-    @IsNotEmpty()
-    @IsString()
     roleCode: string;
     @ApiPropertyOptional({
         description: 'Mô tả vai trò',

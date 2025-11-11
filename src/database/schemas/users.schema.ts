@@ -11,7 +11,7 @@ export class Users extends BaseSchema {
   @Prop({ unique: true, required: true })
   username: string;
 
-  @Prop({ required: true })
+  @Prop({ select: false, required: true })
   password: string;
 
   @Prop({ required: true, default: false })
@@ -32,7 +32,7 @@ export class Users extends BaseSchema {
   @Prop({ required: true, unique: true })
   phone: string;
 
-  @Prop({ required: true })
+  @Prop()
   address: string;
 
   @Prop({ default: USER_ROLE.USER })
@@ -41,10 +41,10 @@ export class Users extends BaseSchema {
   @Prop({ type: Types.ObjectId, ref: Roles.name, required: true })
   roleId: Types.ObjectId;
 
-  @Prop({ required: true })
+  @Prop()
   position: string;
 
-  @Prop({ required: true })
+  @Prop()
   department: string;
 
   @Prop({ default: null })

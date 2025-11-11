@@ -92,6 +92,7 @@ export enum MESSAGE_STATUS {
   ROLE_UPDATE = 'Vai trò được cập nhật thành công!',
   ROLE_DELETE = 'Vai trò được xóa thành công!',
   ROLE_VIEW = 'Lấy dữ liệu vai trò thành công!',
+  ROLE_PERMISSIONS_VIEW = 'Lấy dữ liệu quyền cho vai trò thành công!',
   ROLE_PERMISSIONS_UPDATE = 'Cập nhật quyền cho vai trò thành công!',
   PERMISSION_SUCCESS = 'Quyền được tạo thành công!',
   PERMISSION_UPDATE = 'Quyền được cập nhật thành công!',

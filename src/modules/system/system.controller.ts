@@ -343,4 +343,42 @@ export class SystemController {
             )
         }
     }
+
+    @ApiOperation({ summary: 'Tìm kiếm vai trò quyền hạn' })
+    @ApiResponse({
+        status: HttpStatus.OK,
+        description: MESSAGE_STATUS.ROLE_PERMISSIONS_VIEW,
+    })
+    @ApiResponse({ status: HttpStatus.INTERNAL_SERVER_ERROR, description: MESSAGE_STATUS.SERVER_ERROR })
+    @Post(`${ENDPOINT.ROLE_PERMISSION}/${METHOD.SEARCH}`)
+    async searchRolePermission(@Body() req: RolePermissionDto) {
+        try {
+            const resData = await this.roleService.searchRolePermission(req);
+            return BaseResponse.success(resData, MESSAGE_STATUS.ROLE_PERMISSIONS_VIEW, HttpStatus.OK);
+        } catch (e) {
+            throw new HttpException(
+                { message: e.message },
+                HttpStatus.INTERNAL_SERVER_ERROR,
+            )
+        }
+    }
+
+    @ApiOperation({ summary: 'Lấy tất cả quyền' })
+    @ApiResponse({
+        status: HttpStatus.OK,
+        description: MESSAGE_STATUS.PERMISSION_VIEW,
+    })
+    @ApiResponse({ status: HttpStatus.INTERNAL_SERVER_ERROR, description: MESSAGE_STATUS.SERVER_ERROR })
+    @Get(`${ENDPOINT.PERMISSION}/${METHOD.ALL}`)
+    async getAllPermission() {
+        try {
+            const resData = await this.roleService.getAllPermission();
+            return BaseResponse.success(resData, MESSAGE_STATUS.PERMISSION_VIEW, HttpStatus.OK);
+        } catch (e) {
+            throw new HttpException(
+                { message: e.message },
+                HttpStatus.INTERNAL_SERVER_ERROR,
+            )
+        }
+    }
 }
