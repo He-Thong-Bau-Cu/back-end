@@ -11,13 +11,13 @@ export class BaseResponse<T = any> {
     Object.assign(this, partial);
   }
 
-  static success<T>(data: T, message = 'Success', status): BaseResponse<T> {
+  static success<T>(data: T, message = 'Success', status, otherData?: any | null): BaseResponse<T> {
     return new BaseResponse<T>({
       status: status,
       success: true,
       message: message,
       data: data,
-      otherData: null,
+      otherData: otherData || null,
     });
   }
 

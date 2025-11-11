@@ -141,6 +141,25 @@ export class UsersController {
     }
   }
 
+  @ApiOperation({ summary: 'Thống kê user' })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: MESSAGE_STATUS.USER_STATS,
+  })
+  @ApiResponse({
+    status: HttpStatus.INTERNAL_SERVER_ERROR,
+    description: MESSAGE_STATUS.SERVER_ERROR,
+  })
+  @Get(`/${METHOD.STATISTICS}/${METHOD.GET}`)
+  async getPermissionStatistics() {
+    try {
+      const resData = await this.usersService.getStatsUser();
+      return BaseResponse.success(resData, MESSAGE_STATUS.USER_STATS, HttpStatus.OK);
+    } catch (e) {
+      throw new HttpException({ message: e.message }, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+  }
+
   @ApiOperation({ summary: 'Chi tiết người dùng' })
   @ApiResponse({
     status: HttpStatus.OK,

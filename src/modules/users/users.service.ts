@@ -237,6 +237,18 @@ export class UsersService {
     return user.image;
   }
 
+  async getStatsUser() {
+    try {
+      const totalUsers = await this.userModel.countDocuments();
+      const activeUsers = await this.userModel.countDocuments({ status: STATUS.ACTIVE });
+      const inactiveUsers = await this.userModel.countDocuments({ status: STATUS.INACTIVE });
+      const newUsers = await this.userModel.countDocuments({ isTempPassword: true });
+      return { totalUsers, activeUsers, inactiveUsers, newUsers };
+    } catch (error) {
+      throw error;
+    }
+  }
+
   async generateUserName(fullName: string): Promise<string> {
     const removeVietnameseTones = (str: string) => {
       return str
