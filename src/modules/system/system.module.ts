@@ -20,7 +20,8 @@ import { ElectionsParticipants, ElectionsParticipantsSchema } from 'src/database
       { name: Voters.name, schema: VotersSchema },
       { name: Users.name, schema: UsersSchema },
       { name: Results.name, schema: ResultsSchema },
-      { name: ElectionsParticipants.name, schema: ElectionsParticipantsSchema}
+      { name: ElectionsParticipants.name, schema: ElectionsParticipantsSchema},
+      { name: AuditLogs.name, schema: AuditLogsSchema},
     ]),
     RoleModule,
   ],

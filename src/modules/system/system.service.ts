@@ -25,6 +25,8 @@ export class SystemService {
     @InjectModel(Users.name) private readonly usersModel: Model<UserDocument>,
     @InjectModel(Results.name) private readonly resultsModel: Model<ResultsDocument>,
     @InjectModel(SystemLog.name) private readonly systemLogModel: Model<SystemLogDocument>,
+    @InjectModel(Users.name) private readonly userModel: Model<UserDocument>,
+    @InjectModel(AuditLogs.name) private readonly auditLogModel: Model<AuditLogsDocument>,
     @InjectModel(ElectionsParticipants.name)
     private readonly electionParticipantsModel: Model<ElectionsParticipantsDocument>,
   ) {}
@@ -55,15 +57,29 @@ export class SystemService {
       let to = formatDateVN(req.toDate);
       const systemLogData = await this.systemLogModel
         .find({
-          createdAt: { $gte: from, $lte: to },
           statusCode: { $gte: statusCodeRange[0], $lte: statusCodeRange[1] },
         })
+        .sort({ createdAt: -1 })
         .exec();
       return paginate(systemLogData, req.page, req.limit);
     } catch (e) {
       throw e;
     }
   }
+
+  async searchAuditLogs(req: SearchDTO) {
+    try {
+      const auditLogData = await this.auditLogModel
+        .find()
+        .populate('userId', 'fullName email position')
+        .sort({ createdAt: -1 })
+        .exec();
+      return paginate(auditLogData, req.page, req.limit);
+    } catch (e) {
+      throw e;
+    }
+  }
+
   async getStatisticsCards() {
     const totalElections = await this.electionsModel.countDocuments();
     const totalVoters = await this.electionParticipantsModel.countDocuments({
@@ -169,5 +185,99 @@ export class SystemService {
         time: timeAgo,
       };
     });
+  }
+
+  async getSystemLogStatistics(type: 'week' | 'month' | 'year') {
+    try {
+      const now = new Date();
+      let startDate: Date;
+
+      switch (type) {
+        case 'week': {
+          const day = now.getDay() === 0 ? 7 : now.getDay(); // Chủ nhật = 7
+          startDate = new Date(now);
+          startDate.setDate(now.getDate() - (day - 1));
+          break;
+        }
+        case 'month':
+          startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+          break;
+        case 'year':
+          startDate = new Date(now.getFullYear(), 0, 1);
+          break;
+        default:
+          throw new Error('Invalid type, must be week | month | year');
+      }
+
+      const logs = await this.systemLogModel
+        .find({
+          createdAt: { $gte: startDate, $lte: now },
+        })
+        .exec();
+
+      const grouped: Record<string, any> = {};
+
+      logs.forEach((log) => {
+        const date = new Date(log.createdAt);
+        let key: string;
+
+        if (type === 'week') {
+          // Thống kê từng ngày trong tuần
+          const days = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
+          key = days[date.getDay()];
+        } else if (type === 'month') {
+          // Thống kê theo tuần trong tháng
+          const firstDay = new Date(date.getFullYear(), date.getMonth(), 1);
+          const dayOfMonth = date.getDate();
+          const weekNumber = Math.ceil((dayOfMonth + firstDay.getDay()) / 7);
+          key = `Tuần ${weekNumber}`;
+        } else {
+          // type === 'year'
+          key = `Th${date.getMonth() + 1}`;
+        }
+
+        if (!grouped[key]) {
+          grouped[key] = {
+            time: key,
+            requests: 0,
+            errors: 0,
+            totalResponseTime: 0,
+          };
+        }
+
+        grouped[key].requests += 1;
+        grouped[key].totalResponseTime += log.responseTime || 0;
+        if (log.statusCode >= 400) grouped[key].errors += 1;
+      });
+
+      const data = Object.values(grouped).map((item: any) => ({
+        time: item.time,
+        requests: item.requests,
+        errors: item.errors,
+        avgResponseTime: item.requests > 0 ? Math.round(item.totalResponseTime / item.requests) : 0,
+      }));
+
+      // Tính tổng metadata
+      const totalRequests = data.reduce((acc, i) => acc + i.requests, 0);
+      const totalErrors = data.reduce((acc, i) => acc + i.errors, 0);
+      const avgResponseTime = totalRequests
+        ? Math.round(
+            data.reduce((acc, i) => acc + i.avgResponseTime * i.requests, 0) / totalRequests,
+          )
+        : 0;
+      const errorRate = totalRequests > 0 ? +(totalErrors / totalRequests).toFixed(2) : 0;
+
+      return {
+        data: data.sort((a, b) => a.time.localeCompare(b.time, 'vi', { numeric: true })),
+        metadata: {
+          totalRequests,
+          totalErrors,
+          avgResponseTime,
+          errorRate,
+        },
+      };
+    } catch (error) {
+      throw error;
+    }
   }
 }
