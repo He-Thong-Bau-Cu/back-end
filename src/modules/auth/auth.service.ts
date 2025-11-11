@@ -123,6 +123,15 @@ export class AuthService {
     }
   }
 
+  async generateQRCode(token: string) {
+    try {
+      const qrCode = await qrcode.toDataURL(token);
+      return { qrCode };
+    } catch (error) {
+      throw error;
+    }
+  }
+
   async verify2FASetup(userId: string, token: string) {
     const user = await this.userModel.findById(new Types.ObjectId(userId)).exec();
     if (!user || !user.twoFaSecret)

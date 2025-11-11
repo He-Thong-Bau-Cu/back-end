@@ -32,7 +32,7 @@ export class VotersService {
 
 
 
-  async create(createVoter: CreateVoterDto, userId:string) {
+  async create(createVoter: CreateVoterDto, userId: string) {
     try {
       // Kiểm tra electionId có tồn tại không (sử dụng _id)
       const electionId = new Types.ObjectId(createVoter.electionId);
@@ -83,7 +83,7 @@ export class VotersService {
         ...createVoter,
         electionId: electionId,
         userId: userId,
-        createdBy: userId ? new Types.ObjectId(userId) :null
+        createdBy: userId ? new Types.ObjectId(userId) : null
       });
 
       return voter;
@@ -92,7 +92,7 @@ export class VotersService {
     }
   }
 
-  async update(id: string, updateVoter: UpdateVoterDto, userId:string) {
+  async update(id: string, updateVoter: UpdateVoterDto, userId: string) {
     try {
       //Check if the voter exists
       const voterExists = await this.voterModel.exists({ _id: id });
@@ -105,7 +105,7 @@ export class VotersService {
           ...updateVoter,
           electionId: updateVoter.electionId ? new Types.ObjectId(updateVoter.electionId) : null,
           userId: updateVoter.userId ? new Types.ObjectId(updateVoter.userId) : null,
-          updatedBy: userId ? new Types.ObjectId(userId) :null
+          updatedBy: userId ? new Types.ObjectId(userId) : null
         }, { new: true })
         .exec();
       return voter;
@@ -114,7 +114,7 @@ export class VotersService {
     }
   }
 
-  async updateStatus(id: string, status: string, userId:string) {
+  async updateStatus(id: string, status: string, userId: string) {
     try {
       //Check if the voter exists
       const voterExists = await this.voterModel.exists({ _id: id });
@@ -270,10 +270,9 @@ export class VotersService {
         throw new NotFoundException('Không tìm thấy role VOTER trong hệ thống');
       }
 
-      // 3. Lấy tổng số người tham gia cuộc bầu cử có role là VOTER
+      // 3. Lấy tổng số người tham gia cuộc bầu cử 
       const totalParticipants = await this.electionParticipantsModel.countDocuments({
         electionId: electionExists._id,
-        roleId: voterRole._id,
         status: STATUS.ACTIVE,
       });
 
@@ -282,13 +281,18 @@ export class VotersService {
         ? ((totalVoters / totalParticipants) * 100).toFixed(2)
         : '0.00';
 
-
-
+      //5. Số lượng voter chưa tham gia cuộc bầu cử
+      const voterNotActive = await this.voterModel.countDocuments({
+        electionId: electionExists._id,
+        roleId: voterRole._id,
+        status: { $in: [STATUS.INVITED, STATUS.CONFIRMED] }
+      })
 
       return {
         totalVoters,
         totalParticipants,
-        participationPercentage: parseFloat(participationPercentage)
+        participationPercentage: parseFloat(participationPercentage),
+        voterNotActive
       };
     } catch (error) {
       throw error;

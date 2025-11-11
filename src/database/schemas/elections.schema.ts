@@ -29,6 +29,12 @@ export class Elections extends BaseSchema {
   endDate: Date;
 
   @Prop({ default: null })
+  startTime: Date;
+
+  @Prop({ default: null })
+  endTime: Date;
+
+  @Prop({ default: null })
   delegationStart: Date;
 
   @Prop({ default: null })
