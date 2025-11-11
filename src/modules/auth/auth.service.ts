@@ -40,7 +40,7 @@ export class AuthService {
 
   async login(req: LoginDto) {
     try {
-      const user = await this.userModel.findOne({ username: req.username }).exec();
+      const user = await this.userModel.findOne({ username: req.username }).select('+password').exec();
       if (!user) {
         throw new Error('Tài khoản không tồn tại!');
       }
@@ -304,7 +304,7 @@ export class AuthService {
 
   async changePassword(req: ChangePasswordDto) {
     try {
-      const user = await this.userModel.findById(new Types.ObjectId(req.userId)).exec();
+      const user = await this.userModel.findById(new Types.ObjectId(req.userId)).select('+password').exec();
       if (!user) {
         throw new Error('Người dùng không tồn tại!');
       }

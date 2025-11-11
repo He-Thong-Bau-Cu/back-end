@@ -21,7 +21,11 @@ export class RoleService {
 
     async searchRole(req: RoleDto){
         try{
-            const roleData = await this.roleModel.find({roleName: req.roleName}).exec();
+            if(req.roleName){
+                const roleData = await this.roleModel.find({roleName: req.roleName}).exec();
+                return paginate(roleData, req.page, req.limit);
+            }
+            const roleData = await this.roleModel.find().exec();
             return paginate(roleData, req.page, req.limit);
         }catch (e) {
             throw e;
@@ -98,6 +102,24 @@ export class RoleService {
             }
             roleData.status = STATUS.INACTIVE;
             return await roleData.save();
+        }catch (e) {
+            throw e;
+        }
+    }
+
+    async searchRolePermission(req: RolePermissionDto){
+        try{
+            const rolePermissionData = await this.rolePermissionModel.find().populate('roleId').exec();
+            return paginate(rolePermissionData, req.page, req.limit);
+        }catch (e) {
+            throw e;
+        }
+    }
+
+    async getAllPermission(){
+        try{
+            const permissionData = await this.permissionModel.find({status: STATUS.ACTIVE}).exec();
+            return permissionData;
         }catch (e) {
             throw e;
         }

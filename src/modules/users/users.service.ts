@@ -50,16 +50,23 @@ export class UsersService {
 
   async search(req: UserDto) {
     try {
-      const userData = await this.userModel
-        .find({
-          $or: [
-            { fullName: { $regex: req.fullName ? req.fullName : '', $options: 'i' } },
-            { email: { $regex: req.email ? req.email : '', $options: 'i' } },
-            { phone: { $regex: req.phone ? req.phone : '', $options: 'i' } },
-            { citizenId: { $regex: req.citizenId ? req.citizenId : '', $options: 'i' } },
-          ],
-        })
-        .exec();
+      const filters: any[] = [];
+      if (req.fullName) {
+        filters.push({ fullName: { $regex: req.fullName, $options: 'i' } });
+      }
+      if (req.email) {
+        filters.push({ email: { $regex: req.email, $options: 'i' } });
+      }
+      if (req.status) {
+        filters.push({ status: req.status });
+      }
+      let query = {};
+      if (filters.length === 1) {
+        query = { $or: filters };
+      } else if (filters.length > 1) {
+        query = { $and: filters };
+      }
+      const userData = await this.userModel.find(query).populate('roleId').exec();
       return paginate(userData.length > 0 ? userData : [], req.page, req.limit);
     } catch (error) {
       throw error;
@@ -168,6 +175,7 @@ export class UsersService {
       userData.position = req.position ? req.position : userData.position;
       userData.department = req.department ? req.department : userData.department;
       userData.image = req.image ? req.image : userData.image;
+      userData.status = req.status ? req.status : userData.status;
       await userData.save();
       return userData;
     } catch (error) {

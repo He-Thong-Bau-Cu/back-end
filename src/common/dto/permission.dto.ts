@@ -13,22 +13,16 @@ export class PermissionDto extends BaseRequest {
         description: 'Tên quyền',
         example: 'Quản lý người dùng',
     })
-    @IsNotEmpty()
-    @IsString()
     permissionName: string;
     @ApiPropertyOptional({
         description: 'Mã quyền',
         example: 'USER_MANAGEMENT',
     })
-    @IsNotEmpty()
-    @IsString()
     permissionCode: string;
     @ApiPropertyOptional({
         description: 'URL quyền',
         example: '/api/users',
     })
-    @IsNotEmpty()
-    @IsString()
     url: string;
     @ApiPropertyOptional({
         description: 'Mô tả quyền',
