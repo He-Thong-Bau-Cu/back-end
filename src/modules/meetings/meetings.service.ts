@@ -29,8 +29,8 @@ export class MeetingsService {
             { path: "typeId", select: "typeName typeNameCode description status" },
             { path: "votingMethodId", select: "methodName methodCode description status" },
             { path: "thresholdId", select: "thresholdName thresholdCode value description status" },
-            {path:'createdBy', select:'username fullName position department'},
-            {path:'updatedBy', select:'username fullName position department'}
+            { path: 'createdBy', select: 'username fullName position department' },
+            { path: 'updatedBy', select: 'username fullName position department' }
           ]
         })
         .exec();
@@ -60,8 +60,8 @@ export class MeetingsService {
             { path: "typeId", select: "typeName typeNameCode description status" },
             { path: "votingMethodId", select: "methodName methodCode description status" },
             { path: "thresholdId", select: "thresholdName thresholdCode value description status" },
-            {path:'createdBy', select:'username fullName position department'},
-            {path:'updatedBy', select:'username fullName position department'}
+            { path: 'createdBy', select: 'username fullName position department' },
+            { path: 'updatedBy', select: 'username fullName position department' }
           ]
         })
         .exec();
@@ -78,6 +78,13 @@ export class MeetingsService {
       const electionExists = await this.electionsModel.exists({ _id: createMeeting.electionId });
       if (!electionExists) {
         throw new Error(MESSAGE.ELECTION_NOT_FOUND);
+      }
+      //Check meeting is exist
+      const meetingExists = await this.meetingsModel.exists({
+        electionId: new Types.ObjectId(createMeeting.electionId),
+      });
+      if (meetingExists) {
+        throw new Error(MESSAGE.MEETING_ALREADY_EXISTS);
       }
 
       const meeting = await this.meetingsModel.create({

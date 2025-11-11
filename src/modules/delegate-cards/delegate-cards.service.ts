@@ -49,13 +49,7 @@ export class DelegateCardsService {
 
   async create(createDelegateCardDto: CreateDelegateCardDto, userId: string) {
     try {
-      // Check if the delegationId exists in the database
-      const delegationExists = await this.delegationModel
-        .findById(new Types.ObjectId(createDelegateCardDto.delegationId))
-        .exec();
-      if (!delegationExists) {
-        throw new Error(MESSAGE.DELEGATION_NOT_FOUND);
-      }
+
       // Check if the electionId exists in the database
       const electionExists = await this.electionsModel.exists({ _id: createDelegateCardDto.electionId });
       if (!electionExists) {
@@ -90,7 +84,6 @@ export class DelegateCardsService {
         delegationId: new Types.ObjectId(createDelegateCardDto.delegationId),
         issuedAt,
         expiresAt,
-        status,
         createdBy: new Types.ObjectId(userId),
         updatedBy: new Types.ObjectId(userId),
       });

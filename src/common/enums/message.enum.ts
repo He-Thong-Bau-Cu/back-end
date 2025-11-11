@@ -31,6 +31,7 @@ export enum MESSAGE {
     VOTER_GET_BY_ID_SUCCESS = 'Lấy thông tin cử tri thành công',
     VOTER_DASHBOARD_SUCCESS = 'Lấy thống kê dashboard voter thành công',
     VOTER_UPDATE_STATUS_SUCCESS = 'Cập nhật trạng thái cử tri thành công',
+    VOTER_SEARCH_SUCCESS = 'Tìm kiếm cử tri thành công',
 
 
     // Voting Rights
@@ -100,6 +101,7 @@ export enum MESSAGE {
     MEETING_UPDATE_SUCCESS = "Cập nhật cuộc họp thành công",
     MEETING_DELETE_SUCCESS = "Xóa cuộc họp thành công",
     MEETING_GET_BY_ELECTION_SUCCESS = "Lấy danh sách cuộc họp theo cuộc bầu cử thành công",
+    MEETING_ALREADY_EXISTS = "Cuộc họp đã tồn tại cho cuộc bầu cử này",
 
 
     //meetingAttendees
