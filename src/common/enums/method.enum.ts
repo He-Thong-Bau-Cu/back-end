@@ -12,12 +12,14 @@ export enum METHOD {
   VERIFIED = 'verify',
   REGISTER = 'register',
   ALL = 'all',
+  STATISTICS = 'statistics',
 }
 
 export enum ENDPOINT {
   LOGIN = 'login',
   TWOFA = '2fa',
   SYSTEM_LOG = 'system-logs',
+  AUDIT_LOG = 'audit-logs',
   ROLE = 'roles',
   PERMISSION = 'permissions',
   ROLE_PERMISSION = 'role-permissions',
