@@ -58,19 +58,19 @@ export class StatisticsService {
       let participationRate = 0;
       try {
         const voterRole = await this.rolesModel.findOne({ roleCode: USER_ROLE.VOTER });
-      if(voterRole){
-        const participationActive = await this.participantsModel.countDocuments({ 
-            status: STATUS.ACTIVE, 
-            roleId: voterRole._id 
-        });
-        const totalParticipants = await this.participantsModel.countDocuments({ roleId: voterRole._id });
-        participationRate = (participationActive / totalParticipants) * 100;
-      }
+        if (voterRole) {
+          const participationActive = await this.participantsModel.countDocuments({
+            status: STATUS.ACTIVE,
+            roleId: voterRole._id
+          });
+          const totalParticipants = await this.participantsModel.countDocuments({ roleId: voterRole._id });
+          participationRate = (participationActive / totalParticipants) * 100;
+        }
       } catch (error) {
         participationRate = 0;
       }
-      
-      
+
+
 
 
       return {
@@ -88,44 +88,45 @@ export class StatisticsService {
   async getRecentParticipation() {
     try {
       // Lấy 5 cuộc bầu cử gần nhất đã kết thúc
-    const elections = await this.electionsModel
-      .find({ status: 'FINISHED' })
-      .sort({ endDate: -1 })
-      .limit(5)
-      .lean();
+      const elections = await this.electionsModel
+        .find({ status: 'FINISHED' })
+        .sort({ endDate: -1 })
+        .limit(5)
+        .lean();
 
-      const result:any = [];
+      const result: any = [];
 
-    for (const election of elections) {
-      
-      const totalParticipants = await this.participantsModel.countDocuments({
-        electionId: election._id,
-      });
+      for (const election of elections) {
 
-      // Đếm số người tham gia
-      let voterActiveCount = 0;
-      const voterRole = await this.rolesModel.findOne({ roleCode: USER_ROLE.VOTER });
-      if(voterRole){
-        voterActiveCount = await this.participantsModel.countDocuments({
-          roleId:voterRole._id,
+        const totalParticipants = await this.participantsModel.countDocuments({
+          electionId: election._id,
+        });
+
+        // Đếm số người tham gia
+        let voterActiveCount = 0;
+        const voterRole = await this.rolesModel.findOne({ roleCode: USER_ROLE.VOTER });
+        if (voterRole) {
+          voterActiveCount = await this.participantsModel.countDocuments({
+            roleId: voterRole._id,
+          });
+        }
+
+        const rate =
+          totalParticipants === 0
+            ? 0
+            : Math.round((voterActiveCount / totalParticipants) * 100);
+
+        result.push({
+          title: election.title,
+          rate,
         });
       }
 
-      const rate =
-        totalParticipants === 0
-          ? 0
-          : Math.round((voterActiveCount / totalParticipants) * 100);
+      return result;
 
-      result.push({
-        title: election.title,
-        rate,
-      });
-    }
-
-    return result;
-      
     } catch (error) {
       throw error;
     }
   }
+
 }

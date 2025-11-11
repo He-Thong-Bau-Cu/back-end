@@ -24,8 +24,19 @@ export class Ballots extends BaseSchema {
   // @Prop({ type: Types.ObjectId, ref: ElectionEntities.name, required: true })
   // entityId: Types.ObjectId;
 
-  @Prop({ default: null })
-  voteValue: number;
+  @Prop({
+    type: [{
+      _id: false,
+      entityId: { type: Types.ObjectId, ref: ElectionEntities.name, required: true },
+      voteValue: { type: Number, default: null },
+    }],
+    default: [],
+  })
+  allocations: {
+    entityId: Types.ObjectId;
+    voteValue: number;
+  }[];
+
 
   @Prop({ default: null })
   otpCode: string;

@@ -15,7 +15,7 @@ export type DelegateCardDocument = DelegateCard & Document;
 
 @Schema()
 export class DelegateCard extends BaseSchema {
-  @Prop({ required: true })
+  @Prop({ default: null })
   token: string;
 
   @Prop({ type: Types.ObjectId, ref: Elections.name, required: true })
@@ -27,10 +27,10 @@ export class DelegateCard extends BaseSchema {
   @Prop({ type: Types.ObjectId, ref: Delegations.name, default: null })
   delegationId: Types.ObjectId;
 
-  @Prop({ required: true })
+  @Prop({ default: new Date() })
   issuedAt: Date;
 
-  @Prop({ required: true })
+  @Prop({ default: null })
   expiresAt: Date;
 
   @Prop({ default: STATUS.ACTIVE })

@@ -32,8 +32,10 @@ export class CreateBallotDto {
     //     example: "1000"
     // })
     @IsOptional()
-    @IsNumber()
-    voteValue: number
+    allocations: Array<{
+        entityId: string;
+        voteValue: number;
+    }>
 
     // @ApiProperty({
     //     description: "OTP xác thực của cử tri",

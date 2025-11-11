@@ -17,61 +17,67 @@ export class CreateElectionDto {
     @IsString()
     title: string;
 
-    @ApiPropertyOptional({
-        description: 'ID của loại cuộc bầu cử (Election Type)',
-        example: '64c5b4a8a95f1e2b40b85e91',
-    })
+    // @ApiPropertyOptional({
+    //     description: 'ID của loại cuộc bầu cử (Election Type)',
+    //     example: '64c5b4a8a95f1e2b40b85e91',
+    // })
     // @IsNotEmpty()
     @IsString()
     @IsOptional()
     typeId: string;
 
-    @ApiPropertyOptional({
-        description: 'ID của phương thức bỏ phiếu (Voting Method)',
-        example: '64c5b4a8a95f1e2b40b85e92',
-    })
+    // @ApiPropertyOptional({
+    //     description: 'ID của phương thức bỏ phiếu (Voting Method)',
+    //     example: '64c5b4a8a95f1e2b40b85e92',
+    // })
     // @IsNotEmpty()
     @IsString()
     @IsOptional()
     votingMethodId?: string;
 
-    @ApiPropertyOptional({
-        description: 'ID của ngưỡng hợp lệ (Threshold)',
-        example: '64c5b4a8a95f1e2b40b85e93',
-    })
+    // @ApiPropertyOptional({
+    //     description: 'ID của ngưỡng hợp lệ (Threshold)',
+    //     example: '64c5b4a8a95f1e2b40b85e93',
+    // })
     // @IsNotEmpty()
     @IsString()
     @IsOptional()
     thresholdId?: string;
 
-    @ApiPropertyOptional({
-        description: 'Ngày bắt đầu cuộc bầu cử',
-        example: '2025-12-01',
-    })
+    // @ApiPropertyOptional({
+    //     description: 'Ngày bắt đầu cuộc bầu cử',
+    //     example: '2025-12-01',
+    // })
     // @IsNotEmpty()
     @IsOptional()
     startDate?: Date;
 
-    @ApiPropertyOptional({
-        description: 'Ngày kết thúc cuộc bầu cử',
-        example: '2025-12-10',
-    })
+    // @ApiPropertyOptional({
+    //     description: 'Ngày kết thúc cuộc bầu cử',
+    //     example: '2025-12-10',
+    // })
     // @IsNotEmpty()
     @IsOptional()
     endDate?: Date;
 
-    @ApiPropertyOptional({
-        description: 'Thời gian bắt đầu ủy quyền bỏ phiếu',
-        example: '2025-11-25T00:00:00.000Z',
-    })
+    @IsOptional()
+    startTime: Date;
+
+    @IsOptional()
+    endTime: Date;
+
+    // @ApiPropertyOptional({
+    //     description: 'Thời gian bắt đầu ủy quyền bỏ phiếu',
+    //     example: '2025-11-25T00:00:00.000Z',
+    // })
     // @IsNotEmpty()
     @IsOptional()
     delegationStart?: Date;
 
-    @ApiPropertyOptional({
-        description: 'Thời gian kết thúc ủy quyền bỏ phiếu',
-        example: '2025-11-30T23:59:59.000Z',
-    })
+    // @ApiPropertyOptional({
+    //     description: 'Thời gian kết thúc ủy quyền bỏ phiếu',
+    //     example: '2025-11-30T23:59:59.000Z',
+    // })
     // @IsNotEmpty()
     @IsOptional()
     delegationEnd?: Date;
@@ -86,10 +92,10 @@ export class CreateElectionDto {
     @IsEnum(STATUS)
     status?: STATUS;
 
-    @ApiPropertyOptional({
-        description: 'Dữ liệu phụ trợ cho trạng thái (nếu có)',
-        example: 'Cuộc bầu cử đang được khởi tạo',
-    })
+    // @ApiPropertyOptional({
+    //     description: 'Dữ liệu phụ trợ cho trạng thái (nếu có)',
+    //     example: 'Cuộc bầu cử đang được khởi tạo',
+    // })
     @IsOptional()
     @IsString()
     statusData?: string;

@@ -55,7 +55,7 @@ export enum MESSAGE {
     VOTER_INVITATION_UPDATE_SUCCESS = 'Cập nhật lời mời cử tri thành công',
     VOTER_INVITATION_DELETE_SUCCESS = 'Xóa lời mời cử tri thành công',
     VOTER_INVITATION_INVITED_SUCCESS = 'Xác nhận lời mời cử tri thành công',
-    
+
     // Ballots
     BALLOT_GET_ALL_SUCCESS = 'Lấy danh sách phiếu bầu cử thành công',
     BALLOT_NOT_FOUND = 'Không tìm thấy phiếu bầu',
@@ -67,7 +67,11 @@ export enum MESSAGE {
     BALLOT_DELETE_SUCCESS = 'Xóa phiếu bầu thành công',
     BALLOT_STATISTICS_SUCCESS = 'Lấy thống kê phiếu bầu thành công',
     BALLOT_UPDATE_STATUS_SUCCESS = 'Cập nhật trạng thái phiếu bầu thành công',
-    BALLOT_VOTE_VALUE_INVALID = "Giá trị phiếu không hợp lệ. Giá trị phiếu phải nhỏ hơn hoặc bằng số phiếu mà cử tri đó đó",
+    BALLOT_VOTE_VALUE_INVALID = "Giá trị phiếu không hợp lệ. Tổng giá trị phiếu phải nhỏ hơn hoặc bằng số phiếu mà cử tri đó có",
+    BALLOT_ALREADY_EXISTS = 'Phiếu bầu đã tồn tại cho cuộc bầu cử và cử tri này',
+    BALLOT_VOTE_VALUE_GREATER_THAN_ZERO = 'Giá trị phiếu bầu phải lớn hơn 0 hoặc bằng 0',
+    BALLOT_SEARCH_SUCCESS = 'Tìm kiếm phiếu bầu thành công',
+    BALLOT_GET_BY_VOTER_CAST_SUCCESS = 'Lấy danh sách phiếu bầu cử tri đã bỏ phiếu thành công',
 
 
     // Results
@@ -240,6 +244,11 @@ export enum MESSAGE {
     DELEGATE_CARD_GET_ACTIVE_SUCCESS = 'Lấy danh sách thẻ đại biểu hoặc ủy quyền thành công',
     DELEGATE_CARD_NOT_FOUND = 'Không tìm thấy thẻ đại biểu hoặc ủy quyền',
     DELEGATE_CARD_GET_BY_ID_SUCCESS = 'Lấy thông tin thẻ đại biểu hoặc ủy quyền theo ID thành công',
+    DELEGATE_CARD_GET_BY_ELECTION_SUCCESS = 'Lấy danh sách thẻ đại biểu hoặc ủy quyền theo cuộc bầu cử thành công',
+    DELEGATE_CARD_CREATE_SUCCESS = 'Tạo thẻ đại biểu hoặc ủy quyền thành công',
+    DELEGATE_CARD_UPDATE_SUCCESS = 'Cập nhật thẻ đại biểu hoặc ủy quyền thành công',
+    DELEGATE_CARD_ALREADY_EXISTS = 'Thẻ đại biểu hoặc ủy quyền đã tồn tại',
+    DELEGATE_CARD_GENERATE_QR_CODE_SUCCESS = 'Tạo mã QR cho thẻ đại biểu hoặc ủy quyền thành công',
 
 
     DELEGATE_GET_BY_VOTER_SUCCESS = 'Lấy danh sách người đại diện theo cử tri thành công',

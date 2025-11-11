@@ -6,6 +6,7 @@ import { ApiBearerAuth, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { BaseResponse } from 'src/common/dto/base-response.dto';
 import { MESSAGE } from 'src/common/enums/message.enum';
 import { CustomRequest } from 'src/common/middleware/auth.middleware';
+import { BaseSearchDTO } from 'src/common/dto/base-search.dto';
 
 @ApiBearerAuth('access-token')
 @Controller('ballots')
@@ -46,6 +47,23 @@ export class BallotsController {
     }
   }
 
+  @Get('cast/voters/:voterId')
+  @ApiOperation({ summary: "Lấy danh sách phiếu bầu đã bỏ theo ID cử tri" })
+  @ApiResponse({ status: 200, description: 'Lấy danh sách phiếu bầu cử tri đã bỏ phiếu thành công' })
+  @ApiResponse({ status: 400, description: 'Dữ liệu không hợp lệ' })
+  @ApiResponse({ status: 500, description: 'Lỗi server' })
+  async getCastBallotsByVoterId(@Param('voterId') voterId: string): Promise<BaseResponse> {
+    try {
+      const resData = await this.ballotsService.getByVoterAndCast(voterId);
+      return BaseResponse.success(resData, MESSAGE.BALLOT_GET_BY_VOTER_CAST_SUCCESS, HttpStatus.OK);
+    } catch (error) {
+      throw new HttpException(
+        { message: error.message },
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      )
+    }
+  }
+
   @Get('statistics')
   @ApiOperation({ summary: 'Lấy thống kê phiếu bầu' })
   @ApiResponse({ status: 200, description: 'Lấy thống kê phiếu bầu thành công' })
@@ -63,23 +81,6 @@ export class BallotsController {
     }
   }
 
-
-  @Get()
-  @ApiOperation({ summary: 'Lấy danh sách phiếu bầu cử' })
-  @ApiResponse({ status: 200, description: 'Lấy danh sách phiếu bầu cử thành công' })
-  @ApiResponse({ status: 400, description: 'Dữ liệu không hợp lệ' })
-  @ApiResponse({ status: 500, description: 'Lỗi server' })
-  async getAll(): Promise<BaseResponse> {
-    try {
-      const resData = await this.ballotsService.findAll();
-      return BaseResponse.success(resData, MESSAGE.BALLOT_GET_ALL_SUCCESS, HttpStatus.OK);
-    } catch (error) {
-      throw new HttpException(
-        { message: error.message },
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      )
-    }
-  }
 
   @Get(':id')
   @ApiOperation({ summary: 'Lấy phiếu bầu theo Id' })
@@ -123,7 +124,7 @@ export class BallotsController {
   @ApiResponse({ status: 400, description: 'Dữ liệu không hợp lệ' })
   @ApiResponse({ status: 500, description: 'Lỗi server' })
   async update(
-    @Param('id') id: string, 
+    @Param('id') id: string,
     @Body() updateBallot: UpdateBallotDto,
     @Req() req: CustomRequest): Promise<BaseResponse> {
     try {
@@ -162,11 +163,28 @@ export class BallotsController {
   @ApiResponse({ status: 400, description: 'Dữ liệu không hợp lệ' })
   @ApiResponse({ status: 500, description: 'Lỗi server' })
   async updateStatus(
-    @Param('id') id: string, 
+    @Param('id') id: string,
     @Req() req: CustomRequest): Promise<BaseResponse> {
     try {
       const resData = await this.ballotsService.updateStatus(id, req.user.sub);
       return BaseResponse.success(resData, MESSAGE.BALLOT_UPDATE_STATUS_SUCCESS, HttpStatus.OK);
+    } catch (error) {
+      throw new HttpException(
+        { message: error.message },
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      )
+    }
+  }
+
+  @Post('search')
+  @ApiOperation({ summary: 'Tìm kiếm phiếu bầu' })
+  @ApiResponse({ status: 200, description: 'Tìm kiếm phiếu bầu thành công' })
+  @ApiResponse({ status: 400, description: 'Dữ liệu không hợp lệ' })
+  @ApiResponse({ status: 500, description: 'Lỗi server' })
+  async searchBallots(@Body() req: BaseSearchDTO): Promise<BaseResponse> {
+    try {
+      const resData = await this.ballotsService.searchBallots(req);
+      return BaseResponse.success(resData, MESSAGE.BALLOT_SEARCH_SUCCESS, HttpStatus.OK);
     } catch (error) {
       throw new HttpException(
         { message: error.message },
