@@ -7,11 +7,28 @@ import { BaseResponse } from 'src/common/dto/base-response.dto';
 import { ApiBearerAuth, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { MESSAGE } from 'src/common/enums/message.enum';
 import { CustomRequest } from 'src/common/middleware/auth.middleware';
+import { BaseSearchDTO } from 'src/common/dto/base-search.dto';
 
 @ApiBearerAuth('access-token')
 @Controller('voters')
 export class VotersController {
   constructor(private readonly votersService: VotersService) { }
+
+  @Post('search')
+  @ApiOperation({ summary: 'Tìm kiếm cử tri' })
+  @ApiResponse({ status: 200, description: 'Tìm kiếm cử tri thành công.' })
+  @ApiResponse({ status: 500, description: 'Lỗi server' })
+  async search(@Body() req: BaseSearchDTO): Promise<BaseResponse> {
+    try {
+      const resData = await this.votersService.search(req);
+      return BaseResponse.success(resData, MESSAGE.VOTER_SEARCH_SUCCESS, HttpStatus.OK);
+    } catch (error) {
+      throw new HttpException(
+        { message: error.message },
+        HttpStatus.INTERNAL_SERVER_ERROR
+      )
+    }
+  }
 
   @Post()
   @ApiOperation({ summary: 'Tạo mới cử tri' })
@@ -20,7 +37,7 @@ export class VotersController {
   @ApiResponse({ status: 500, description: 'Lỗi server' })
   async create(
     @Body() createVoter: CreateVoterDto,
-    @Req() req:CustomRequest): Promise<BaseResponse> {
+    @Req() req: CustomRequest): Promise<BaseResponse> {
     try {
       const resData = await this.votersService.create(createVoter, req.user.sub);
       return BaseResponse.success(resData, MESSAGE.VOTER_CREATE_SUCCESS, HttpStatus.CREATED);
@@ -38,9 +55,9 @@ export class VotersController {
   @ApiResponse({ status: 400, description: 'Dữ liệu không hợp lệ.' })
   @ApiResponse({ status: 500, description: 'Lỗi server' })
   async update(
-    @Param('id') id: string, 
+    @Param('id') id: string,
     @Body() updateVoter: UpdateVoterDto,
-    @Req() req:CustomRequest): Promise<BaseResponse> {
+    @Req() req: CustomRequest): Promise<BaseResponse> {
     try {
       const resData = await this.votersService.update(id, updateVoter, req.user.sub);
       return BaseResponse.success(resData, MESSAGE.VOTER_UPDATE_SUCCESS, HttpStatus.OK);
@@ -58,7 +75,7 @@ export class VotersController {
   @ApiResponse({ status: 400, description: 'Dữ liệu không hợp lệ.' })
   @ApiResponse({ status: 500, description: 'Lỗi server' })
   async updateStatus(
-    @Param('id') id: string, 
+    @Param('id') id: string,
     @Body() status: string,
     @Req() req: CustomRequest): Promise<BaseResponse> {
     try {

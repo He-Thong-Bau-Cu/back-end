@@ -12,6 +12,7 @@ import { UserDto } from 'src/common/dto/user.dto';
 import { CreateVoterInvitationDto } from './dto/create-voter-invitation.dto';
 import { STATUS } from 'src/common/enums/status.enum';
 import { Users } from 'src/database/schemas/users.schema';
+import * as bcrypt from 'bcrypt';
 
 @Injectable()
 export class VoterInvitationsService {
@@ -22,6 +23,8 @@ export class VoterInvitationsService {
     private readonly votersModel: Model<Voters>,
     @InjectModel(Elections.name)
     private readonly electionsModel: Model<Elections>,
+    @InjectModel(Users.name)
+    private readonly usersModel: Model<Users>,
     private readonly jwtService: JwtService,
     private readonly mailService: MailService,
     private readonly usersService: UsersService,
@@ -38,7 +41,7 @@ export class VoterInvitationsService {
       // Check if the voterId exists in the database
       const voterExists = await this.votersModel
         .findById(new Types.ObjectId(voterInvitation.voterId))
-        .populate<{ userId: Users }>('userId', 'email fullName username password')
+        .populate<{ userId: Users }>('userId', '_id email fullName username password')
         .exec();
 
       if (!voterExists) {
@@ -51,7 +54,7 @@ export class VoterInvitationsService {
       }
 
       //kiểm tra election của voter và trong create voterInvitation có trùng nhau không
-      if(voterExists.electionId.toString() !== voterInvitation.electionId){
+      if (voterExists.electionId.toString() !== voterInvitation.electionId) {
         throw new Error("Cuộc bầu cử mà voter tham gia không trùng khớp với cuộc bầu cử mà bạn muốn mời");
       }
 
@@ -60,14 +63,20 @@ export class VoterInvitationsService {
       const expiresAt = new Date(sentAt.getTime() + 24 * 60 * 60 * 1000);
 
       //send email and create user
+      const userIdObj = voterExists.userId as Users & { _id: string };
 
-      console.log(voterExists.userId);
-      
+      const password = this.usersService.generateRandomPassword(8);
+      const passwordHash = await bcrypt.hash(password, 10);
+      await this.usersModel.findByIdAndUpdate(
+        new Types.ObjectId(userIdObj._id),
+        { password: passwordHash },
+      );
+
       await this.mailService.sendMailInvitation(
         voterExists.userId.email,
         voterExists.userId.fullName,
         voterExists.userId.username,
-        voterExists.userId.password,
+        password,
         token
       );
 
@@ -114,7 +123,7 @@ export class VoterInvitationsService {
       await this.votersModel.findByIdAndUpdate(new Types.ObjectId(voterId), { status: STATUS.CONFIRMED });
 
 
-      return {user, valid: true};
+      return { user, valid: true };
     } catch (error) {
       if (error.name === 'TokenExpiredError') {
         return { valid: false, reason: 'Token đã hết hạn. Vui lòng liên hệ với người quản lý' };
