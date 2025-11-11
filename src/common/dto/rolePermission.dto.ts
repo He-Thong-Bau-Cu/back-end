@@ -13,8 +13,6 @@ export class RolePermissionDto extends BaseRequest {
         description: 'Id vai trò',
         example: '60f7c0c2b4d1c826d8f0e6b0',
     })
-    @IsNotEmpty()
-    @IsString()
     roleId: string;
     @ApiPropertyOptional({
         description: 'Danh sách Id quyền',

@@ -2,6 +2,7 @@ import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Types } from 'mongoose';
 import { USER_ROLE } from 'src/common/enums/config.enum';
 import { BaseSchema } from './base.schema';
+import { STATUS } from 'src/common/enums/status.enum';
 
 export type PermissionsDocument = Permissions & Document;
 
@@ -19,7 +20,7 @@ export class Permissions extends BaseSchema {
   @Prop({ default: null })
   description: string;
 
-  @Prop({ required: true })
+  @Prop({ required: true, default: STATUS.ACTIVE })
   status: string;
 }
 

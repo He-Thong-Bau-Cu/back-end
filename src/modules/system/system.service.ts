@@ -146,10 +146,11 @@ export class SystemService {
     const ongoingPolls = await this.electionsModel.find().sort({ startDate: 1 });
 
     return ongoingPolls.map((poll) => {
-      const remainingTime = poll.endDate ? formatDateVN(new Date(poll.endDate)) : 'N/A';
+      const remainingTime = poll.createdAt ? formatDateVN(new Date(poll.createdAt)) : 'N/A';
       return {
         name: poll.title,
         remainingTime: remainingTime,
+        statusData: poll.statusData,
         status: poll.status,
       };
     });

@@ -11,6 +11,7 @@ export enum METHOD {
   SETUP = 'setup',
   VERIFIED = 'verify',
   REGISTER = 'register',
+  ALL = 'all',
 }
 
 export enum ENDPOINT {
