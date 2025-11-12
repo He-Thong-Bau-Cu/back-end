@@ -67,7 +67,7 @@ export class AuthService {
       if (!rolePermissions) {
         throw new Error('Vai trò của bạn chưa được cấp quyền truy cập!');
       }
-      const permissionIds = rolePermissions.map((rp) => rp.permissionIds);
+      const permissionIds = rolePermissions.flatMap(rp => rp.permissionIds);
       const permissions = await this.permissionModel
         .find({ _id: { $in: permissionIds }, status: STATUS.ACTIVE })
         .exec();

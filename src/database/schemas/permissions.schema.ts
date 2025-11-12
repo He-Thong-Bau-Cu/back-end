@@ -8,19 +8,19 @@ export type PermissionsDocument = Permissions & Document;
 
 @Schema()
 export class Permissions extends BaseSchema {
-  @Prop({ required: true, unique: true })
+  @Prop({ unique: true })
   permissionName: string;
 
-  @Prop({ required: true, unique: true })
+  @Prop({ unique: true })
   permissionCode: string;
 
-  @Prop({ required: true, unique: true })
+  @Prop({ unique: true })
   url: string;
 
   @Prop({ default: null })
   description: string;
 
-  @Prop({ required: true, default: STATUS.ACTIVE })
+  @Prop({default: STATUS.ACTIVE })
   status: string;
 }
 
