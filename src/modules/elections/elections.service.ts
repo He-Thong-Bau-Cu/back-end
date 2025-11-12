@@ -32,7 +32,7 @@ export class ElectionsService {
     private readonly thresholdModel: Model<Thresholds>,
     @InjectModel(Users.name)
     private readonly userModel: Model<Users>,
-  ) {}
+  ) { }
 
   async searchElections(req: SearchDTO) {
     try {
@@ -69,7 +69,7 @@ export class ElectionsService {
   async createElection(createElection: CreateElectionDto, userId: string) {
     try {
       //Kiểm tra electionType có tồn tại hay Không
-      if (createElection.typeId) {
+      if (createElection?.typeId) {
         const electionTypeExist = await this.electionTypeModel.exists({
           _id: new Types.ObjectId(createElection.typeId),
         });
@@ -78,7 +78,7 @@ export class ElectionsService {
         }
       }
       //Kiểm tra voting method có tồn tại hay Không
-      if (createElection.votingMethodId) {
+      if (createElection?.votingMethodId) {
         const votingMethodExist = await this.votingMethodModel.exists({
           _id: new Types.ObjectId(createElection.votingMethodId),
         });
@@ -88,7 +88,7 @@ export class ElectionsService {
       }
 
       //Kiểm tra electionType có tồn tại hay Không
-      if (createElection.thresholdId) {
+      if (createElection?.thresholdId) {
         const thresholdExist = await this.thresholdModel.exists({
           _id: createElection.thresholdId,
         });
@@ -98,25 +98,25 @@ export class ElectionsService {
       }
 
       //Kiểm tra ngày bắt đầu phải nhỏ hơn ngày kết thúc
-      if (createElection.startDate && createElection.endDate) {
+      if (createElection?.startDate && createElection?.endDate) {
         const start = new Date(createElection.startDate);
         const end = new Date(createElection.endDate);
         if (end <= start) {
-          throw new BadRequestException('End date must be after start date');
+          throw new BadRequestException('Ngày kết thúc phải sau ngày bắt đầu');
         }
       }
 
       //Kiểm tra delegationDate có hợp lệ không
-      if (createElection.delegationStart && createElection.delegationEnd) {
+      if (createElection?.delegationStart && createElection?.delegationEnd) {
         const delStart = new Date(createElection.delegationStart);
         const delEnd = new Date(createElection.delegationEnd);
         if (delEnd <= delStart) {
-          throw new BadRequestException('Delegation end must be after delegation start');
+          throw new BadRequestException('Ngày kết thúc ủy quyền phải sau ngày bắt đầu ủy quyền');
         }
         // Nếu có delegation, đảm bảo nằm trong phạm vi election
-        if (createElection.startDate && createElection.endDate) {
-          if (delStart < createElection.startDate || delEnd > createElection.endDate) {
-            throw new BadRequestException('Delegation period must be within election duration');
+        if (createElection?.startDate && createElection?.endDate) {
+          if (delStart < createElection?.startDate || delEnd > createElection?.endDate) {
+            throw new BadRequestException('Thời gian ủy quyền phải trong khoảng thời gian của cuộc bầu cử');
           }
         }
       }

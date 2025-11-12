@@ -1,3 +1,4 @@
+import { BadRequestException } from '@nestjs/common';
 import moment from 'moment-timezone';
 
 export function formatDateVN(date: Date): string {
@@ -20,6 +21,17 @@ export function formatDateDMY(date: Date | string) {
   const mm = String(d.getMonth() + 1).padStart(2, "0");
   const yyyy = d.getFullYear();
   return `${dd}/${mm}/${yyyy}`;
+}
+
+export function validateStatusFormat(status: string) {
+  if (!status) return;
+  const isValid = /^[A-Z_]+$/.test(status);
+
+  if (!isValid) {
+    throw new BadRequestException(
+      `Trạng thái "${status}" không hợp lệ. Chỉ được chứa chữ IN HOA, không dấu, và có thể có dấu gạch dưới (_)`
+    );
+  }
 }
 
 

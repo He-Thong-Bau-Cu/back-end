@@ -31,7 +31,7 @@ export class ElectionParticipantsService {
     private readonly rolePermissionModel: Model<RolePermissionsDocument>,
     @InjectModel(Voters.name)
     private readonly votersModel: Model<VotersDocument>
-  ) {}
+  ) { }
   async getParticipantsAsVoter(electionId: string) {
     try {
       //kiểm tra xem electionId có tồn tại không
@@ -140,6 +140,7 @@ export class ElectionParticipantsService {
             select:
               'title startDate endDate delegationStart delegationEnd status statusData decisionNumber decisionName',
           },
+          { path: 'roleId' },
           { path: 'userId', select: 'fullName username email phone position department' },
           { path: 'createdBy', select: 'fullName username email phone position' },
           { path: 'updatedBy', select: 'fullName username email phone position' },

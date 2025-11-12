@@ -7,6 +7,8 @@ import { Model, Types } from 'mongoose';
 import { Meetings } from 'src/database/schemas/meetings.schema';
 import { ElectionsParticipants } from 'src/database/schemas/electionParticipants.schema';
 import { MESSAGE } from 'src/common/enums/message.enum';
+import { paginate } from 'src/common/dto/paignation';
+import { Elections } from 'src/database/schemas/elections.schema';
 
 @Injectable()
 export class MeetingAttendeesService {
@@ -17,11 +19,13 @@ export class MeetingAttendeesService {
     private readonly meetingsModel: Model<Meetings>,
     @InjectModel(ElectionsParticipants.name)
     private readonly electionParticipantsModel: Model<ElectionsParticipants>,
+    @InjectModel(Elections.name)
+    private readonly electionsModel: Model<Elections>,
   ) { }
 
   async findAll() {
     try {
-      return await this.meetingAttendeesModel.find()
+      const meetingAttendees = await this.meetingAttendeesModel.find()
         .populate('meetingId')
         .populate({
           path: 'participantId',
@@ -31,6 +35,7 @@ export class MeetingAttendeesService {
           ]
         })
         .exec();
+      return paginate(meetingAttendees);
     } catch (error) {
       throw error;
     }
@@ -45,8 +50,8 @@ export class MeetingAttendeesService {
           populate: [
             { path: 'electionId' },
             { path: 'userId', select: 'fullName username email phone position department' },
-            {path:'createdBy', select:'username fullName position department'},
-            {path:'updatedBy', select:'username fullName position department'}
+            { path: 'createdBy', select: 'username fullName position department' },
+            { path: 'updatedBy', select: 'username fullName position department' }
           ]
         })
         .exec();
@@ -93,13 +98,14 @@ export class MeetingAttendeesService {
         throw new Error(MESSAGE.ELECTION_PARTICIPANT_NOT_FOUND);
       }
       return await this.meetingAttendeesModel.findOneAndUpdate(
-        { 
-          meetingId: new Types.ObjectId(meetingId), 
-          participantId: new Types.ObjectId(participantId) 
+        {
+          meetingId: new Types.ObjectId(meetingId),
+          participantId: new Types.ObjectId(participantId)
         },
-        { attended: attended,
+        {
+          attended: attended,
           updatedBy: userId ? new Types.ObjectId(userId) : null,
-         },
+        },
         { new: true }).exec();
 
     } catch (error) {
@@ -154,8 +160,8 @@ export class MeetingAttendeesService {
             { path: 'electionId' },
             { path: 'userId', select: 'fullName username email phone position department' },
             { path: 'roleId', select: 'roleName roleCode description status' },
-            {path:'createdBy', select:'username fullName position department'},
-            {path:'updatedBy', select:'username fullName position department'}
+            { path: 'createdBy', select: 'username fullName position department' },
+            { path: 'updatedBy', select: 'username fullName position department' }
           ]
         })
         .exec();
@@ -189,8 +195,8 @@ export class MeetingAttendeesService {
             { path: 'electionId' },
             { path: 'userId', select: 'fullName username email phone position department' },
             { path: 'roleId', select: 'roleName roleCode description status' },
-            {path:'createdBy', select:'username fullName position department'},
-            {path:'updatedBy', select:'username fullName position department'}
+            { path: 'createdBy', select: 'username fullName position department' },
+            { path: 'updatedBy', select: 'username fullName position department' }
           ]
         })
         .exec();
@@ -202,6 +208,36 @@ export class MeetingAttendeesService {
 
       return meetingAttendees;
 
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  async getParticipantsNotAttended(electionId: string) {
+    try {
+      //Kiểm tra xem electionId có tồn tại không
+      const electionExist = await this.electionsModel.exists({ _id: electionId });
+      if (!electionExist) {
+        throw new Error(MESSAGE.ELECTION_NOT_FOUND);
+      }
+      //Kiểm tra xem election đấy có cuộc họp nào không
+      const meeting = await this.meetingsModel.findOne({ electionId: new Types.ObjectId(electionId) });
+      if (!meeting) {
+        throw new Error("Không tìm thấy cuộc họp nào cho kỳ bầu cử này");
+      }
+      //Tìm những participant chưa tham gia cuộc họp
+      const attendees = await this.meetingAttendeesModel.find({ meetingId: meeting._id, attended: false })
+        .populate('participantId')
+        .populate({
+          path: 'meetingId',
+          populate: [
+            {
+              path: 'electionId',
+              select: 'title startDate endDate delegationStart delegationEnd status statusData decisionNumber decisionName'
+            },]
+        })
+        .exec();
+      return paginate(attendees);
     } catch (error) {
       throw error;
     }

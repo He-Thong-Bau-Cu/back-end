@@ -14,6 +14,9 @@ import { UsersService } from '../users/users.service';
 import { DelegationDto } from './dto/delegation.dto';
 import PdfPrinter from 'pdfmake';
 import path from 'path';
+import { BaseSearchDTO } from 'src/common/dto/base-search.dto';
+import { paginate } from 'src/common/dto/paignation';
+import { validateStatusFormat } from 'src/common/utils/format';
 
 @Injectable()
 export class DelegationsService {
@@ -26,7 +29,7 @@ export class DelegationsService {
     private readonly userModel: Model<Users>,
     @InjectModel(ElectionDocuments.name)
     private readonly documentModel: Model<ElectionDocuments>,
-  ) {}
+  ) { }
   async getDelegatorIdAndElectionId(delegatorId: string, electionId: string) {
     try {
       //kiểm tra xem có electionId không
@@ -58,8 +61,8 @@ export class DelegationsService {
         .populate('delegateId', 'username fullName email position')
         .populate('confirmedBy', 'username fullName email position')
         .populate('documentId', 'title file_url status')
-        .populate('createdBy', 'username fullName email position')
-        .populate('updatedBy', 'username fullName email position')
+        .populate("createdBy", 'username fullName email position')
+        .populate("updatedBy", 'username fullName email position')
         .exec();
       return delegation;
     } catch (error) {
@@ -126,10 +129,7 @@ export class DelegationsService {
       }
       const delegations = await this.delegationModel
         .find({ delegatorId: new Types.ObjectId(delegatorId) })
-        .populate(
-          'electionId',
-          'title startDate endDate delegationStart delegationEnd status statusData decisionNumber decisionName',
-        )
+        .populate('electionId', 'title startDate endDate delegationStart delegationEnd status statusData decisionNumber decisionName')
         .populate('delegatorId', 'username fullName email position')
         .populate('delegateId', 'username fullName email position')
         .populate('confirmedBy', 'username fullName email position')
@@ -143,6 +143,7 @@ export class DelegationsService {
     }
   }
 
+
   async getByDelegate(delegateId: string) {
     try {
       //kiểm tra xem có delegateId không
@@ -154,10 +155,7 @@ export class DelegationsService {
       }
       const delegations = await this.delegationModel
         .find({ delegateId: new Types.ObjectId(delegateId) })
-        .populate(
-          'electionId',
-          'title startDate endDate delegationStart delegationEnd status statusData decisionNumber decisionName',
-        )
+        .populate('electionId', 'title startDate endDate delegationStart delegationEnd status statusData decisionNumber decisionName')
         .populate('delegatorId', 'username fullName email position')
         .populate('delegateId', 'username fullName email position')
         .populate('confirmedBy', 'username fullName email position')
@@ -175,6 +173,7 @@ export class DelegationsService {
     try {
       const delegations = await this.delegationModel
         .find({ status: STATUS.ACTIVE })
+        .populate('electionId', 'title startDate endDate delegationStart delegationEnd status statusData decisionNumber decisionName')
         .populate('delegatorId', 'username fullName email position')
         .populate('delegateId', 'username fullName email position')
         .populate('confirmedBy', 'username fullName email position')
@@ -209,11 +208,60 @@ export class DelegationsService {
     }
   }
 
+  async getByStatus(status: string) {
+    try {
+      //Kiểm tra trạng thái có hợp lệ không
+      validateStatusFormat(status);
+      const delegations = await this.delegationModel
+        .find({ status })
+        .populate('electionId', 'title startDate endDate delegationStart delegationEnd status statusData decisionNumber decisionName')
+        .populate('delegatorId', 'username fullName email position')
+        .populate('delegateId', 'username fullName email position')
+        .populate('confirmedBy', 'username fullName email position')
+        .populate('documentId', 'title file_url status')
+        .populate('createdBy', 'username fullName email position')
+        .populate('updatedBy', 'username fullName email position')
+        .exec();
+
+      //kiểm tra có delegation
+      if (!delegations) {
+        throw new Error(`Không có ủy quyền theo trạng thái: ${status}`);
+      }
+
+      // Populate documentId cho từng delegation nếu có
+      for (const delegation of delegations) {
+        const docId = delegation.documentId as any;
+        if (docId && docId !== '' && Types.ObjectId.isValid(docId)) {
+          const document = await this.documentModel
+            .findById(docId)
+            .select('title file_url status')
+            .lean()
+            .exec();
+          (delegation as any).documentId = document;
+        } else {
+          (delegation as any).documentId = null;
+        }
+      }
+
+      return delegations;
+    } catch (error) {
+      throw error;
+    }
+  }
+
   async getById(id: string) {
     try {
-      console.log('id: ', id);
+      //kiểm tra xem có delegationId không
+      const delegationExist = await this.delegationModel.exists({
+        _id: new Types.ObjectId(id),
+      });
+      if (!delegationExist) {
+        throw new Error(MESSAGE.DELEGATION_NOT_FOUND);
+      }
+
       const delegation = await this.delegationModel
         .findById(new Types.ObjectId(id))
+        .populate('electionId', 'title startDate endDate delegationStart delegationEnd status statusData decisionNumber decisionName')
         .populate('delegatorId', 'username fullName email position')
         .populate('delegateId', 'username fullName email position')
         .populate('confirmedBy', 'username fullName email position')
@@ -243,10 +291,10 @@ export class DelegationsService {
     }
   }
 
-  async getDeletaionsPending() {
+  async getDelegationsPending() {
     try {
       const delegation = await this.delegationModel
-        .findOne({ status: 'pending' })
+        .findOne({ status: STATUS.PENDING })
         .populate('delegatorId', 'username fullName email position')
         .populate('delegateId', 'username fullName email position')
         .populate('confirmedBy', 'username fullName email position')
@@ -279,9 +327,9 @@ export class DelegationsService {
   async create(createDelegation: CreateDelegationDto, userId: string) {
     try {
       //Check if the election is exist
-      const electionExist = await this.electionModel.exists({
-        _id: new Types.ObjectId(createDelegation.electionId),
-      });
+      const electionExist = await this.electionModel.findById(
+        new Types.ObjectId(createDelegation.electionId),
+      );
       if (!electionExist) {
         throw new Error(MESSAGE.ELECTION_NOT_FOUND);
       }
@@ -337,6 +385,15 @@ export class DelegationsService {
         throw new Error(
           'Ngày kết thúc phải lớn hơn ngày hiện tại và không được trùng với ngày hiện tại',
         );
+      }
+      //Check delegation period is within election delegation period
+      if (createDelegation.delegationType == ' ELECTION') {
+        if (
+          startDate < electionExist.delegationStart ||
+          endDate > electionExist.delegationEnd
+        ) {
+          throw new Error('Thời gian ủy quyền phải trong khoảng thời gian ủy quyền của cuộc bầu cử');
+        }
       }
       //Check if the document is exist
       if (createDelegation.documentId) {
@@ -410,6 +467,69 @@ export class DelegationsService {
         )
         .exec();
       return delegation;
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  async searchDelegations(req: BaseSearchDTO) {
+    try {
+      //search theo election
+      const elections = await this.electionModel.find({
+        title: { $regex: req.keyword || '', $options: 'i' },
+      }).collation({ locale: 'vi', strength: 1 }).lean();
+
+      const electionIds = elections.map((e) => e._id);
+
+      //search theo delegator
+      const delegators = await this.userModel.find({
+        $or: [
+          { fullName: { $regex: req.keyword || '', $options: 'i' } },
+          { email: { $regex: req.keyword || '', $options: 'i' } },
+          { username: { $regex: req.keyword || '', $options: 'i' } },
+        ]
+      })
+        .collation({ locale: 'vi', strength: 1 }).lean();
+      const delegatorIds = delegators.map((d) => d._id);
+      //search theo delegate
+      const delegates = await this.userModel.find({
+        $or: [
+          { fullName: { $regex: req.keyword || '', $options: 'i' } },
+          { email: { $regex: req.keyword || '', $options: 'i' } },
+          { username: { $regex: req.keyword || '', $options: 'i' } },
+        ]
+      })
+        .collation({ locale: 'vi', strength: 1 }).lean();
+      const delegateIds = delegates.map((d) => d._id);
+
+      //tìm kiếm trong delegation
+      const delegations = await this.delegationModel
+        .find({
+          $or: [
+            { delegateReason: { $regex: req.keyword || '', $options: 'i' } },
+            { status: { $regex: req.keyword || '', $options: 'i' } }]
+        })
+        .collation({ locale: 'vi', strength: 1 }).lean();
+      const delegationIds = delegations.map((d) => d._id);
+
+      const query: any = {};
+      if (electionIds.length > 0) { query.electionId = { $in: electionIds }; }
+      if (delegatorIds.length > 0) { query.delegatorId = { $in: delegatorIds }; }
+      if (delegateIds.length > 0) { query.delegateId = { $in: delegateIds }; }
+      if (delegationIds.length > 0) { query._id = { $in: delegationIds }; }
+      const result = await this.delegationModel
+        .find(query)
+        .populate('electionId', 'title startDate endDate delegationStart delegationEnd status statusData decisionNumber decisionName')
+        .populate('delegatorId', 'username fullName email position')
+        .populate('delegateId', 'username fullName email position')
+        .populate('confirmedBy', 'username fullName email position')
+        .populate('documentId', 'title file_url status')
+        .populate('createdBy', 'username fullName email position')
+        .populate('updatedBy', 'username fullName email position')
+        .exec();
+
+      return paginate(result, req.page, req.limit);
+
     } catch (error) {
       throw error;
     }
