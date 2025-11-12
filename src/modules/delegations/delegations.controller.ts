@@ -6,11 +6,29 @@ import { ApiBearerAuth, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { BaseResponse } from 'src/common/dto/base-response.dto';
 import { MESSAGE } from 'src/common/enums/message.enum';
 import { CustomRequest } from 'src/common/middleware/auth.middleware';
+import { BaseSearchDTO } from 'src/common/dto/base-search.dto';
 
 @ApiBearerAuth('access-token')
 @Controller('delegations')
 export class DelegationsController {
   constructor(private readonly delegationsService: DelegationsService) { }
+
+  @Post('search')
+  @ApiOperation({ summary: "Tìm kiếm thông tin ủy quyền" })
+  @ApiResponse({ status: 200, description: "Tìm kiếm thông tin ủy quyền thành công" })
+  @ApiResponse({ status: 400, description: 'Dữ liệu không hợp lệ.' })
+  @ApiResponse({ status: 500, description: 'Lỗi server' })
+  async searchDelegations(@Body() req: BaseSearchDTO): Promise<BaseResponse> {
+    try {
+      const resData = await this.delegationsService.searchDelegations(req);
+      return BaseResponse.success(resData, MESSAGE.DELEGATION_SEARCH_SUCCESS, HttpStatus.OK);
+    } catch (error) {
+      throw new HttpException(
+        { message: error.message },
+        HttpStatus.INTERNAL_SERVER_ERROR
+      )
+    }
+  }
 
   //Get By DelegatorId And ElectionId
   @Get('delegator/:delegatorId/elections/:electionId')

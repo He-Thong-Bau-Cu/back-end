@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import { Elections } from 'src/database/schemas/elections.schema';
 import { Voters } from 'src/database/schemas/voters.schema';
 import { ElectionsParticipants } from 'src/database/schemas/electionParticipants.schema';
@@ -124,6 +124,49 @@ export class StatisticsService {
 
       return result;
 
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  async getBoardOfControlDashboard(electionId: string) {
+    try {
+      // lấy thông tin cuộc bầu cử
+      const election = await this.electionsModel
+        .findById(new Types.ObjectId(electionId))
+        .exec();
+      if (!election) {
+        throw new Error(MESSAGE.ELECTION_NOT_FOUND);
+      }
+
+      // lấy tổng số người tham gia
+      const totalVoters = await this.votersModel.countDocuments({
+        electionId: election._id,
+      });
+      const voterActiveCount = await this.votersModel.countDocuments({
+        electionId: election._id,
+        status: STATUS.ACTIVE,
+      });
+
+      // lấy tổng số phiếu hợp lệ và không hợp lệ
+      const [validVotes, invalidVotes] = await Promise.all([
+        this.ballotsModel.countDocuments({
+          electionId: election._id,
+          status: { $in: [STATUS.ACTIVE, STATUS.PENDING, STATUS.CAST] }
+        }),
+        this.ballotsModel.countDocuments({
+          electionId: election._id,
+          status: { $in: [STATUS.INVALID, STATUS.LOCKED] }
+        }),
+      ]);
+      return {
+        electionName: election.title,
+        totalVotes: validVotes + invalidVotes,
+        totalValidVotes: validVotes,
+        totalInvalidVotes: invalidVotes,
+        totalVoters,
+        voterActiveCount,
+      };
     } catch (error) {
       throw error;
     }

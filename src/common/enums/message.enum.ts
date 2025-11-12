@@ -134,6 +134,7 @@ export enum MESSAGE {
     DELEGATE_ALREADY_AUTHORIZED = "Người được ủy quyền đã được ủy quyền trong cuộc bầu cử này",
     DELEGATION_GET_BY_DELEGATE_SUCCESS = 'Lấy danh sách ủy quyền theo người được ủy quyền thành công',
     DELEGATION_GET_BY_DELEGATOR_SUCCESS = 'Lấy danh sách ủy quyền theo người ủy quyền thành công',
+    DELEGATION_SEARCH_SUCCESS = 'Tim kiếm ủy quyền thành công',
 
 
 
