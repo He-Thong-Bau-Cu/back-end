@@ -2,7 +2,7 @@ import { Module } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
 import { MongooseModule } from '@nestjs/mongoose';
-import { Users, UsersSchema} from '../../database/schemas/users.schema';
+import { Users, UsersSchema } from '../../database/schemas/users.schema';
 import { Roles, RolesSchema } from '../../database/schemas/roles.schema';
 import {
   RolePermissions,
@@ -34,5 +34,6 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
   ],
   providers: [AuthService],
   controllers: [AuthController],
+  exports: [AuthService],
 })
-export class AuthModule {}
+export class AuthModule { }

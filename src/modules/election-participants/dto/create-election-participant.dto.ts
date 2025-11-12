@@ -31,10 +31,10 @@ export class CreateElectionParticipantDto {
     @IsString()
     position: string;
 
-    @ApiPropertyOptional({
-        description: 'trạng thái của người tham gia cuộc bầu cử',
-        example: 'PENDING'
-    })
+    // @ApiPropertyOptional({
+    //     description: 'trạng thái của người tham gia cuộc bầu cử',
+    //     example: 'PENDING'
+    // })
     @IsOptional()
     @IsString()
     status: string;

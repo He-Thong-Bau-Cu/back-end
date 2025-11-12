@@ -26,6 +26,22 @@ export class DelegationsService {
   ) { }
   async getDelegatorIdAndElectionId(delegatorId: string, electionId: string) {
     try {
+      //kiểm tra xem có electionId không
+      const electionExist = await this.electionModel.exists({
+        _id: new Types.ObjectId(electionId),
+      });
+      if (!electionExist) {
+        throw new Error(MESSAGE.ELECTION_NOT_FOUND);
+      }
+
+      //kiểm tra xem có delegatorId Không
+      const delegatorExist = await this.userModel.exists({
+        _id: new Types.ObjectId(delegatorId),
+      });
+      if (!delegatorExist) {
+        throw new Error(MESSAGE.DELEGATOR_NOT_FOUND);
+      }
+
       const delegation = await this.delegationModel
         .findOne({
           delegatorId: new Types.ObjectId(delegatorId),
@@ -50,6 +66,13 @@ export class DelegationsService {
 
   async getByElectionId(id: string) {
     try {
+      //kiểm tra xem có electionId không
+      const electionExist = await this.electionModel.exists({
+        _id: new Types.ObjectId(id),
+      });
+      if (!electionExist) {
+        throw new Error(MESSAGE.ELECTION_NOT_FOUND);
+      }
 
       const delegation = await this.delegationModel
         .findOne({ electionId: new Types.ObjectId(id) })
@@ -84,6 +107,57 @@ export class DelegationsService {
       }
 
       return delegation;
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  async getByDelegator(delegatorId: string) {
+    try {
+      //kiểm tra xem có delegatorId không
+      const delegatorExist = await this.userModel.exists({
+        _id: new Types.ObjectId(delegatorId),
+      });
+      if (!delegatorExist) {
+        throw new Error(MESSAGE.DELEGATOR_NOT_FOUND);
+      }
+      const delegations = await this.delegationModel
+        .find({ delegatorId: new Types.ObjectId(delegatorId) })
+        .populate('electionId', 'title startDate endDate delegationStart delegationEnd status statusData decisionNumber decisionName')
+        .populate('delegatorId', 'username fullName email position')
+        .populate('delegateId', 'username fullName email position')
+        .populate('confirmedBy', 'username fullName email position')
+        .populate('documentId', 'title file_url status')
+        .populate('createdBy', 'username fullName email position')
+        .populate('updatedBy', 'username fullName email position')
+        .exec();
+      return delegations;
+    } catch (error) {
+      throw error;
+    }
+  }
+
+
+  async getByDelegate(delegateId: string) {
+    try {
+      //kiểm tra xem có delegateId không
+      const delegateExist = await this.userModel.exists({
+        _id: new Types.ObjectId(delegateId),
+      });
+      if (!delegateExist) {
+        throw new Error(MESSAGE.DELEGATE_NOT_FOUND);
+      }
+      const delegations = await this.delegationModel
+        .find({ delegateId: new Types.ObjectId(delegateId) })
+        .populate('electionId', 'title startDate endDate delegationStart delegationEnd status statusData decisionNumber decisionName')
+        .populate('delegatorId', 'username fullName email position')
+        .populate('delegateId', 'username fullName email position')
+        .populate('confirmedBy', 'username fullName email position')
+        .populate('documentId', 'title file_url status')
+        .populate('createdBy', 'username fullName email position')
+        .populate('updatedBy', 'username fullName email position')
+        .exec();
+      return delegations;
     } catch (error) {
       throw error;
     }
@@ -208,7 +282,7 @@ export class DelegationsService {
       const delegatorAuthorized = await this.delegationModel.findOne({
         delegatorId: new Types.ObjectId(createDelegation.delegatorId),
         electionId: new Types.ObjectId(createDelegation.electionId),
-        status: STATUS.ACTIVE
+        status: { $in: [STATUS.ACTIVE, STATUS.PENDING, STATUS.CONFIRMED] }
       });
       if (delegatorAuthorized) {
         throw new Error(MESSAGE.DELEGATOR_ALREADY_AUTHORIZED);
@@ -218,7 +292,7 @@ export class DelegationsService {
       const delegateAuthorized = await this.delegationModel.findOne({
         delegateId: new Types.ObjectId(createDelegation.delegateId),
         electionId: new Types.ObjectId(createDelegation.electionId),
-        status: STATUS.ACTIVE
+        status: { $in: [STATUS.ACTIVE, STATUS.PENDING, STATUS.CONFIRMED] }
       })
       if (delegateAuthorized) {
         throw new Error(MESSAGE.DELEGATE_ALREADY_AUTHORIZED);
@@ -239,7 +313,7 @@ export class DelegationsService {
       }
       //Kiểm tra người ủy quyền và người được ủy tuyển có trùng userId không
       if (createDelegation.delegatorId === createDelegation.delegateId) {
-        throw new Error(MESSAGE.DELEGATION_DELEGATOR_FALIL);
+        throw new Error(MESSAGE.DELEGATION_DELEGATOR_FAIL);
       }
 
       //kiểm tra thời gian bắt đầu và kết thúc

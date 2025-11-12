@@ -43,10 +43,40 @@ export class MailService {
             html: htmlTemplate,
         });
 
-        
-
-
         console.log('Email sent: %s', info.messageId);
+    }
+
+
+
+    async sendMailDelegateCard(
+        to: string,
+        fullName: string,
+        electionName: string,
+        pdfPath: string,
+    ) {
+        const html = `
+      <div style="font-family:sans-serif;max-width:600px;margin:auto;padding:20px;background:#f9fafb;border-radius:12px;">
+        <h2>Xin chào ${fullName} 👋</h2>
+        <p>Thẻ đại biểu của bạn cho cuộc bầu cử <b>${electionName}</b> đã được cấp.</p>
+        <p>Vui lòng xem tệp PDF đính kèm để sử dụng khi cần xác thực.</p>
+        <hr/>
+        <p style="font-size:13px;color:#6b7280;">Nếu có thắc mắc, vui lòng liên hệ <b>employee.system.work@gmail.com</b></p>
+      </div>`;
+        const info = await this.transporter.sendMail({
+            from: `"Hệ thống bầu cử" <${process.env.EMAIL_USERNAME}>`,
+            to,
+            subject: '🎫 Thẻ đại biểu (PDF) của bạn',
+            html,
+            attachments: [
+                {
+                    filename: 'the-dai-bieu.pdf',
+                    path: pdfPath,
+                    contentType: 'application/pdf',
+                },
+            ],
+        });
+
+        console.log('Delegate card email with PDF sent: %s', info.messageId);
     }
 
     async sendPasswordResetMail(to: string, fullName: string, username: string, password: string) {
@@ -127,6 +157,36 @@ export class MailService {
         </div>
         <p style="color:#f59e0b;font-size:14px;">⚠️ Vui lòng đổi mật khẩu sau khi đăng nhập để đảm bảo an toàn.</p>
         <p style="color:#ef4444;font-size:14px;">🔒 Nếu bạn không yêu cầu đặt lại mật khẩu, vui lòng liên hệ ngay với chúng tôi.</p>
+        <hr/>
+        <p style="font-size:13px;color:#6b7280;">Nếu có thắc mắc, vui lòng liên hệ <b>employee.system.work@gmail.com</b></p>
+      </div>
+    `;
+    }
+
+    private getDelegateCardHtmlTemplate(
+        fullName: string,
+        electionName: string,
+        issuedAt: Date,
+        expiresAt: Date | null,
+        qrCodeDataUrl: any,
+    ): string {
+        const issued = new Date(issuedAt).toLocaleString('vi-VN');
+        const expires = expiresAt ? new Date(expiresAt).toLocaleString('vi-VN') : 'Không thời hạn';
+        
+        return `
+      <div style="font-family:sans-serif;max-width:600px;margin:auto;padding:20px;background:#f9fafb;border-radius:12px;">
+        <h2>Thẻ đại biểu 🪪</h2>
+        <p>Xin chào <b>${fullName}</b>, dưới đây là thông tin thẻ đại biểu của bạn.</p>
+        <div style="background:#fff;padding:15px;border-radius:10px;border:1px solid #e5e7eb;">
+          <p><b>Cuộc bầu cử:</b> ${electionName}</p>
+          <p><b>Ngày cấp:</b> ${issued}</p>
+          <p><b>Hết hạn:</b> ${expires}</p>
+        </div>
+        <div style="text-align:center;margin-top:16px;">
+          <p style="margin-bottom:8px;">Mã QR của thẻ (quét để xác thực):</p>
+          <img src="${qrCodeDataUrl}" alt="QR Code" style="width:220px;height:220px;border:1px solid #e5e7eb;padding:8px;border-radius:8px;background:#fff;" />
+        </div>
+        <p style="color:#f59e0b;font-size:14px;margin-top:12px;">⚠️ Vui lòng không chia sẻ mã QR cho người khác.</p>
         <hr/>
         <p style="font-size:13px;color:#6b7280;">Nếu có thắc mắc, vui lòng liên hệ <b>employee.system.work@gmail.com</b></p>
       </div>

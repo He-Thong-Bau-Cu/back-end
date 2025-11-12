@@ -38,7 +38,7 @@ export class ResultsService {
       if (!resultExist) {
         throw new Error(MESSAGE.RESULT_NOT_FOUND);
       }
-      const result = await this.resultsModel.findById(id)
+      const result = await this.resultsModel.findById(new Types.ObjectId(id))
         .populate('electionId', 'title startDate endDate delegationStart delegationEnd status decisionNumber decisionName')
         .populate('entityId', 'title description metaData fileUrl proposerId status')
         .populate('createdBy', 'username fullName email position')
@@ -59,7 +59,7 @@ export class ResultsService {
       if (!electionExist) {
         throw new Error(MESSAGE.ELECTION_NOT_FOUND);
       }
-      const result = await this.resultsModel.find({ electionId })
+      const result = await this.resultsModel.find({ electionId: new Types.ObjectId(electionId) })
         .populate('electionId', 'title startDate endDate delegationStart delegationEnd status decisionNumber decisionName')
         .populate('entityId', 'title description metaData fileUrl proposerId status')
         .populate('createdBy', 'username fullName email position')
@@ -71,7 +71,7 @@ export class ResultsService {
     }
   }
 
-  async create(createResultDto: CreateResultDto, userId:string) {
+  async create(createResultDto: CreateResultDto, userId: string) {
     try {
       //Check if elections is exists
       const electionExist = await this.electionsModel.exists({ _id: createResultDto.electionId });
@@ -97,7 +97,7 @@ export class ResultsService {
     }
   }
 
-  async update(id: string, updateResultDto: UpdateResultDto, userId:string) {
+  async update(id: string, updateResultDto: UpdateResultDto, userId: string) {
     try {
       //Check if the result is exist
       const resultExist = await this.resultsModel.exists({ _id: id });

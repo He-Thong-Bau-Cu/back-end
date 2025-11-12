@@ -12,6 +12,8 @@ import { STATUS } from 'src/common/enums/status.enum';
 import { MESSAGE } from 'src/common/enums/message.enum';
 import { Roles } from 'src/database/schemas/roles.schema';
 import { USER_ROLE } from 'src/common/enums/config.enum';
+import { BaseSearchDTO } from 'src/common/dto/base-search.dto';
+import { paginate } from 'src/common/dto/paignation';
 
 @Injectable()
 export class VotersService {
@@ -30,9 +32,69 @@ export class VotersService {
     private readonly rolesModel: Model<Roles>,
   ) { }
 
+  async search(req: BaseSearchDTO) {
+    try {
+      const keyword = req.keyword ? req.keyword.trim() : '';
 
+      //tìm kiếm voter theo election
+      const matchedElections = await this.electionsModel
+        .find({
+          title: { $regex: keyword, $options: 'i' },
+          decisionName: { $regex: keyword, $options: 'i' },
+        })
+        .collation({ locale: 'vi', strength: 1 })
+        .exec();
+      const electionIds = matchedElections.map((e) => e._id);
+      //tìm kiếm voter theo user
+      const matchedUsers = await this.userModel
+        .find({
+          fullName: { $regex: keyword, $options: 'i' },
+          email: { $regex: keyword, $options: 'i' },
+          username: { $regex: keyword, $options: 'i' },
+        })
+        .collation({ locale: 'vi', strength: 1 })
+        .exec();
+      const userIds = matchedUsers.map((u) => u._id);
+      //tìm kiếm voter
+      const matchedVoters = await this.voterModel
+        .find({
+          $or: [
+            { status: { $regex: keyword, $options: 'i' } },
+          ],
+        })
+        .collation({ locale: 'vi', strength: 1 })
+        .exec();
+      const voterIds = matchedVoters.map((v) => v._id);
 
-  async create(createVoter: CreateVoterDto, userId:string) {
+      // Kết hợp tất cả các điều kiện tìm kiếm
+      const query: any = {}
+      if (electionIds.length > 0) { query.electionId = { $in: electionIds }; }
+      if (userIds.length > 0) { query.userId = { $in: userIds }; }
+      if (voterIds.length > 0) { query._id = { $in: voterIds }; }
+
+      const voters = await this.voterModel
+        .find(query)
+        .populate({
+          path: 'electionId',
+          select: 'title',
+          populate: [
+            { path: "typeId", select: "typeName typeNameCode description status" },
+            { path: "votingMethodId", select: "methodName methodCode description status" },
+            { path: "thresholdId", select: "thresholdName thresholdCode value description status" },
+            { path: "createdBy", select: "username fullName email position" },
+            { path: "updatedBy", select: "username fullName email position" }
+          ]
+        })
+        .populate('userId', 'fullName username email phone position department')
+        .sort({ createdAt: -1 })
+        .exec();
+      return paginate(voters, req.page, req.limit);
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  async create(createVoter: CreateVoterDto, userId: string) {
     try {
       // Kiểm tra electionId có tồn tại không (sử dụng _id)
       const electionId = new Types.ObjectId(createVoter.electionId);
@@ -83,7 +145,7 @@ export class VotersService {
         ...createVoter,
         electionId: electionId,
         userId: userId,
-        createdBy: userId ? new Types.ObjectId(userId) :null
+        createdBy: userId ? new Types.ObjectId(userId) : null
       });
 
       return voter;
@@ -92,7 +154,7 @@ export class VotersService {
     }
   }
 
-  async update(id: string, updateVoter: UpdateVoterDto, userId:string) {
+  async update(id: string, updateVoter: UpdateVoterDto, userId: string) {
     try {
       //Check if the voter exists
       const voterExists = await this.voterModel.exists({ _id: id });
@@ -105,7 +167,7 @@ export class VotersService {
           ...updateVoter,
           electionId: updateVoter.electionId ? new Types.ObjectId(updateVoter.electionId) : null,
           userId: updateVoter.userId ? new Types.ObjectId(updateVoter.userId) : null,
-          updatedBy: userId ? new Types.ObjectId(userId) :null
+          updatedBy: userId ? new Types.ObjectId(userId) : null
         }, { new: true })
         .exec();
       return voter;
@@ -114,7 +176,7 @@ export class VotersService {
     }
   }
 
-  async updateStatus(id: string, status: string, userId:string) {
+  async updateStatus(id: string, status: string, userId: string) {
     try {
       //Check if the voter exists
       const voterExists = await this.voterModel.exists({ _id: id });
@@ -270,10 +332,9 @@ export class VotersService {
         throw new NotFoundException('Không tìm thấy role VOTER trong hệ thống');
       }
 
-      // 3. Lấy tổng số người tham gia cuộc bầu cử có role là VOTER
+      // 3. Lấy tổng số người tham gia cuộc bầu cử 
       const totalParticipants = await this.electionParticipantsModel.countDocuments({
         electionId: electionExists._id,
-        roleId: voterRole._id,
         status: STATUS.ACTIVE,
       });
 
@@ -282,13 +343,18 @@ export class VotersService {
         ? ((totalVoters / totalParticipants) * 100).toFixed(2)
         : '0.00';
 
-
-
+      //5. Số lượng voter chưa tham gia cuộc bầu cử
+      const voterNotActive = await this.voterModel.countDocuments({
+        electionId: electionExists._id,
+        roleId: voterRole._id,
+        status: { $in: [STATUS.INVITED, STATUS.CONFIRMED] }
+      })
 
       return {
         totalVoters,
         totalParticipants,
-        participationPercentage: parseFloat(participationPercentage)
+        participationPercentage: parseFloat(participationPercentage),
+        voterNotActive
       };
     } catch (error) {
       throw error;

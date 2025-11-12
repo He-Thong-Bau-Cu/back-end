@@ -11,6 +11,10 @@ import { VotingRights } from 'src/database/schemas/votingRights.schema';
 import { STATUS } from 'src/common/enums/status.enum';
 import { MESSAGE } from 'src/common/enums/message.enum';
 import { ApiBearerAuth } from '@nestjs/swagger';
+import { ElectionTypes } from 'src/database/schemas/electionTypes.schema';
+import { Users } from 'src/database/schemas/users.schema';
+import { BaseSearchDTO } from 'src/common/dto/base-search.dto';
+import { paginate } from 'src/common/dto/paignation';
 
 @ApiBearerAuth('access-token')
 @Injectable()
@@ -27,29 +31,15 @@ export class BallotsService {
     private readonly electionEntitiesModel: Model<ElectionEntities>,
     @InjectModel(VotingRights.name)
     private readonly votingRightsModel: Model<VotingRights>,
+    @InjectModel(ElectionTypes.name)
+    private readonly electionTypesModel: Model<ElectionTypes>,
+    @InjectModel(Users.name)
+    private readonly usersModel: Model<Users>,
   ) { }
 
-  async findAll() {
-    try {
-      const ballots = await this.ballotsModel.find()
-        .populate('electionId', 'title startDate endDate delegationStart delegationEnd status statusData decisionNumber decisionName')
-        .populate({
-          path: 'voterId',
-          populate: [
-            {
-              path: 'userId',
-              select: "username fullName email position",
-            }
-          ]
-        })
-        .populate('createdBy', 'username fullName email position')
-        .populate('updatedBy', 'username fullName email position')
-        .exec();
-      return ballots;
-    } catch (error) {
-      throw error;
-    }
-  }
+
+
+
 
   async getById(id: string) {
     try {
@@ -71,6 +61,7 @@ export class BallotsService {
             }
           ]
         })
+        .populate({ path: 'allocations.entityId', select: 'title description metaData fileUrl status proposerId' })
         .populate('createdBy', 'username fullName email position')
         .populate('updatedBy', 'username fullName email position')
         .exec();
@@ -150,6 +141,40 @@ export class BallotsService {
     }
   }
 
+  async getByVoterAndCast(voterId: string) {
+    try {
+      //Check if the voter is exist
+      const voterExist = await this.votersModel.exists({ _id: voterId });
+      if (!voterExist) {
+        throw new Error(MESSAGE.VOTER_NOT_FOUND);
+      }
+
+      const ballots = await this.ballotsModel.find({ voterId: new Types.ObjectId(voterId), status: STATUS.CAST })
+        .populate('electionId', 'title startDate endDate delegationStart delegationEnd status statusData decisionNumber decisionName')
+        .populate({
+          path: 'voterId',
+          populate: [
+            {
+              path: 'userId',
+              select: "username fullName email position",
+            }
+          ]
+        })
+        .populate('createdBy', 'username fullName email position')
+        .populate('updatedBy', 'username fullName email position')
+        .exec();
+
+      //Check if the ballots is exist
+      if (!ballots) {
+        throw new Error(MESSAGE.BALLOT_NOT_FOUND);
+      }
+
+      return ballots;
+    } catch (error) {
+      throw error;
+    }
+  }
+
   async create(createBallot: CreateBallotDto, userId: string) {
     try {
       //Check election exists
@@ -172,6 +197,48 @@ export class BallotsService {
         throw new Error(MESSAGE.VOTER_NOT_FOUND);
       }
 
+      //Check ballots is exist
+      const ballotExists = await this.ballotsModel.findOne({
+        electionId: new Types.ObjectId(createBallot.electionId),
+        voterId: new Types.ObjectId(createBallot.voterId)
+      });
+      if (ballotExists) {
+        throw new Error(MESSAGE.BALLOT_ALREADY_EXISTS);
+      }
+
+      //Check election voting method
+      const electionType = await this.electionTypesModel.findById(new Types.ObjectId(electionExists.typeId));
+      if (!electionType) {
+        throw new Error(MESSAGE.ELECTION_TYPE_NOT_FOUND);
+      }
+      if (electionType.typeCode === "YES_NO" || electionType.typeCode === "SINGLE_CHOICE") {
+        if (createBallot.allocations.length !== 1) {
+          throw new Error("This election allows only one choice.");
+        }
+
+        if (createBallot.allocations[0].voteValue !== 1) {
+          throw new Error("You can only cast exactly 1 vote.");
+        }
+      }
+
+      if (electionType.typeCode === "MULTI_CHOICE") {
+        for (const allocation of createBallot.allocations) {
+          if (allocation.entityId == null || allocation.entityId === '') {
+            throw new Error("Entity ID is required");
+          } else {
+            // Check if entityId exists in ElectionEntities
+            const entityExists = await this.electionEntitiesModel.findById(new Types.ObjectId(allocation.entityId));
+            if (!entityExists) {
+              throw new Error(`Entity with ID ${allocation.entityId} does not exist.`);
+            }
+          }
+          if (allocation.voteValue < 0) {
+            throw new Error(MESSAGE.BALLOT_VOTE_VALUE_GREATER_THAN_ZERO);
+          }
+        }
+      }
+
+
       //Check votingRight shares and count > 0
       const votingRight = await this.votingRightsModel.findOne({
         voterId: new Types.ObjectId(createBallot.voterId),
@@ -181,9 +248,19 @@ export class BallotsService {
         if (votingRight.shares <= 0 || votingRight.votes <= 0) {
           throw new Error(MESSAGE.VOTING_RIGHT_NOT_ELIGIBLE);
         }
-        if (votingRight.votes < createBallot.voteValue) {
+        // Validate total allocated votes <= votingRight.votes
+        const totalVotes = createBallot.allocations.reduce(
+          (sum, item) => sum + Number(item.voteValue || 0),
+          0,
+        );
+        if (totalVotes > votingRight.votes) {
           throw new Error(MESSAGE.BALLOT_VOTE_VALUE_INVALID);
         }
+
+        if (totalVotes < 0 || isNaN(totalVotes)) {
+          throw new Error(MESSAGE.BALLOT_VOTE_VALUE_GREATER_THAN_ZERO);
+        }
+
       } else if (!votingRight) {
         throw new Error(MESSAGE.VOTING_RIGHT_NOT_FOUND);
       }
@@ -312,6 +389,97 @@ export class BallotsService {
       throw error;
     }
   }
+
+
+  async searchBallots(req: BaseSearchDTO) {
+    try {
+      const keyword = req.keyword || '';
+      const page = req.page || 1;
+      const limit = req.limit || 10;
+
+      //search elections theo keyword tiếng Việt
+      const matchedElections = await this.electionsModel
+        .find({
+          title: { $regex: keyword, $options: 'i' }
+        })
+        .collation({ locale: 'vi', strength: 1 })
+        .lean();
+
+      // lấy danh sách electionId match
+      const electionIds = matchedElections.map(e => e._id);
+
+      // search voter info
+      const matchedUsers = await this.usersModel
+        .find({
+          $or: [
+            { fullName: { $regex: keyword, $options: 'i' } },
+            { username: { $regex: keyword, $options: 'i' } },
+            { email: { $regex: keyword, $options: 'i' } },
+          ]
+        })
+        .collation({ locale: 'vi', strength: 1 })
+        .lean();
+
+      const userIds = matchedUsers.map(u => u._id);
+
+      // tìm voterId thuộc những user đó
+      const matchedVoters = await this.votersModel
+        .find({ userId: { $in: userIds } })
+        .lean();
+
+      const voterIds = matchedVoters.map(v => v._id);
+
+      // STEP 3: build query conditions
+      const query: any = {};
+
+      if (electionIds.length > 0) {
+        query.electionId = { $in: electionIds };
+      }
+
+      if (voterIds.length > 0) {
+        query.voterId = { $in: voterIds };
+      }
+
+      // tìm kiếm theo các trường khác nếu cần
+      const matchedBallots = await this.ballotsModel.find({
+        $or: [
+          { status: { $regex: keyword, $options: 'i' } },
+          { otpCode: { $regex: keyword, $options: 'i' } },
+          { signature: { $regex: keyword, $options: 'i' } },
+        ]
+      })
+        .collation({ locale: 'vi', strength: 1 })
+        .lean();
+
+      const matchedBallotIds = matchedBallots.map(b => b._id);
+
+      if (matchedBallotIds.length > 0) {
+        query._id = { $in: matchedBallotIds };
+      }
+
+      // tìm ballots matching
+      const ballots = await this.ballotsModel
+        .find(query)
+        .populate('electionId', 'title startDate endDate delegationStart delegationEnd status statusData decisionNumber decisionName')
+        .populate({
+          path: 'voterId',
+          populate: {
+            path: 'userId',
+            select: "username fullName email position"
+          }
+        })
+        .populate('createdBy', 'username fullName email position')
+        .populate('updatedBy', 'username fullName email position')
+        .sort({ createdAt: -1 })
+        .lean();
+
+      return paginate(ballots, page, limit);
+
+    } catch (error) {
+      throw error;
+    }
+  }
+
 
   async delete(id: string) {
     try {
