@@ -11,6 +11,9 @@ import { MESSAGE } from 'src/common/enums/message.enum';
 import { STATUS } from 'src/common/enums/status.enum';
 import { CustomRequest } from 'src/common/middleware/auth.middleware';
 import { UsersService } from '../users/users.service';
+import { DelegationDto } from './dto/delegation.dto';
+import PdfPrinter from 'pdfmake';
+import path from 'path';
 
 @Injectable()
 export class DelegationsService {
@@ -23,7 +26,7 @@ export class DelegationsService {
     private readonly userModel: Model<Users>,
     @InjectModel(ElectionDocuments.name)
     private readonly documentModel: Model<ElectionDocuments>,
-  ) { }
+  ) {}
   async getDelegatorIdAndElectionId(delegatorId: string, electionId: string) {
     try {
       //kiểm tra xem có electionId không
@@ -55,8 +58,8 @@ export class DelegationsService {
         .populate('delegateId', 'username fullName email position')
         .populate('confirmedBy', 'username fullName email position')
         .populate('documentId', 'title file_url status')
-        .populate("createdBy", 'username fullName email position')
-        .populate("updatedBy", 'username fullName email position')
+        .populate('createdBy', 'username fullName email position')
+        .populate('updatedBy', 'username fullName email position')
         .exec();
       return delegation;
     } catch (error) {
@@ -123,7 +126,10 @@ export class DelegationsService {
       }
       const delegations = await this.delegationModel
         .find({ delegatorId: new Types.ObjectId(delegatorId) })
-        .populate('electionId', 'title startDate endDate delegationStart delegationEnd status statusData decisionNumber decisionName')
+        .populate(
+          'electionId',
+          'title startDate endDate delegationStart delegationEnd status statusData decisionNumber decisionName',
+        )
         .populate('delegatorId', 'username fullName email position')
         .populate('delegateId', 'username fullName email position')
         .populate('confirmedBy', 'username fullName email position')
@@ -137,7 +143,6 @@ export class DelegationsService {
     }
   }
 
-
   async getByDelegate(delegateId: string) {
     try {
       //kiểm tra xem có delegateId không
@@ -149,7 +154,10 @@ export class DelegationsService {
       }
       const delegations = await this.delegationModel
         .find({ delegateId: new Types.ObjectId(delegateId) })
-        .populate('electionId', 'title startDate endDate delegationStart delegationEnd status statusData decisionNumber decisionName')
+        .populate(
+          'electionId',
+          'title startDate endDate delegationStart delegationEnd status statusData decisionNumber decisionName',
+        )
         .populate('delegatorId', 'username fullName email position')
         .populate('delegateId', 'username fullName email position')
         .populate('confirmedBy', 'username fullName email position')
@@ -278,11 +286,11 @@ export class DelegationsService {
         throw new Error(MESSAGE.ELECTION_NOT_FOUND);
       }
 
-      //Check delegator have already authorized or not 
+      //Check delegator have already authorized or not
       const delegatorAuthorized = await this.delegationModel.findOne({
         delegatorId: new Types.ObjectId(createDelegation.delegatorId),
         electionId: new Types.ObjectId(createDelegation.electionId),
-        status: { $in: [STATUS.ACTIVE, STATUS.PENDING, STATUS.CONFIRMED] }
+        status: { $in: [STATUS.ACTIVE, STATUS.PENDING, STATUS.CONFIRMED] },
       });
       if (delegatorAuthorized) {
         throw new Error(MESSAGE.DELEGATOR_ALREADY_AUTHORIZED);
@@ -292,8 +300,8 @@ export class DelegationsService {
       const delegateAuthorized = await this.delegationModel.findOne({
         delegateId: new Types.ObjectId(createDelegation.delegateId),
         electionId: new Types.ObjectId(createDelegation.electionId),
-        status: { $in: [STATUS.ACTIVE, STATUS.PENDING, STATUS.CONFIRMED] }
-      })
+        status: { $in: [STATUS.ACTIVE, STATUS.PENDING, STATUS.CONFIRMED] },
+      });
       if (delegateAuthorized) {
         throw new Error(MESSAGE.DELEGATE_ALREADY_AUTHORIZED);
       }
@@ -360,7 +368,6 @@ export class DelegationsService {
           ? new Types.ObjectId(createDelegation.confirmedBy)
           : null,
         createdBy: new Types.ObjectId(userId) || null,
-
       });
 
       // Return delegation with all fields
@@ -406,5 +413,338 @@ export class DelegationsService {
     } catch (error) {
       throw error;
     }
+  }
+
+  async getSumaryDelagateApproveBySecretary(req: DelegationDto) {
+    try {
+      const electionData = await this.electionModel
+        .findById(new Types.ObjectId(req.electionId))
+        .exec();
+      if (!electionData) {
+        throw new Error(MESSAGE.ELECTION_NOT_FOUND);
+      }
+
+      const { delegationStart, delegationEnd } = electionData;
+
+      const delegations = await this.delegationModel
+        .find({
+          confirmedBy: new Types.ObjectId(req.secretaryId),
+          electionId: new Types.ObjectId(req.electionId),
+          status: STATUS.CONFIRMED,
+          createdAt: { $gte: delegationStart, $lte: delegationEnd },
+        })
+        .populate(
+          'electionId',
+          'title startDate endDate delegationStart delegationEnd status statusData decisionNumber decisionName',
+        )
+        .populate('delegatorId', 'username fullName email position')
+        .populate('delegateId', 'username fullName email position')
+        .populate('confirmedBy', 'username fullName email position')
+        .populate('documentId', 'title file_url status')
+        .populate('createdBy', 'username fullName email position')
+        .populate('updatedBy', 'username fullName email position')
+        .exec();
+
+      return delegations;
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  async getSummaryDelegatesForChair(req: DelegationDto) {
+    try {
+      const delegationsGrouped = await this.delegationModel.aggregate([
+        {
+          $match: {
+            confirmedBy: { $ne: null },
+            status: 'PENDING',
+            // electionId: new Types.ObjectId(req.electionId),
+          },
+        },
+        {
+          $lookup: {
+            from: 'elections',
+            localField: 'electionId',
+            foreignField: '_id',
+            as: 'election',
+          },
+        },
+        { $unwind: '$election' },
+        {
+          $lookup: {
+            from: 'users',
+            localField: 'delegatorId',
+            foreignField: '_id',
+            as: 'delegator',
+          },
+        },
+        { $unwind: '$delegator' },
+        {
+          $lookup: { from: 'users', localField: 'delegateId', foreignField: '_id', as: 'delegate' },
+        },
+        { $unwind: '$delegate' },
+        {
+          $lookup: {
+            from: 'users',
+            localField: 'confirmedBy',
+            foreignField: '_id',
+            as: 'confirmedBy',
+          },
+        },
+        { $unwind: '$confirmedBy' },
+        {
+          $group: {
+            _id: '$election._id',
+            election: { $first: '$election' },
+            delegations: {
+              $push: {
+                id: '$_id',
+                delegateReason: '$delegateReason',
+                timeDelegation: {
+                  $floor: {
+                    $divide: [{ $subtract: ['$endDate', '$startDate'] }, 1000 * 60 * 60 * 24],
+                  },
+                },
+                delegator: {
+                  fullName: '$delegator.fullName',
+                  email: '$delegator.email',
+                  position: '$delegator.position',
+                  address: '$delegator.address',
+                  citizenId: '$delegator.citizenId',
+                },
+                delegate: {
+                  fullName: '$delegate.fullName',
+                  email: '$delegate.email',
+                  position: '$delegate.position',
+                  address: '$delegate.address',
+                  citizenId: '$delegate.citizenId',
+                },
+                createdAt: '$createdAt',
+              },
+            },
+          },
+        },
+        { $sort: { 'election.startDate': 1 } },
+      ]);
+
+      return delegationsGrouped;
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  async generateDelegationPdf(
+    secretaryId: string,
+    recipient: string,
+    electionId: string,
+  ): Promise<Buffer> {
+    const delegationsGrouped = await this.delegationModel.aggregate([
+      {
+        $match: {
+          confirmedBy: { $ne: null },
+          status: 'PENDING',
+          electionId: new Types.ObjectId(electionId),
+        },
+      },
+      {
+        $lookup: {
+          from: 'elections',
+          localField: 'electionId',
+          foreignField: '_id',
+          as: 'election',
+        },
+      },
+      { $unwind: '$election' },
+      {
+        $lookup: { from: 'users', localField: 'delegatorId', foreignField: '_id', as: 'delegator' },
+      },
+      { $unwind: '$delegator' },
+      {
+        $lookup: { from: 'users', localField: 'delegateId', foreignField: '_id', as: 'delegate' },
+      },
+      { $unwind: '$delegate' },
+      {
+        $lookup: {
+          from: 'users',
+          localField: 'confirmedBy',
+          foreignField: '_id',
+          as: 'confirmedBy',
+        },
+      },
+      { $unwind: '$confirmedBy' },
+      {
+        $group: {
+          _id: '$election._id',
+          election: { $first: '$election' },
+          delegations: {
+            $push: {
+              delegator: '$delegator',
+              delegate: '$delegate',
+              createdAt: '$createdAt',
+            },
+          },
+        },
+      },
+      { $sort: { 'election.startDate': 1 } },
+    ]);
+
+    // Cấu hình font
+    const fonts = {
+      Roboto: {
+        normal: path.join(process.cwd(), 'src', 'fonts', 'Roboto-Regular.ttf'),
+        bold: path.join(process.cwd(), 'src', 'fonts', 'Roboto-Bold.ttf'),
+      },
+    };
+    const printer = new PdfPrinter(fonts);
+
+    const currentDate = new Date();
+    const formattedDate = currentDate.toLocaleDateString('vi-VN');
+
+    // Tạo số công văn
+    const reportNumber = `Số: ${currentDate.getFullYear()}/TH-BCUQ`;
+
+    const docDefinition: any = {
+      pageSize: 'A4',
+      pageOrientation: 'portrait', // hoặc 'landscape' nếu bảng rộng
+      pageMargins: [40, 60, 40, 60],
+      content: [
+        // Header hai cột
+        {
+          columns: [
+            {
+              stack: [
+                {
+                  text: 'CÔNG TY ABC',
+                  bold: true,
+                  fontSize: 12,
+                  margin: [0, 5, 0, 0],
+                  alignment: 'center',
+                },
+                { text: reportNumber, fontSize: 10, margin: [0, 5, 0, 0], alignment: 'center' },
+              ],
+              width: '50%',
+            },
+            {
+              stack: [
+                {
+                  text: 'CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM',
+                  bold: true,
+                  fontSize: 12,
+                  alignment: 'center', // <-- center text trong cột
+                  margin: [0, 5, 0, 0],
+                },
+                {
+                  text: 'ĐỘC LẬP - TỰ DO - HẠNH PHÚC',
+                  bold: true,
+                  fontSize: 12,
+                  alignment: 'center', // <-- center text trong cột
+                  margin: [0, 5, 0, 0],
+                },
+              ],
+              width: '50%',
+            },
+          ],
+          columnGap: 10,
+          margin: [0, 0, 0, 20],
+        },
+
+        // Tiêu đề báo cáo viết hoa, xuống dòng
+        {
+          stack: [
+            {
+              text: 'BÁO CÁO',
+              bold: true,
+              fontSize: 16,
+              alignment: 'center',
+              margin: [0, 0, 0, 2],
+            },
+            {
+              text: 'TỔNG HỢP ỦY QUYỀN ĐÃ TIẾP NHẬN',
+              bold: true,
+              fontSize: 16,
+              alignment: 'center',
+            },
+          ],
+          margin: [0, 0, 0, 20],
+        },
+        { text: `Kính gửi: ${recipient}`, margin: [0, 0, 0, 5] },
+        { text: `Người gửi: Thư ký (ID: ${secretaryId})`, margin: [0, 0, 0, 5] },
+        { text: `Ngày lập báo cáo: ${formattedDate}`, margin: [0, 0, 0, 20] },
+      ],
+      footer: (currentPage, pageCount) => ({
+        columns: [
+          { text: '' },
+          { text: `Trang ${currentPage} / ${pageCount}`, alignment: 'center' },
+        ],
+      }),
+    };
+
+    // Table dữ liệu chi tiết giống code trước, table border full
+    // Table dữ liệu theo election
+    delegationsGrouped.forEach((group) => {
+      const body: any[] = [];
+
+      // Header chính
+      body.push([
+        { text: 'STT', style: 'tableHeader', alignment: 'center', bold: true },
+        { text: 'Người ủy quyền', style: 'tableHeader', alignment: 'center', bold: true },
+        { text: 'Người được ủy quyền', style: 'tableHeader', alignment: 'center', bold: true },
+        { text: 'Ngày tạo', style: 'tableHeader', alignment: 'center', bold: true },
+      ]);
+
+      // Data
+      group.delegations.forEach((d, index) => {
+        body.push([
+          index + 1,
+          d.delegator.fullName,
+          d.delegate.fullName,
+          new Date(d.createdAt).toLocaleDateString('vi-VN'),
+        ]);
+      });
+
+      docDefinition.content.push(
+        { text: `Cuộc bầu cử: ${group.election.title}`, bold: true, margin: [0, 10, 0, 5] },
+        {
+          table: {
+            headerRows: 1,
+            widths: ['auto', '*', '*', 'auto'], // 4 cột tổng cộng
+            body,
+          },
+          layout: {
+            hLineWidth: () => 1,
+            vLineWidth: () => 1,
+            hLineColor: () => 'black',
+            vLineColor: () => 'black',
+            paddingLeft: () => 4,
+            paddingRight: () => 4,
+            paddingTop: () => 2,
+            paddingBottom: () => 2,
+          },
+          margin: [0, 0, 0, 10],
+        },
+      );
+    });
+
+    // Chân ký Chủ tọa
+    docDefinition.content.push({
+      columns: [
+        { text: '' },
+        {
+          text: `CHỦ TỌA`,
+          alignment: 'center',
+          margin: [0, 50, 0, 0],
+        },
+      ],
+    });
+
+    // Tạo PDF
+    const pdfDoc = printer.createPdfKitDocument(docDefinition);
+    const chunks: Uint8Array[] = [];
+    return new Promise((resolve, reject) => {
+      pdfDoc.on('data', (chunk) => chunks.push(chunk));
+      pdfDoc.on('end', () => resolve(Buffer.concat(chunks)));
+      pdfDoc.on('error', (err) => reject(err));
+      pdfDoc.end();
+    });
   }
 }
