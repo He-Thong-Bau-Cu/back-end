@@ -12,6 +12,23 @@ import { CustomRequest } from 'src/common/middleware/auth.middleware';
 export class MeetingAttendeesController {
   constructor(private readonly meetingAttendeesService: MeetingAttendeesService) { }
 
+  @Get()
+  @ApiOperation({ summary: "Lấy danh sách người tham gia trong cuộc họp" })
+  @ApiResponse({ status: 200, description: "Lấy danh sách người tham gia trong cuộc họp thành công" })
+  @ApiResponse({ status: 400, description: "Dữ liệu không hợp lệ" })
+  @ApiResponse({ status: 500, description: "Lỗi server" })
+  async getAll() {
+    try {
+      const resData = await this.meetingAttendeesService.findAll();
+      return BaseResponse.success(resData, MESSAGE.MEETING_ATTENDEE_GET_ALL_SUCCESS, HttpStatus.OK);
+    } catch (error) {
+      throw new HttpException(
+        { message: error.message },
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
 
   @Get(':id')
   @ApiOperation({ summary: "Lấy thông tin người tham gia trong cuộc họp theo ID" })
@@ -66,15 +83,15 @@ export class MeetingAttendeesController {
     }
   }
 
-  @Get()
-  @ApiOperation({ summary: "Lấy danh sách người tham gia trong cuộc họp" })
-  @ApiResponse({ status: 200, description: "Lấy danh sách người tham gia trong cuộc họp thành công" })
+  @Get('not-attended/elections/:electionId')
+  @ApiOperation({ summary: "Lấy danh sách người tham gia chưa tham dự cuộc họp theo ID cuộc bầu cử" })
+  @ApiResponse({ status: 200, description: "Lấy danh sách người tham gia chưa tham dự cuộc họp theo ID cuộc bầu cử thành công" })
   @ApiResponse({ status: 400, description: "Dữ liệu không hợp lệ" })
   @ApiResponse({ status: 500, description: "Lỗi server" })
-  async getAll() {
+  async getNotAttendedByElectionId(@Param('electionId') electionId: string) {
     try {
-      const resData = await this.meetingAttendeesService.findAll();
-      return BaseResponse.success(resData, MESSAGE.MEETING_ATTENDEE_GET_ALL_SUCCESS, HttpStatus.OK);
+      const resData = await this.meetingAttendeesService.getParticipantsNotAttended(electionId);
+      return BaseResponse.success(resData, MESSAGE.MEETING_ATTENDEE_GET_NOT_ATTENDED_BY_ELECTION_ID_SUCCESS, HttpStatus.OK);
     } catch (error) {
       throw new HttpException(
         { message: error.message },
@@ -82,6 +99,7 @@ export class MeetingAttendeesController {
       );
     }
   }
+
 
   @Post()
   @ApiOperation({ summary: "Tạo người tham gia trong cuộc họp" })

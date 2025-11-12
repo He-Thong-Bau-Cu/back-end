@@ -47,8 +47,8 @@ export class ElectionParticipantsController {
   }
 
   @Get('elections/:electionId')
-  @ApiOperation({ summary: 'Lấy thông tin của người tham gia cuộc bầu cử theo ID' })
-  @ApiResponse({ status: 201, description: 'Lấy thông tin của người tham gia cuộc bầu cử theo ID thành công' })
+  @ApiOperation({ summary: 'Lấy danh sách thông tin của người tham gia theo cuộc bầu cử' })
+  @ApiResponse({ status: 201, description: 'Lấy danh sách thông tin của người tham gia theo cuộc bầu cử thành công' })
   @ApiResponse({ status: 400, description: 'Dữ liệu không hợp lệ.' })
   @ApiResponse({ status: 500, description: 'Lỗi server' })
   async getByElection(@Param('electionId') electionId: string): Promise<BaseResponse> {

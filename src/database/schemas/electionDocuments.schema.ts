@@ -3,11 +3,12 @@ import { Date, Document, Types } from 'mongoose';
 import { Elections } from './elections.schema';
 import { STATUS } from 'src/common/enums/status.enum';
 import { ElectionsParticipants } from './electionParticipants.schema';
+import { BaseSchema } from './base.schema';
 
 export type ElectionDocument = ElectionDocuments & Document;
 
 @Schema()
-export class ElectionDocuments {
+export class ElectionDocuments extends BaseSchema {
   @Prop({ type: Types.ObjectId, ref: Elections.name, required: true })
   electionId: Types.ObjectId;
 
