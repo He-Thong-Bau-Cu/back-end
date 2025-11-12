@@ -301,7 +301,7 @@ export class DelegateCardsService {
             {
               stack: [
                 { text: "THẺ ĐẠI BIỂU", style: "title" },
-                { text: "Bussiness Software Solution", style: "sub" }
+                { text: "Hệ thống bầu cử online", style: "sub" }
               ]
             },
             hasAvatar

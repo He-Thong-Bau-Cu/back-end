@@ -11,6 +11,8 @@ import { MESSAGE } from 'src/common/enums/message.enum';
 import { STATUS } from 'src/common/enums/status.enum';
 import { CustomRequest } from 'src/common/middleware/auth.middleware';
 import { UsersService } from '../users/users.service';
+import { BaseSearchDTO } from 'src/common/dto/base-search.dto';
+import { paginate } from 'src/common/dto/paignation';
 
 @Injectable()
 export class DelegationsService {
@@ -167,6 +169,7 @@ export class DelegationsService {
     try {
       const delegations = await this.delegationModel
         .find({ status: STATUS.ACTIVE })
+        .populate('electionId', 'title startDate endDate delegationStart delegationEnd status statusData decisionNumber decisionName')
         .populate('delegatorId', 'username fullName email position')
         .populate('delegateId', 'username fullName email position')
         .populate('confirmedBy', 'username fullName email position')
@@ -203,9 +206,17 @@ export class DelegationsService {
 
   async getById(id: string) {
     try {
+      //kiểm tra xem có delegationId không
+      const delegationExist = await this.delegationModel.exists({
+        _id: new Types.ObjectId(id),
+      });
+      if (!delegationExist) {
+        throw new Error(MESSAGE.DELEGATION_NOT_FOUND);
+      }
       console.log('id: ', id);
       const delegation = await this.delegationModel
         .findById(new Types.ObjectId(id))
+        .populate('electionId', 'title startDate endDate delegationStart delegationEnd status statusData decisionNumber decisionName')
         .populate('delegatorId', 'username fullName email position')
         .populate('delegateId', 'username fullName email position')
         .populate('confirmedBy', 'username fullName email position')
@@ -403,6 +414,69 @@ export class DelegationsService {
         )
         .exec();
       return delegation;
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  async searchDelegations(req: BaseSearchDTO) {
+    try {
+      //search theo election
+      const elections = await this.electionModel.find({
+        title: { $regex: req.keyword || '', $options: 'i' },
+      }).collation({ locale: 'vi', strength: 1 }).lean();
+
+      const electionIds = elections.map((e) => e._id);
+
+      //search theo delegator
+      const delegators = await this.userModel.find({
+        $or: [
+          { fullName: { $regex: req.keyword || '', $options: 'i' } },
+          { email: { $regex: req.keyword || '', $options: 'i' } },
+          { username: { $regex: req.keyword || '', $options: 'i' } },
+        ]
+      })
+        .collation({ locale: 'vi', strength: 1 }).lean();
+      const delegatorIds = delegators.map((d) => d._id);
+      //search theo delegate
+      const delegates = await this.userModel.find({
+        $or: [
+          { fullName: { $regex: req.keyword || '', $options: 'i' } },
+          { email: { $regex: req.keyword || '', $options: 'i' } },
+          { username: { $regex: req.keyword || '', $options: 'i' } },
+        ]
+      })
+        .collation({ locale: 'vi', strength: 1 }).lean();
+      const delegateIds = delegates.map((d) => d._id);
+
+      //tìm kiếm trong delegation
+      const delegations = await this.delegationModel
+        .find({
+          $or: [
+            { delegateReason: { $regex: req.keyword || '', $options: 'i' } },
+            { status: { $regex: req.keyword || '', $options: 'i' } }]
+        })
+        .collation({ locale: 'vi', strength: 1 }).lean();
+      const delegationIds = delegations.map((d) => d._id);
+
+      const query: any = {};
+      if (electionIds.length > 0) { query.electionId = { $in: electionIds }; }
+      if (delegatorIds.length > 0) { query.delegatorId = { $in: delegatorIds }; }
+      if (delegateIds.length > 0) { query.delegateId = { $in: delegateIds }; }
+      if (delegationIds.length > 0) { query._id = { $in: delegationIds }; }
+      const result = await this.delegationModel
+        .find(query)
+        .populate('electionId', 'title startDate endDate delegationStart delegationEnd status statusData decisionNumber decisionName')
+        .populate('delegatorId', 'username fullName email position')
+        .populate('delegateId', 'username fullName email position')
+        .populate('confirmedBy', 'username fullName email position')
+        .populate('documentId', 'title file_url status')
+        .populate('createdBy', 'username fullName email position')
+        .populate('updatedBy', 'username fullName email position')
+        .exec();
+
+      return paginate(result, req.page, req.limit);
+
     } catch (error) {
       throw error;
     }
