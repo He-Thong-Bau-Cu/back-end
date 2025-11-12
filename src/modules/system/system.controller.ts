@@ -231,7 +231,7 @@ export class SystemController {
     status: HttpStatus.INTERNAL_SERVER_ERROR,
     description: MESSAGE_STATUS.SERVER_ERROR,
   })
-  @Put(`${ENDPOINT.ROLE}/${METHOD.UPDATE}`)
+  @Post(`${ENDPOINT.ROLE}/${METHOD.UPDATE}`)
   async updateRole(@Body() req: RoleDto) {
     try {
       const resData = await this.roleService.updateRole(req);
@@ -269,10 +269,10 @@ export class SystemController {
     status: HttpStatus.INTERNAL_SERVER_ERROR,
     description: MESSAGE_STATUS.SERVER_ERROR,
   })
-  @Delete(`${ENDPOINT.ROLE}/${METHOD.DELETE}`)
-  async deleteRole(@Body() req: RoleDto) {
+  @Delete(`${ENDPOINT.ROLE}/${METHOD.DELETE}/:id`)
+  async deleteRole(@Param("id") id: string) {
     try {
-      const resData = await this.roleService.deleteRole(req);
+      const resData = await this.roleService.deleteRole(id);
       return BaseResponse.success(resData, MESSAGE_STATUS.ROLE_DELETE, HttpStatus.OK);
     } catch (e) {
       throw new HttpException({ message: e.message }, HttpStatus.INTERNAL_SERVER_ERROR);
@@ -307,7 +307,7 @@ export class SystemController {
     status: HttpStatus.INTERNAL_SERVER_ERROR,
     description: MESSAGE_STATUS.SERVER_ERROR,
   })
-  @Post(`${ENDPOINT.ROLE}/${METHOD.SEARCH}`)
+  @Post(`${ENDPOINT.PERMISSION}/${METHOD.SEARCH}`)
   async searchPermission(@Body() req: PermissionDto) {
     try {
       const resData = await this.roleService.searchPermission(req);
@@ -345,7 +345,7 @@ export class SystemController {
     status: HttpStatus.INTERNAL_SERVER_ERROR,
     description: MESSAGE_STATUS.SERVER_ERROR,
   })
-  @Put(`${ENDPOINT.PERMISSION}/${METHOD.UPDATE}`)
+  @Post(`${ENDPOINT.PERMISSION}/${METHOD.UPDATE}`)
   async updatePermission(@Body() req: PermissionDto) {
     try {
       const resData = await this.roleService.updatePermission(req);
@@ -383,10 +383,10 @@ export class SystemController {
     status: HttpStatus.INTERNAL_SERVER_ERROR,
     description: MESSAGE_STATUS.SERVER_ERROR,
   })
-  @Delete(`${ENDPOINT.PERMISSION}/${METHOD.DELETE}`)
-  async deletePermission(@Body() req: PermissionDto) {
+  @Delete(`${ENDPOINT.PERMISSION}/${METHOD.DELETE}/:id`)
+  async deletePermission(@Param('id') id: string) {
     try {
-      const resData = await this.roleService.deletePermission(req);
+      const resData = await this.roleService.deletePermission(id);
       return BaseResponse.success(resData, MESSAGE_STATUS.PERMISSION_DELETE, HttpStatus.OK);
     } catch (e) {
       throw new HttpException({ message: e.message }, HttpStatus.INTERNAL_SERVER_ERROR);
