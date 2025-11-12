@@ -1,8 +1,10 @@
 // Error Messages
 export enum MESSAGE {
-    // Election
-    ELECTION_NOT_FOUND = 'Không tìm thấy cuộc bầu cử',
-    ELECTION_IS_NOT_ACTIVE = 'Cuộc bầu cử không hoạt động',
+  SUCCESS = 'Thành công',
+  ERROR = 'Không thành công',
+  // Election
+  ELECTION_NOT_FOUND = 'Không tìm thấy cuộc bầu cử',
+  ELECTION_IS_NOT_ACTIVE = 'Cuộc bầu cử không hoạt động',
 
     // Election Documents
     ELECTION_DOCUMENT_NOT_FOUND = 'Không tìm thấy tài liệu kỳ bầu cử',
