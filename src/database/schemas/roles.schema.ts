@@ -11,13 +11,13 @@ export class Roles extends BaseSchema {
   @Prop({ required: true, unique: true })
   roleName: string;
 
-  @Prop({ required: true, unique: true })
+  @Prop({ unique: true })
   roleCode: string;
 
   @Prop({ default: null })
   description: string;
 
-  @Prop({ required: true, default: STATUS.ACTIVE })
+  @Prop({ default: STATUS.ACTIVE })
   status: string;
 }
 

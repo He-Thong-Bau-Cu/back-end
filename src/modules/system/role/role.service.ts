@@ -46,11 +46,13 @@ export class RoleService {
     }
   }
 
-  async getStatsPermission(){
+  async getStatsPermission() {
     try {
       const totalPermission = await this.permissionModel.countDocuments();
       const activePermission = await this.permissionModel.countDocuments({ status: STATUS.ACTIVE });
-      const inactivePermission = await this.permissionModel.countDocuments({ status: STATUS.INACTIVE });
+      const inactivePermission = await this.permissionModel.countDocuments({
+        status: STATUS.INACTIVE,
+      });
       return { totalPermission, activePermission, inactivePermission };
     } catch (e) {
       throw e;
@@ -60,7 +62,7 @@ export class RoleService {
   async createRole(req: RoleDto) {
     try {
       const checkRole = await this.roleModel
-        .findOne({ roleName: req.roleName, roleCode: req.roleCode })
+        .findOne({ $or: [{ roleName: req.roleName }, { roleCode: req.roleCode }] })
         .exec();
       if (checkRole) {
         throw new Error('Tên quyền hoặc mã quyền đã tồn tại');
@@ -73,7 +75,7 @@ export class RoleService {
       });
       await newRole.save();
       const newRolePermission = new this.rolePermissionModel({
-        roleId: newRole.id,
+        roleId: newRole._id,
         permissionIds: [],
       });
       await newRolePermission.save();
@@ -90,16 +92,24 @@ export class RoleService {
         throw new Error('Quyền không tồn tại');
       }
       const checkValidRole = await this.roleModel.findOne({
-        _id: { $ne: new Types.ObjectId(req.roleId) },
-        $or: [{ name: req.roleName }, { code: req.roleCode }],
+        $or: [{ roleName: req.roleName }, { roleCode: req.roleCode }],
+        _id: { $ne: roleData._id },
       });
       if (checkValidRole) {
         throw new Error('Tên quyền hoặc mã quyền đã tồn tại');
       }
-      roleData.roleName = req.roleName;
-      roleData.roleCode = req.roleCode;
-      roleData.description = req.description;
-      roleData.status = req.status;
+      if (req.roleName) {
+        roleData.roleName = req.roleName;
+      }
+      if (req.roleCode) {
+        roleData.roleCode = req.roleCode;
+      }
+      if (req.description) {
+        roleData.description = req.description;
+      }
+      if (req.status) {
+        roleData.status = req.status;
+      }
       return await roleData.save();
     } catch (e) {
       throw e;
@@ -118,9 +128,9 @@ export class RoleService {
     }
   }
 
-  async deleteRole(req: RoleDto) {
+  async deleteRole(id: string) {
     try {
-      const roleData = await this.roleModel.findById(new Types.ObjectId(req.roleId)).exec();
+      const roleData = await this.roleModel.findById(new Types.ObjectId(id)).exec();
       if (!roleData) {
         throw new Error('Quyền không tồn tại');
       }
@@ -156,7 +166,10 @@ export class RoleService {
 
   async getAllPermission() {
     try {
-      const permissionData = await this.permissionModel.find({ status: STATUS.ACTIVE }).exec();
+      const permissionData = await this.permissionModel
+        .find({ status: STATUS.ACTIVE })
+        .sort({ permissionName: 1 })
+        .exec();
       return permissionData;
     } catch (e) {
       throw e;
@@ -183,9 +196,14 @@ export class RoleService {
 
   async searchPermission(req: PermissionDto) {
     try {
-      const permissionData = await this.permissionModel
-        .find({ permissionName: req.permissionName })
-        .exec();
+      const query: any = {};
+
+      if (req.permissionName && req.permissionName.trim() !== '') {
+        query.permissionName = { $regex: req.permissionName, $options: 'i' };
+      }
+
+      const permissionData = await this.permissionModel.find(query).exec();
+
       return paginate(permissionData, req.page, req.limit);
     } catch (e) {
       throw e;
@@ -226,7 +244,7 @@ export class RoleService {
         throw new Error('Quyền không tồn tại');
       }
       const checkValidPermission = await this.permissionModel.findOne({
-        _id: { $ne: new Types.ObjectId(req.permissionId) },
+        _id: { $ne: permissionData._id },
         $or: [
           { permissionName: req.permissionName },
           { permissionCode: req.permissionCode },
@@ -236,11 +254,21 @@ export class RoleService {
       if (checkValidPermission) {
         throw new Error('Tên quyền, mã quyền hoặc url đã tồn tại');
       }
-      permissionData.permissionName = req.permissionName;
-      permissionData.permissionCode = req.permissionCode;
-      permissionData.url = req.url;
-      permissionData.description = req.description;
-      permissionData.status = req.status;
+      if (req.permissionName) {
+        permissionData.permissionName = req.permissionName;
+      }
+      if (req.permissionCode) {
+        permissionData.permissionCode = req.permissionCode;
+      }
+      if (req.url) {
+        permissionData.url = req.url;
+      }
+      if (req.description) {
+        permissionData.description = req.description;
+      }
+      if (req.status) {
+        permissionData.status = req.status;
+      }
       return await permissionData.save();
     } catch (e) {
       throw e;
@@ -261,11 +289,9 @@ export class RoleService {
     }
   }
 
-  async deletePermission(req: PermissionDto) {
+  async deletePermission(id: string) {
     try {
-      const permissionData = await this.permissionModel
-        .findById(new Types.ObjectId(req.permissionId))
-        .exec();
+      const permissionData = await this.permissionModel.findById(new Types.ObjectId(id)).exec();
       if (!permissionData) {
         throw new Error('Quyền không tồn tại');
       }
