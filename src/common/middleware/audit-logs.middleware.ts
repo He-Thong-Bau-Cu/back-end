@@ -29,6 +29,8 @@ export class AuditLogsMiddleware implements NestMiddleware {
           return;
         }
 
+        const clientIp = req.headers['x-client-ip'] as string | undefined;
+
         // Lấy userId từ JWT payload (sub field)
         const userId = new Types.ObjectId(user.sub);
 
@@ -43,7 +45,7 @@ export class AuditLogsMiddleware implements NestMiddleware {
           reference_id: refId,
           old_value: res.locals?.oldData || null, // Nếu controller có set
           new_value: res.locals?.newData || body || null,
-          ip_address: ip,
+          ip_address: clientIp ? clientIp : ip,
           user_agent: headers['user-agent'],
         });
 
