@@ -48,6 +48,41 @@ export class DelegationsController {
     }
   }
 
+  //Get By DelegateId
+  @Get('delegate/users/:delegateId')
+  @ApiOperation({ summary: "Lấy thông tin ủy quyền theo ID người được ủy quyền" })
+  @ApiResponse({ status: 200, description: "Lấy thông tin ủy quyền theo ID người được ủy quyền thành công" })
+  @ApiResponse({ status: 400, description: 'Dữ liệu không hợp lệ.' })
+  @ApiResponse({ status: 500, description: 'Lỗi server' })
+  async getDelegationsByDelegateId(@Param('delegateId') delegateId: string): Promise<BaseResponse> {
+    try {
+      const resData = await this.delegationsService.getByDelegate(delegateId);
+      return BaseResponse.success(resData, MESSAGE.DELEGATION_GET_BY_DELEGATE_SUCCESS, HttpStatus.OK);
+    } catch (error) {
+      throw new HttpException(
+        { message: error.message },
+        HttpStatus.INTERNAL_SERVER_ERROR
+      )
+    }
+  }
+
+  @Get('delegator/users/:delegatorId')
+  @ApiOperation({ summary: "Lấy thông tin ủy quyền theo ID người ủy quyền" })
+  @ApiResponse({ status: 200, description: "Lấy thông tin ủy quyền theo ID người ủy quyền thành công" })
+  @ApiResponse({ status: 400, description: 'Dữ liệu không hợp lệ.' })
+  @ApiResponse({ status: 500, description: 'Lỗi server' })
+  async getDelegationsByDelegatorId(@Param('delegatorId') delegatorId: string): Promise<BaseResponse> {
+    try {
+      const resData = await this.delegationsService.getByDelegator(delegatorId);
+      return BaseResponse.success(resData, MESSAGE.DELEGATION_GET_BY_DELEGATOR_SUCCESS, HttpStatus.OK);
+    } catch (error) {
+      throw new HttpException(
+        { message: error.message },
+        HttpStatus.INTERNAL_SERVER_ERROR
+      )
+    }
+  }
+
   //Get Delegations has status=pending
   @Get('pending')
   @ApiOperation({ summary: "Lấy danh sách ủy quyền cần xác minh " })
