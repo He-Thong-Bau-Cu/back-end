@@ -125,13 +125,15 @@ export enum MESSAGE {
     DELEGATION_CREATE_SUCCESS = 'Tạo ủy quyền thành công',
     DELEGATION_UPDATE_SUCCESS = 'Cập nhật ủy quyền thành công',
     DELEGATION_DELETE_SUCCESS = 'Xóa ủy quyền thành công',
-    DELEGATION_DELEGATOR_FALIL = 'Bạn không thể tự ủy quyền cho chính bạn được',
-    DELEGATION_USER_FALIL = 'Tạo người ủy quyền thất bại',
+    DELEGATION_DELEGATOR_FAIL = 'Bạn không thể tự ủy quyền cho chính bạn được',
+    DELEGATION_USER_FAIL = 'Tạo người ủy quyền thất bại',
     DELEGATION_GET_BY_DELEGATOR_AND_ELECTION_SUCCESS = 'Lấy thông tin ủy quyền theo ID người ủy quyền và ID cuộc bầu cử thành công',
     DELEGATOR_NOT_FOUND = "Không tìm thấy người ủy quyền",
     DELEGATE_NOT_FOUND = "Không tìm thấy người được ủy quyền",
     DELEGATOR_ALREADY_AUTHORIZED = "Người ủy quyền đã ủy quyền cho người khác cho cuộc bầu cử này",
     DELEGATE_ALREADY_AUTHORIZED = "Người được ủy quyền đã được ủy quyền trong cuộc bầu cử này",
+    DELEGATION_GET_BY_DELEGATE_SUCCESS = 'Lấy danh sách ủy quyền theo người được ủy quyền thành công',
+    DELEGATION_GET_BY_DELEGATOR_SUCCESS = 'Lấy danh sách ủy quyền theo người ủy quyền thành công',
 
 
 
