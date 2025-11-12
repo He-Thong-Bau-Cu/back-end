@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, HttpException, HttpStatus, Put, Req } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, HttpException, HttpStatus, Put, Req, Query } from '@nestjs/common';
 import { DelegationsService } from './delegations.service';
 import { CreateDelegationDto } from './dto/create-delegation.dto';
 import { UpdateDelegationDto } from './dto/update-delegation.dto';
@@ -8,10 +8,28 @@ import { MESSAGE } from 'src/common/enums/message.enum';
 import { CustomRequest } from 'src/common/middleware/auth.middleware';
 import { BaseSearchDTO } from 'src/common/dto/base-search.dto';
 
+
 @ApiBearerAuth('access-token')
 @Controller('delegations')
 export class DelegationsController {
   constructor(private readonly delegationsService: DelegationsService) { }
+
+  @Get('status')
+  @ApiOperation({ summary: "Lấy danh sách ủy quyền theo trạng thái" })
+  @ApiResponse({ status: 200, description: "Lấy danh sách ủy quyền theo trạng thái thành công" })
+  @ApiResponse({ status: 400, description: 'Dữ liệu không hợp lệ.' })
+  @ApiResponse({ status: 500, description: 'Lỗi server' })
+  async getByStatus(@Query('status') status: string): Promise<BaseResponse> {
+    try {
+      const resData = await this.delegationsService.getByStatus(status);
+      return BaseResponse.success(resData, MESSAGE.DELEGATION_GET_BY_STATUS_SUCCESS, HttpStatus.OK);
+    } catch (error) {
+      throw new HttpException(
+        { message: error.message },
+        HttpStatus.INTERNAL_SERVER_ERROR
+      )
+    }
+  }
 
   @Post('search')
   @ApiOperation({ summary: "Tìm kiếm thông tin ủy quyền" })
@@ -101,6 +119,23 @@ export class DelegationsController {
     }
   }
 
+  @Get('status-active')
+  @ApiOperation({ summary: "Lấy danh sách ủy quyền theo trạng thái" })
+  @ApiResponse({ status: 200, description: "Lấy danh sách ủy quyền theo trạng thái thành công" })
+  @ApiResponse({ status: 400, description: 'Dữ liệu không hợp lệ.' })
+  @ApiResponse({ status: 500, description: 'Lỗi server' })
+  async getDelegationsByStatus(): Promise<BaseResponse> {
+    try {
+      const resData = await this.delegationsService.getStatusActive();
+      return BaseResponse.success(resData, MESSAGE.DELEGATION_GET_BY_STATUS_SUCCESS, HttpStatus.OK);
+    } catch (error) {
+      throw new HttpException(
+        { message: error.message },
+        HttpStatus.INTERNAL_SERVER_ERROR
+      )
+    }
+  }
+
   //Get Delegations has status=pending
   @Get('pending')
   @ApiOperation({ summary: "Lấy danh sách ủy quyền cần xác minh " })
@@ -109,7 +144,7 @@ export class DelegationsController {
   @ApiResponse({ status: 500, description: 'Lỗi server' })
   async getDelegationsStatusPending(): Promise<BaseResponse> {
     try {
-      const resData = await this.delegationsService.getDeletaionsPending();
+      const resData = await this.delegationsService.getDelegationsPending();
       return BaseResponse.success(resData, MESSAGE.DELEGATION_GET_PENDING_SUCCESS, HttpStatus.OK);
     } catch (error) {
       throw new HttpException(
@@ -137,22 +172,7 @@ export class DelegationsController {
       )
     }
   }
-  @Get('status')
-  @ApiOperation({ summary: "Lấy danh sách ủy quyền theo trạng thái" })
-  @ApiResponse({ status: 200, description: "Lấy danh sách ủy quyền theo trạng thái thành công" })
-  @ApiResponse({ status: 400, description: 'Dữ liệu không hợp lệ.' })
-  @ApiResponse({ status: 500, description: 'Lỗi server' })
-  async getDelegationsByStatus(): Promise<BaseResponse> {
-    try {
-      const resData = await this.delegationsService.getStatusActive();
-      return BaseResponse.success(resData, MESSAGE.DELEGATION_GET_BY_STATUS_SUCCESS, HttpStatus.OK);
-    } catch (error) {
-      throw new HttpException(
-        { message: error.message },
-        HttpStatus.INTERNAL_SERVER_ERROR
-      )
-    }
-  }
+
 
   @Post()
   @ApiOperation({ summary: 'Tạo mới ủy quyền' })
@@ -193,5 +213,6 @@ export class DelegationsController {
       );
     }
   }
+
 
 }

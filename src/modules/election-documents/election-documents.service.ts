@@ -7,6 +7,7 @@ import { Model, Types } from 'mongoose';
 import { Elections } from 'src/database/schemas/elections.schema';
 import { ElectionsParticipants } from 'src/database/schemas/electionParticipants.schema';
 import { MESSAGE } from 'src/common/enums/message.enum';
+import { paginate } from 'src/common/dto/paignation';
 
 @Injectable()
 export class ElectionDocumentsService {
@@ -110,5 +111,18 @@ export class ElectionDocumentsService {
       throw error;
     }
   }
-
+  async getByCreatedBy(userId: string) {
+    try {
+      const electionDocuments = await this.electionDocumentsModel
+        .find({ createdBy: new Types.ObjectId(userId) })
+        .populate('electionId', 'title startDate endDate delegationStart delegationEnd status statusData decisionNumber decisionName')
+        .populate('preparedBy')
+        .populate('createdBy', 'username fullName email position')
+        .populate('updatedBy', 'username fullName email position')
+        .exec();
+      return paginate(electionDocuments);
+    } catch (error) {
+      throw error;
+    }
+  }
 }

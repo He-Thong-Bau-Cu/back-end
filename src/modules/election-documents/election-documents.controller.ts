@@ -41,7 +41,7 @@ export class ElectionDocumentsController {
   async getById(@Param('id') id: string): Promise<BaseResponse> {
     try {
       const resData = await this.electionDocumentsService.getById(id);
-      return BaseResponse.success(resData, MESSAGE.ELECTION_DOCUMENT_GET_SUCCESS, HttpStatus.OK);
+      return BaseResponse.success(resData, MESSAGE.ELECTION_DOCUMENT_GET_BY_ID_SUCCESS, HttpStatus.OK);
     } catch (error) {
       throw new HttpException(
         { message: error.message },
@@ -68,6 +68,24 @@ export class ElectionDocumentsController {
     }
   }
 
+  @Get('createdBy/users/:userId')
+  @ApiOperation({ summary: "Lấy danh sách tài liệu của cuộc bầu cử theo người tạo" })
+  @ApiResponse({ status: 200, description: "Lấy danh sách tài liệu của cuộc bầu cử theo người tạo thành công" })
+  @ApiResponse({ status: 400, description: "Dữ liệu không hợp lệ" })
+  @ApiResponse({ status: 500, description: "Lỗi server" })
+  async getByCreatedBy(@Param('userId') userId: string): Promise<BaseResponse> {
+    try {
+      const resData = await this.electionDocumentsService.getByCreatedBy(userId);
+      return BaseResponse.success(resData, MESSAGE.ELECTION_DOCUMENT_GET_BY_CREATED_BY_SUCCESS, HttpStatus.OK);
+    } catch (error) {
+      throw new HttpException(
+        { message: error.message },
+        HttpStatus.INTERNAL_SERVER_ERROR
+      )
+    }
+  }
+
+
   @Put(':id')
   @ApiOperation({ summary: "Cập nhật tài liệu của cuộc bầu cử" })
   @ApiResponse({ status: 200, description: "Cập nhật tài liệu của cuộc bầu cử thành công" })
@@ -75,8 +93,8 @@ export class ElectionDocumentsController {
   @ApiResponse({ status: 500, description: "Lỗi server" })
   @HttpCode(HttpStatus.OK)
   async update(
-    @Param('id') id: string, 
-    @Body() updateElectionDocumentDto: UpdateElectionDocumentDto, 
+    @Param('id') id: string,
+    @Body() updateElectionDocumentDto: UpdateElectionDocumentDto,
     @Req() req: CustomRequest): Promise<BaseResponse> {
     try {
       const resData = await this.electionDocumentsService.update(id, updateElectionDocumentDto, req.user.sub);

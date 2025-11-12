@@ -10,6 +10,9 @@ export enum MESSAGE {
     ELECTION_DOCUMENT_GET_SUCCESS = 'Lấy danh sách tài liệu theo electionId thành công',
     ELECTION_DOCUMENT_DELETE_SUCCESS = 'Xóa tài liệu theo electionId thành công',
     ELECTION_DOCUMENT_UPDATE_SUCCESS = 'Cập nhật tài liệu theo electionId thành công',
+    ELECTION_DOCUMENT_GET_BY_CREATED_BY_SUCCESS = 'Lấy danh sách tài liệu theo người tạo thành công',
+    ELECTION_DOCUMENT_GET_BY_ID_SUCCESS = 'Lấy thông tin tài liệu kỳ bầu cử theo ID thành công',
+
 
     // User
     USER_NOT_FOUND = 'Không tìm thấy người dùng',
@@ -20,6 +23,7 @@ export enum MESSAGE {
     USER_CREATE_SUCCESS = 'Tạo người dùng thành công',
     USER_UPDATE_SUCCESS = 'Cập nhật người dùng thành công',
     USER_DELETE_SUCCESS = 'Xóa người dùng thành công',
+    USER_GET_NON_VOTER_SUCCESS = 'Lấy danh sách người dùng không phải cử tri thành công',
 
     // Voter
     VOTER_NOT_FOUND = 'Không tìm thấy cử tri',
@@ -87,9 +91,15 @@ export enum MESSAGE {
     ELECTION_ENTITY_CREATE_SUCCESS = 'Tạo đối tượng tham gia cuộc bầu cử thành công',
     ELECTION_ENTITY_UPDATE_SUCCESS = 'Cập nhật đối tượng tham gia cuộc bầu cử thành công',
     ELECTION_ENTITY_DELETE_SUCCESS = 'Xóa đối tượng tham gia cuộc bầu cử thành công',
+
+    // Election Types
+    ELECTION_TYPE_SEARCH_SUCCESS = 'Tìm kiếm loại cuộc bầu cử thành công',
     ELECTION_TYPE_NOT_FOUND = 'Không tìm thấy loại cuộc bầu cử',
     ELECTION_TYPE_CREATE_SUCCESS = 'Tạo loại bầu cử thành công',
     ELECTION_TYPE_CODE_NOT_FOUND = 'Không tìm thấy loại bầu cử',
+    ELECTION_TYPE_UPDATE_SUCCESS = 'Cập nhật loại bầu cử thành công',
+    ELECTION_TYPE_DELETE_SUCCESS = 'Xóa loại bầu cử thành công',
+    ELECTION_TYPE_GET_BY_ID_SUCCESS = 'Lấy thông tin loại cuộc bầu cử thành công',
     NO_PARTICIPANTS_LINKED = 'Người đề xuất không có trong cuộc bầu cử',
 
 
@@ -114,6 +124,7 @@ export enum MESSAGE {
     MEETING_ATTENDEE_DELETE_SUCCESS = "Xóa người tham gia trong cuộc họp thành công",
     MEETING_ATTENDEE_UPDATE_STATUS_SUCCESS = 'Cập nhật trạng thái tham gia cuộc họp thành công',
     MEETING_ATTENDEE_GET_ALL_SUCCESS = 'Lấy danh sách người tham gia trong cuộc họp thành công',
+    MEETING_ATTENDEE_GET_NOT_ATTENDED_BY_ELECTION_ID_SUCCESS = "Lấy danh sách người vắng mặt trong cuộc họp theo ID cuộc bầu cử thành công",
 
 
     // Delegations
@@ -135,6 +146,7 @@ export enum MESSAGE {
     DELEGATION_GET_BY_DELEGATE_SUCCESS = 'Lấy danh sách ủy quyền theo người được ủy quyền thành công',
     DELEGATION_GET_BY_DELEGATOR_SUCCESS = 'Lấy danh sách ủy quyền theo người ủy quyền thành công',
     DELEGATION_SEARCH_SUCCESS = 'Tim kiếm ủy quyền thành công',
+    DELEGATION_GET_BY_STATUS_ACTIVE_SUCCESS = 'Lấy danh sách ủy quyền theo đang hoạt động thành công',
 
 
 

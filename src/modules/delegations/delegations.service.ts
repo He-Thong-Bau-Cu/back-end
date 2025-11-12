@@ -13,6 +13,7 @@ import { CustomRequest } from 'src/common/middleware/auth.middleware';
 import { UsersService } from '../users/users.service';
 import { BaseSearchDTO } from 'src/common/dto/base-search.dto';
 import { paginate } from 'src/common/dto/paignation';
+import { validateStatusFormat } from 'src/common/utils/format';
 
 @Injectable()
 export class DelegationsService {
@@ -204,6 +205,47 @@ export class DelegationsService {
     }
   }
 
+  async getByStatus(status: string) {
+    try {
+      //Kiểm tra trạng thái có hợp lệ không
+      validateStatusFormat(status);
+      const delegations = await this.delegationModel
+        .find({ status })
+        .populate('electionId', 'title startDate endDate delegationStart delegationEnd status statusData decisionNumber decisionName')
+        .populate('delegatorId', 'username fullName email position')
+        .populate('delegateId', 'username fullName email position')
+        .populate('confirmedBy', 'username fullName email position')
+        .populate('documentId', 'title file_url status')
+        .populate('createdBy', 'username fullName email position')
+        .populate('updatedBy', 'username fullName email position')
+        .exec();
+
+      //kiểm tra có delegation
+      if (!delegations) {
+        throw new Error(`Không có ủy quyền theo trạng thái: ${status}`);
+      }
+
+      // Populate documentId cho từng delegation nếu có
+      for (const delegation of delegations) {
+        const docId = delegation.documentId as any;
+        if (docId && docId !== '' && Types.ObjectId.isValid(docId)) {
+          const document = await this.documentModel
+            .findById(docId)
+            .select('title file_url status')
+            .lean()
+            .exec();
+          (delegation as any).documentId = document;
+        } else {
+          (delegation as any).documentId = null;
+        }
+      }
+
+      return delegations;
+    } catch (error) {
+      throw error;
+    }
+  }
+
   async getById(id: string) {
     try {
       //kiểm tra xem có delegationId không
@@ -213,7 +255,7 @@ export class DelegationsService {
       if (!delegationExist) {
         throw new Error(MESSAGE.DELEGATION_NOT_FOUND);
       }
-      console.log('id: ', id);
+
       const delegation = await this.delegationModel
         .findById(new Types.ObjectId(id))
         .populate('electionId', 'title startDate endDate delegationStart delegationEnd status statusData decisionNumber decisionName')
@@ -246,10 +288,10 @@ export class DelegationsService {
     }
   }
 
-  async getDeletaionsPending() {
+  async getDelegationsPending() {
     try {
       const delegation = await this.delegationModel
-        .findOne({ status: 'pending' })
+        .findOne({ status: STATUS.PENDING })
         .populate('delegatorId', 'username fullName email position')
         .populate('delegateId', 'username fullName email position')
         .populate('confirmedBy', 'username fullName email position')
@@ -282,9 +324,9 @@ export class DelegationsService {
   async create(createDelegation: CreateDelegationDto, userId: string) {
     try {
       //Check if the election is exist
-      const electionExist = await this.electionModel.exists({
-        _id: new Types.ObjectId(createDelegation.electionId),
-      });
+      const electionExist = await this.electionModel.findById(
+        new Types.ObjectId(createDelegation.electionId),
+      );
       if (!electionExist) {
         throw new Error(MESSAGE.ELECTION_NOT_FOUND);
       }
@@ -340,6 +382,15 @@ export class DelegationsService {
         throw new Error(
           'Ngày kết thúc phải lớn hơn ngày hiện tại và không được trùng với ngày hiện tại',
         );
+      }
+      //Check delegation period is within election delegation period
+      if (createDelegation.delegationType == ' ELECTION') {
+        if (
+          startDate < electionExist.delegationStart ||
+          endDate > electionExist.delegationEnd
+        ) {
+          throw new Error('Thời gian ủy quyền phải trong khoảng thời gian ủy quyền của cuộc bầu cử');
+        }
       }
       //Check if the document is exist
       if (createDelegation.documentId) {

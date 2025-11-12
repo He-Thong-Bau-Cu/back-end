@@ -15,7 +15,7 @@ export class StatisticsController {
   @ApiOperation({ summary: 'Lấy thông tin thống kê cho chủ tịch' })
   @ApiResponse({ status: 200, description: 'Lấy thông tin thống kê cho chủ tịch thành công' })
   @ApiResponse({ status: 500, description: 'Lỗi server' })
-  async getDashboardPreside(): Promise<BaseResponse> {
+  async getDashboardPreside():Promise<BaseResponse> {
     try {
       const resData = await this.statisticsService.getDashboardPreside();
       return BaseResponse.success(resData, MESSAGE.STATISTICS_GET_DASHBOARD_PRESIDENT_SUCCESS, HttpStatus.OK);
@@ -37,25 +37,6 @@ export class StatisticsController {
       return BaseResponse.success(data, MESSAGE.STATISTICS_GET_DASHBOARD_PRESIDENT_SUCCESS, HttpStatus.OK);
     } catch (error) {
       throw new HttpException({ message: error.message }, HttpStatus.INTERNAL_SERVER_ERROR);
-    }
-  }
-
-  @Get('board-of-control/:electionId')
-  @ApiOperation({ summary: 'Lấy thông tin thống kê cho ban kiểm phiếu' })
-  @ApiResponse({ status: 200, description: 'Lấy thông tin thống kê thành công' })
-  @ApiResponse({ status: 404, description: 'Không tìm thấy cuộc bầu cử' })
-  @ApiResponse({ status: 500, description: 'Lỗi server' })
-  async getBoardOfControlDashboard(
-    @Param('electionId') electionId: string,
-  ): Promise<BaseResponse> {
-    try {
-      const data = await this.statisticsService.getBoardOfControlDashboard(electionId);
-      return BaseResponse.success(data, 'Lấy thông tin bảng điều khiển ban kiểm phiếu thành công', HttpStatus.OK);
-    } catch (error) {
-      throw new HttpException(
-        { message: error.message },
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
     }
   }
 }

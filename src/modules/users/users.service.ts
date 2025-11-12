@@ -35,6 +35,30 @@ export class UsersService {
     }
   }
 
+  async getNonVoterUsers() {
+    try {
+      // Find the VOTER role
+      const voterRole = await this.roleModel.findOne({ roleCode: USER_ROLE.VOTER });
+      
+      if (!voterRole) {
+        console.log('Voter role not found');
+        return [];
+      }
+
+      // Find users who don't have the VOTER role
+      const users = await this.userModel
+        .find({ 
+          roleId: { $ne: voterRole._id }
+        })
+        .populate('roleId')
+        .exec();
+
+      return users;
+    } catch (error) {
+      throw error;
+    }
+  }
+
   async getById(id: string) {
     try {
       const user = await this.userModel.findById(new Types.ObjectId(id)).populate('roleId').exec();
