@@ -126,7 +126,8 @@ export enum MESSAGE {
     MEETING_ATTENDEE_DELETE_SUCCESS = "Xóa người tham gia trong cuộc họp thành công",
     MEETING_ATTENDEE_UPDATE_STATUS_SUCCESS = 'Cập nhật trạng thái tham gia cuộc họp thành công',
     MEETING_ATTENDEE_GET_ALL_SUCCESS = 'Lấy danh sách người tham gia trong cuộc họp thành công',
-    MEETING_ATTENDEE_GET_NOT_ATTENDED_BY_ELECTION_ID_SUCCESS = "Lấy danh sách người vắng mặt trong cuộc họp theo ID cuộc bầu cử thành công",
+    MEETING_ATTENDEE_GET_NOT_ATTENDED_BY_ELECTION_ID_SUCCESS = "Lấy danh sách người vắng mặt trong cuộc họp theo cuộc bầu cử thành công",
+    MEETING_ATTENDEE_GET_ATTENDED_BY_ELECTION_ID_SUCCESS = "Lấy danh sách người đã tham dự cuộc họp theo cuộc bầu cử thành công",
 
 
     // Delegations
@@ -211,6 +212,8 @@ export enum MESSAGE {
     RESULT_GET_BY_ID_SUCCESS = 'Lấy kết quả theo ID thành công',
     RESULT_CREATE_SUCCESS = 'Tạo kết quả thành công',
     RESULT_UPDATE_SUCCESS = 'Cập nhật kết quả thành công',
+    RESULT_SEARCH_SUCCESS = 'Tìm kiếm kết quả thành công',
+    RESULT_DELETE_SUCCESS = 'Xóa kết quả thành công',
 
 
 

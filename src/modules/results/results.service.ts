@@ -7,6 +7,7 @@ import { Model, Types } from 'mongoose';
 import { Elections } from 'src/database/schemas/elections.schema';
 import { ElectionEntities } from 'src/database/schemas/electionEntities.schema';
 import { MESSAGE } from 'src/common/enums/message.enum';
+import { BaseSearchDTO } from 'src/common/dto/base-search.dto';
 
 @Injectable()
 export class ResultsService {
@@ -19,13 +20,37 @@ export class ResultsService {
     private readonly electionEntitiesModel: Model<ElectionEntities>,
   ) { }
 
-  async findAll() {
+
+
+  async search(req: BaseSearchDTO) {
     try {
-      const results = await this.resultsModel.find()
+      //search theo electionId
+      const matchedElection = await this.electionsModel.find({
+        title: { $regex: req.keyword, $options: 'i' }
+      }).collation({ locale: 'vi', strength: 1 }).lean().exec();
+      const electionIds = matchedElection.map(election => election._id);
+      //search theo entity title
+      const matchedEntity = await this.electionEntitiesModel.find({
+        $or: [
+          { title: { $regex: req.keyword, $options: 'i' } },
+          { description: { $regex: req.keyword, $options: 'i' } },
+          { metaData: { $regex: req.keyword, $options: 'i' } },
+          { fileUrl: { $regex: req.keyword, $options: 'i' } },
+          { status: { $regex: req.keyword, $options: 'i' } }
+        ]
+      }).collation({ locale: 'vi', strength: 1 }).lean().exec();
+      const entityIds = matchedEntity.map(entity => entity._id);
+
+      //tim kiem trong result
+      const query: any = {};
+      if (electionIds.length > 0) query.electionId = { $in: electionIds };
+      if (entityIds.length > 0) query.entityId = { $in: entityIds };
+      const results = await this.resultsModel.find(query)
         .populate('electionId', 'title startDate endDate delegationStart delegationEnd status decisionNumber decisionName')
         .populate('entityId', 'title description metaData fileUrl proposerId status')
         .exec();
       return results;
+
     } catch (error) {
       throw error;
     }

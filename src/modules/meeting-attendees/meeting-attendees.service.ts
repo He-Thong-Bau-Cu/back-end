@@ -242,4 +242,44 @@ export class MeetingAttendeesService {
       throw error;
     }
   }
+
+  async getParticipantsAttended(electionId: string) {
+    try {
+      //Kiểm tra xem electionId có tồn tại không
+      const electionExist = await this.electionsModel.exists({ _id: electionId });
+      if (!electionExist) {
+        throw new Error(MESSAGE.ELECTION_NOT_FOUND);
+      }
+      //Kiểm tra xem election đấy có cuộc họp nào không
+      const meeting = await this.meetingsModel.findOne({ electionId: new Types.ObjectId(electionId) });
+      if (!meeting) {
+        throw new Error("Không tìm thấy cuộc họp nào cho kỳ bầu cử này");
+      }
+      //Tìm những participant đã tham gia cuộc họp
+      const attendees = await this.meetingAttendeesModel.find({ meetingId: meeting._id, attended: true })
+        .populate({
+          path: 'participantId',
+          populate: [
+            { path: 'electionId' },
+            { path: 'userId', select: 'fullName username email phone position department' },
+            { path: 'roleId', select: 'roleName roleCode description status' },
+            { path: 'createdBy', select: 'username fullName position department' },
+            { path: 'updatedBy', select: 'username fullName position department' }
+          ]
+        })
+        .populate({
+          path: 'meetingId',
+          populate: [
+            {
+              path: 'electionId',
+              select: 'title startDate endDate delegationStart delegationEnd status statusData decisionNumber decisionName'
+            },
+          ]
+        })
+        .exec();
+      return paginate(attendees);
+    } catch (error) {
+      throw error;
+    }
+  }
 }
