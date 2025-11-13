@@ -21,19 +21,19 @@ export class CreateDelegationDto {
     @IsString()
     electionId: string
 
-    @ApiPropertyOptional({
+    @ApiProperty({
         description: "Id của người ủy quyền",
         example: "651f0a7c1f2b4d1a12345678"
     })
-    @IsOptional()
+    @IsNotEmpty()
     @IsString()
     delegatorId: string
 
-    @ApiProperty({
+    @ApiPropertyOptional({
         description: "Id của người được ủy quyền",
         example: "651f0a7c1f2b4d1a12345678"
     })
-    @IsNotEmpty()
+    @IsOptional()
     @IsString()
     delegateId: string
 
