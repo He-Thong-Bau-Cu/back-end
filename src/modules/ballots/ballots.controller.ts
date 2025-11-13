@@ -64,14 +64,14 @@ export class BallotsController {
     }
   }
 
-  @Get('statistics')
+  @Get('statistics/elections/:electionId')
   @ApiOperation({ summary: 'Lấy thống kê phiếu bầu' })
   @ApiResponse({ status: 200, description: 'Lấy thống kê phiếu bầu thành công' })
   @ApiResponse({ status: 400, description: 'Dữ liệu không hợp lệ' })
   @ApiResponse({ status: 500, description: 'Lỗi server' })
-  async getStatistics(): Promise<BaseResponse> {
+  async getStatistics(@Param('electionId') electionId: string): Promise<BaseResponse> {
     try {
-      const resData = await this.ballotsService.getStatistics();
+      const resData = await this.ballotsService.getStatistics(electionId);
       return BaseResponse.success(resData, MESSAGE.BALLOT_STATISTICS_SUCCESS, HttpStatus.OK);
     } catch (error) {
       throw new HttpException(

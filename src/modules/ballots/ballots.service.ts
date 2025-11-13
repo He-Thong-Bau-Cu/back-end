@@ -362,25 +362,27 @@ export class BallotsService {
   }
 
 
-  async getStatistics() {
+  async getStatistics(electionId: string) {
     try {
       //Lấy tổng số phiếu của cuộc bầu cử
-      const ballots = await this.ballotsModel.countDocuments();
+      const ballots = await this.ballotsModel.countDocuments({ electionId: new Types.ObjectId(electionId) });
 
       //Lấy tổng số phiếu đã bình chọn và chưa bình chonk => pending và active
-      const ballotStatus = await this.ballotsModel.aggregate([
-        {
-          $match: {
-            status: { $in: [STATUS.PENDING, STATUS.CAST] },
+      const ballotStatus = await this.ballotsModel
+        .aggregate([
+          {
+            $match: {
+              electionId: new Types.ObjectId(electionId),
+              status: { $in: [STATUS.PENDING, STATUS.CAST] },
+            },
           },
-        },
-        {
-          $group: {
-            _id: '$status',
-            totalBallots: { $sum: 1 },
+          {
+            $group: {
+              _id: '$status',
+              totalBallots: { $sum: 1 },
+            },
           },
-        },
-      ]);
+        ]);
       return {
         total: ballots,
         ballotStatus,
