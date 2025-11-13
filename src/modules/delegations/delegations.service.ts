@@ -378,10 +378,10 @@ export class DelegationsService {
       if (endDate <= startDate) {
         throw new Error('Ngày kết thúc phải lớn hơn ngày bắt đầu');
       }
-      if (startDate < new Date()) {
+      if (startDate <= new Date()) {
         throw new Error('Ngày bắt đầu phải lớn hơn ngày hiện tại');
       }
-      if (endDate <= new Date()) {
+      if (endDate < new Date()) {
         throw new Error(
           'Ngày kết thúc phải lớn hơn ngày hiện tại và không được trùng với ngày hiện tại',
         );
