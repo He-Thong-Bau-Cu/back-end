@@ -15,6 +15,8 @@ import {
   RolePermissionsDocument,
 } from 'src/database/schemas/rolePermissions.schema';
 import { Voters, VotersDocument } from 'src/database/schemas/voters.schema';
+import { Permissions, PermissionsDocument } from 'src/database/schemas/permissions.schema';
+import { STATUS } from 'src/common/enums/status.enum';
 
 @Injectable()
 export class ElectionParticipantsService {
@@ -30,8 +32,10 @@ export class ElectionParticipantsService {
     @InjectModel(RolePermissions.name)
     private readonly rolePermissionModel: Model<RolePermissionsDocument>,
     @InjectModel(Voters.name)
-    private readonly votersModel: Model<VotersDocument>
-  ) { }
+    private readonly votersModel: Model<VotersDocument>,
+    @InjectModel(Permissions.name)
+    private readonly permissionsModel: Model<PermissionsDocument>,
+  ) {}
   async getParticipantsAsVoter(electionId: string) {
     try {
       //kiểm tra xem electionId có tồn tại không
@@ -144,7 +148,8 @@ export class ElectionParticipantsService {
           { path: 'userId', select: 'fullName username email phone position department' },
           { path: 'createdBy', select: 'fullName username email phone position' },
           { path: 'updatedBy', select: 'fullName username email phone position' },
-        ]).lean()
+        ])
+        .lean()
         .exec();
       if (!electionParticipants) {
         throw new NotFoundException(MESSAGE.ELECTION_PARTICIPANT_NOT_FOUND);
@@ -152,18 +157,22 @@ export class ElectionParticipantsService {
       const mapData = await Promise.all(
         electionParticipants.map(async (item) => {
           const rolePermission = await this.rolePermissionModel
-            .findOne({ roleId: item.roleId })
+            .findOne({ roleId: item.roleId._id })
+            .populate('permissionIds', 'url')
             .exec();
 
           const voters = await this.votersModel.findOne({
             electionId: item.electionId,
             userId: item.userId,
-          })
+          });
+
+          const permissionElections =
+            (rolePermission?.permissionIds as any[])?.map((p) => p.url) || [];
 
           return {
             ...item,
-            permissionElections: rolePermission?.permissionIds || [],
-            voter: voters?._id || null
+            permissionElections: permissionElections || [],
+            voter: voters?._id || null,
           };
         }),
       );
