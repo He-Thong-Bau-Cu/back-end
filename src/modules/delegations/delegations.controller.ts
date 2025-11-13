@@ -12,6 +12,8 @@ import {
   Req,
   Query,
   Res,
+  UseInterceptors,
+  UploadedFile,
 } from '@nestjs/common';
 import { DelegationsService } from './delegations.service';
 import { CreateDelegationDto } from './dto/create-delegation.dto';
@@ -23,6 +25,8 @@ import { CustomRequest } from 'src/common/middleware/auth.middleware';
 import { BaseSearchDTO } from 'src/common/dto/base-search.dto';
 import { Response } from 'express';
 import { DelegationDto } from './dto/delegation.dto';
+import { METHOD } from 'src/common/enums/method.enum';
+import { FileInterceptor } from '@nestjs/platform-express';
 
 @ApiBearerAuth('access-token')
 @Controller('delegations')
@@ -30,8 +34,8 @@ export class DelegationsController {
   constructor(private readonly delegationsService: DelegationsService) {}
 
   @Get('status')
-  @ApiOperation({ summary: "Lấy danh sách ủy quyền theo trạng thái" })
-  @ApiResponse({ status: 200, description: "Lấy danh sách ủy quyền theo trạng thái thành công" })
+  @ApiOperation({ summary: 'Lấy danh sách ủy quyền theo trạng thái' })
+  @ApiResponse({ status: 200, description: 'Lấy danh sách ủy quyền theo trạng thái thành công' })
   @ApiResponse({ status: 400, description: 'Dữ liệu không hợp lệ.' })
   @ApiResponse({ status: 500, description: 'Lỗi server' })
   async getByStatus(@Query('status') status: string): Promise<BaseResponse> {
@@ -39,16 +43,13 @@ export class DelegationsController {
       const resData = await this.delegationsService.getByStatus(status);
       return BaseResponse.success(resData, MESSAGE.DELEGATION_GET_BY_STATUS_SUCCESS, HttpStatus.OK);
     } catch (error) {
-      throw new HttpException(
-        { message: error.message },
-        HttpStatus.INTERNAL_SERVER_ERROR
-      )
+      throw new HttpException({ message: error.message }, HttpStatus.INTERNAL_SERVER_ERROR);
     }
   }
 
   @Post('search')
-  @ApiOperation({ summary: "Tìm kiếm thông tin ủy quyền" })
-  @ApiResponse({ status: 200, description: "Tìm kiếm thông tin ủy quyền thành công" })
+  @ApiOperation({ summary: 'Tìm kiếm thông tin ủy quyền' })
+  @ApiResponse({ status: 200, description: 'Tìm kiếm thông tin ủy quyền thành công' })
   @ApiResponse({ status: 400, description: 'Dữ liệu không hợp lệ.' })
   @ApiResponse({ status: 500, description: 'Lỗi server' })
   async searchDelegations(@Body() req: BaseSearchDTO): Promise<BaseResponse> {
@@ -56,10 +57,7 @@ export class DelegationsController {
       const resData = await this.delegationsService.searchDelegations(req);
       return BaseResponse.success(resData, MESSAGE.DELEGATION_SEARCH_SUCCESS, HttpStatus.OK);
     } catch (error) {
-      throw new HttpException(
-        { message: error.message },
-        HttpStatus.INTERNAL_SERVER_ERROR
-      )
+      throw new HttpException({ message: error.message }, HttpStatus.INTERNAL_SERVER_ERROR);
     }
   }
 
@@ -159,8 +157,8 @@ export class DelegationsController {
   }
 
   @Get('status-active')
-  @ApiOperation({ summary: "Lấy danh sách ủy quyền theo trạng thái" })
-  @ApiResponse({ status: 200, description: "Lấy danh sách ủy quyền theo trạng thái thành công" })
+  @ApiOperation({ summary: 'Lấy danh sách ủy quyền theo trạng thái' })
+  @ApiResponse({ status: 200, description: 'Lấy danh sách ủy quyền theo trạng thái thành công' })
   @ApiResponse({ status: 400, description: 'Dữ liệu không hợp lệ.' })
   @ApiResponse({ status: 500, description: 'Lỗi server' })
   async getDelegationsByStatus(): Promise<BaseResponse> {
@@ -168,10 +166,7 @@ export class DelegationsController {
       const resData = await this.delegationsService.getStatusActive();
       return BaseResponse.success(resData, MESSAGE.DELEGATION_GET_BY_STATUS_SUCCESS, HttpStatus.OK);
     } catch (error) {
-      throw new HttpException(
-        { message: error.message },
-        HttpStatus.INTERNAL_SERVER_ERROR
-      )
+      throw new HttpException({ message: error.message }, HttpStatus.INTERNAL_SERVER_ERROR);
     }
   }
 
@@ -268,5 +263,25 @@ export class DelegationsController {
     });
 
     res.send(pdfBuffer);
+  }
+
+  @Post(`${METHOD.APPROVE}`)
+  @UseInterceptors(FileInterceptor('file'))
+  async approveDelegation(
+    @UploadedFile() fileP12: Express.Multer.File,
+    @Body('electionId') electionId: string,
+    @Body('password') password: string,
+    @Req() req: CustomRequest,
+  ) {
+    try {
+      const resData = await this.delegationsService.approvedAndSign(fileP12, req.user.sub, electionId, password);
+      return BaseResponse.success(
+        resData,
+        'Duyệt và ký thành công tổng hợp dữ liệu ủy quyền!',
+        HttpStatus.OK,
+      );
+    } catch (error) {
+      throw new HttpException({ message: error.message }, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
   }
 }

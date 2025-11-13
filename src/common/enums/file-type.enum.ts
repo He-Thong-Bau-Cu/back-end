@@ -18,11 +18,20 @@ export enum FileType {
   // Delegation related files
   DELEGATION_DOCUMENT = 'delegation-documents',
 
+  // Delegation summary signed
+  DELEGATION_SUMMARY_SIGNED = 'delegation-summary-signed',
+
   // Signature related files
   SIGNED_DOCUMENT = 'signed-documents',
 
   // General
   TEMP = 'temp',
   UPLOAD = 'uploads',
+
+  // ca
+  CA = 'ca',
+
+  // signature
+  SIGNATURE = 'signature',
 }
 

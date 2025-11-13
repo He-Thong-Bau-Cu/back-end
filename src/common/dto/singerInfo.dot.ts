@@ -5,5 +5,4 @@ export class SignerInfo {
   stateOrProvinceName: string;
   localityName: string;
   emailAddress: string;
-  password: string;
 }
