@@ -183,7 +183,7 @@ export class DelegationsController {
   @ApiResponse({ status: 500, description: 'Lỗi server' })
   async getDelegationsStatusPending(): Promise<BaseResponse> {
     try {
-      const resData = await this.delegationsService.getDeletaionsPending();
+      const resData = await this.delegationsService.getDelegationsPending();
       return BaseResponse.success(resData, MESSAGE.DELEGATION_GET_PENDING_SUCCESS, HttpStatus.OK);
     } catch (error) {
       throw new HttpException({ message: error.message }, HttpStatus.INTERNAL_SERVER_ERROR);
