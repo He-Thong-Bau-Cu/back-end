@@ -345,13 +345,15 @@ export class DelegationsService {
       }
 
       //Check delegate have adready been authorized or not
-      const delegateAuthorized = await this.delegationModel.findOne({
-        delegateId: new Types.ObjectId(createDelegation.delegateId),
-        electionId: new Types.ObjectId(createDelegation.electionId),
-        status: { $in: [STATUS.ACTIVE, STATUS.PENDING, STATUS.CONFIRMED] },
-      });
-      if (delegateAuthorized) {
-        throw new Error(MESSAGE.DELEGATE_ALREADY_AUTHORIZED);
+      if (createDelegation?.delegateId) {
+        const delegateAuthorized = await this.delegationModel.findOne({
+          delegateId: new Types.ObjectId(createDelegation.delegateId),
+          electionId: new Types.ObjectId(createDelegation.electionId),
+          status: { $in: [STATUS.ACTIVE, STATUS.PENDING, STATUS.CONFIRMED] },
+        });
+        if (delegateAuthorized) {
+          throw new Error(MESSAGE.DELEGATE_ALREADY_AUTHORIZED);
+        }
       }
       //Check if the user is exist
       const delegatorExist = await this.userModel.exists({
@@ -361,17 +363,18 @@ export class DelegationsService {
         throw new Error(MESSAGE.DELEGATOR_NOT_FOUND);
       }
       //Check if the user is exist
-      const delegateExist = await this.userModel.exists({
-        _id: new Types.ObjectId(createDelegation.delegateId),
-      });
-      if (!delegateExist) {
-        throw new Error(MESSAGE.DELEGATE_NOT_FOUND);
+      if (createDelegation?.delegateId) {
+        const delegateExist = await this.userModel.exists({
+          _id: new Types.ObjectId(createDelegation.delegateId),
+        });
+        if (!delegateExist) {
+          throw new Error(MESSAGE.DELEGATE_NOT_FOUND);
+        }
+        //Kiểm tra người ủy quyền và người được ủy tuyển có trùng userId không
+        if (createDelegation.delegatorId === createDelegation.delegateId) {
+          throw new Error(MESSAGE.DELEGATION_DELEGATOR_FAIL);
+        }
       }
-      //Kiểm tra người ủy quyền và người được ủy tuyển có trùng userId không
-      if (createDelegation.delegatorId === createDelegation.delegateId) {
-        throw new Error(MESSAGE.DELEGATION_DELEGATOR_FAIL);
-      }
-
       //kiểm tra thời gian bắt đầu và kết thúc
       const startDate = new Date(createDelegation.startDate);
       const endDate = new Date(createDelegation.endDate);
@@ -417,11 +420,13 @@ export class DelegationsService {
         ...createDelegation,
         electionId: new Types.ObjectId(createDelegation.electionId),
         delegatorId: new Types.ObjectId(createDelegation.delegatorId),
-        delegateId: new Types.ObjectId(createDelegation.delegateId),
+        delegateId: createDelegation?.delegateId
+          ? new Types.ObjectId(createDelegation.delegateId)
+          : null,
         documentId: createDelegation.documentId
           ? new Types.ObjectId(createDelegation.documentId)
           : null,
-        confirmedBy: createDelegation.confirmedBy
+        confirmedBy: createDelegation?.confirmedBy
           ? new Types.ObjectId(createDelegation.confirmedBy)
           : null,
         createdBy: new Types.ObjectId(userId) || null,
