@@ -362,6 +362,18 @@ export class DelegationsService {
         throw new Error(MESSAGE.ELECTION_NOT_FOUND);
       }
 
+      //Kiểm tra thông tin user nếu người được ủy quyền chưa có tài khoản trong hệ thống
+      if (createDelegation.delegateInfo && createDelegation.delegateId == null) {
+        if (!createDelegation.delegateInfo.fullName || !createDelegation.delegateInfo.email || !createDelegation.delegateInfo.citizenId || !createDelegation.delegateInfo.phone || !createDelegation.delegateInfo.address) {
+          throw new Error(MESSAGE.DELEGATE_INFO_INCOMPLETE);
+        }
+      }
+      //Kiểm  tra delegateId và delegateInfo không được cùng tồn tại
+      if (createDelegation.delegateInfo && createDelegation.delegateId) {
+        throw new Error(MESSAGE.DELEGATE_INFO_CONFLICT);
+      }
+
+
       //Check delegator have already authorized or not
       const delegatorAuthorized = await this.delegationModel.findOne({
         delegatorId: new Types.ObjectId(createDelegation.delegatorId),
