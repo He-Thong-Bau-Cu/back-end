@@ -30,6 +30,76 @@ export class DelegateCardsController {
     }
   }
 
+  @Get('token/:token')
+  @ApiOperation({ summary: "Lấy thẻ đại biểu hoặc thẻ ủy quyền bằng token" })
+  @ApiResponse({ status: 200, description: "Lấy thẻ đại biểu hoặc thẻ ủy quyền bằng token thành công" })
+  @ApiResponse({ status: 400, description: "Dữ liệu không hợp lệ" })
+  @ApiResponse({ status: 500, description: "Lỗi server" })
+  async getByToken(@Param('token') token: string): Promise<BaseResponse> {
+    try {
+
+      const resData = await this.delegateCardsService.getByToken(token);
+      return BaseResponse.success(resData, MESSAGE.DELEGATE_CARD_GET_BY_ELECTION_SUCCESS, HttpStatus.OK);
+    } catch (e) {
+      throw new HttpException(
+        { message: e.message },
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @Get(':id')
+  @ApiOperation({ summary: "Lấy thẻ đại biểu hoặc ủy quyền bằng id" })
+  @ApiResponse({ status: 200, description: "Lấy thẻ đại biểu hoặc ủy quyền bằng id thành công" })
+  @ApiResponse({ status: 400, description: "Dữ liệu không hợp lệ" })
+  @ApiResponse({ status: 500, description: "Lỗi server" })
+  async getById(@Param('id') id: string): Promise<BaseResponse> {
+    try {
+      const resData = await this.delegateCardsService.getById(id);
+      return BaseResponse.success(resData, MESSAGE.DELEGATE_CARD_GET_BY_ID_SUCCESS, HttpStatus.OK);
+    } catch (e) {
+      throw new HttpException(
+        { message: e.message },
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @Get('elections/:electionId')
+  @ApiOperation({ summary: "Lấy thẻ đại biểu hoặc thẻ ủy quyền bằng id cuộc bầu cử" })
+  @ApiResponse({ status: 200, description: "Lấy thẻ đại biểu hoặc thẻ ủy quyền bằng id cuộc bầu cử thành công" })
+  @ApiResponse({ status: 400, description: "Dữ liệu không hợp lệ" })
+  @ApiResponse({ status: 500, description: "Lỗi server" })
+  async getByElectionId(@Param('electionId') electionId: string): Promise<BaseResponse> {
+    try {
+      const resData = await this.delegateCardsService.getByElectionId(electionId);
+      return BaseResponse.success(resData, MESSAGE.DELEGATE_CARD_GET_BY_ELECTION_SUCCESS, HttpStatus.OK);
+    } catch (e) {
+      throw new HttpException(
+        { message: e.message },
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @Get('voters/:voterId')
+  @ApiOperation({ summary: "Lấy thẻ đại biểu hoặc thẻ ủy quyền bằng id cử tri" })
+  @ApiResponse({ status: 200, description: "Lấy thẻ đại biểu hoặc thẻ ủy quyền bằng id cử tri thành công" })
+  @ApiResponse({ status: 400, description: "Dữ liệu không hợp lệ" })
+  @ApiResponse({ status: 500, description: "Lỗi server" })
+  async getByVoterId(@Param('voterId') voterId: string): Promise<BaseResponse> {
+    try {
+      const resData = await this.delegateCardsService.getByVoterId(voterId);
+      return BaseResponse.success(resData, MESSAGE.DELEGATE_CARD_GET_BY_VOTER_SUCCESS, HttpStatus.OK);
+    } catch (e) {
+      throw new HttpException(
+        { message: e.message },
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+
   @Get('qrcode/:id')
   @ApiOperation({ summary: "Tạo mã QR cho thẻ đại biểu hoặc ủy quyền" })
   @ApiResponse({ status: 200, description: "Tạo mã QR cho thẻ đại biểu hoặc ủy quyền thành công" })
@@ -67,21 +137,5 @@ export class DelegateCardsController {
     }
   }
 
-  @Get('token')
-  @ApiOperation({ summary: "Lấy thẻ đại biểu hoặc thẻ ủy quyền bằng token" })
-  @ApiResponse({ status: 200, description: "Lấy thẻ đại biểu hoặc thẻ ủy quyền bằng token thành công" })
-  @ApiResponse({ status: 400, description: "Dữ liệu không hợp lệ" })
-  @ApiResponse({ status: 500, description: "Lỗi server" })
-  async getByToken(@Param('token') token: string): Promise<BaseResponse> {
-    try {
 
-      const resData = await this.delegateCardsService.getByToken(token);
-      return BaseResponse.success(resData, MESSAGE.DELEGATE_CARD_GET_BY_ELECTION_SUCCESS, HttpStatus.OK);
-    } catch (e) {
-      throw new HttpException(
-        { message: e.message },
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
-    }
-  }
 }

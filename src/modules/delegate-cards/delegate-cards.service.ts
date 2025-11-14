@@ -20,6 +20,7 @@ import { formatDateDMY } from 'src/common/utils/format';
 import { MinioService } from '../minio/minio.service';
 import console from 'console';
 import path from 'path';
+import { STATUS } from 'src/common/enums/status.enum';
 
 
 @Injectable()
@@ -159,6 +160,7 @@ export class DelegateCardsService {
 
   async getByToken(token: string) {
     try {
+
       const delegateCard = await this.delegateCardModel
         .findOne({ token: token })
         .populate('electionId')
@@ -246,8 +248,8 @@ export class DelegateCardsService {
     try {
       const now = new Date();
       const delegateCards = await this.delegateCardModel.find({
-        status: 'ACTIVE',
-        expiresAt: { $gt: now }
+        status: STATUS.ACTIVE,
+        expiresAt: { $gte: now }
       })
         .populate({
           path: 'delegationId',
@@ -306,10 +308,10 @@ export class DelegateCardsService {
             },
             hasAvatar
               ? {
-                  image: avatarBase64,
-                  width: 90,
-                  alignment: "right"
-                }
+                image: avatarBase64,
+                width: 90,
+                alignment: "right"
+              }
               : { text: "" }
           ]
         },

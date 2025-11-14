@@ -323,7 +323,7 @@ export class VotersService {
 
       // 1. Lấy tổng số voter trong cuộc bầu cử
       const totalVoters = await this.voterModel.countDocuments({
-        electionId: electionExists._id,
+        electionId: new Types.ObjectId(electionId)
       });
 
       // 2. Lấy role VOTER
@@ -334,8 +334,8 @@ export class VotersService {
 
       // 3. Lấy tổng số người tham gia cuộc bầu cử 
       const totalParticipants = await this.electionParticipantsModel.countDocuments({
-        electionId: electionExists._id,
-        status: STATUS.ACTIVE,
+        electionId: new Types.ObjectId(electionId),
+        //status: STATUS.ACTIVE,
       });
 
       // 4. Tính tỉ lệ phần trăm: (voters / participants) * 100
@@ -345,7 +345,7 @@ export class VotersService {
 
       //5. Số lượng voter chưa tham gia cuộc bầu cử
       const voterNotActive = await this.voterModel.countDocuments({
-        electionId: electionExists._id,
+        electionId: new Types.ObjectId(electionId),
         roleId: voterRole._id,
         status: { $in: [STATUS.INVITED, STATUS.CONFIRMED] }
       })

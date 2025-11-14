@@ -13,6 +13,7 @@ import { paginate } from '../../common/dto/paignation';
 import * as bcrypt from 'bcrypt';
 import { USER_ROLE } from '../../common/enums/config.enum';
 import { MinioService } from '../minio/minio.service';
+import { isValidateCitizenId, isValidEmail, isValidPhone } from 'src/common/utils/format';
 
 @Injectable()
 export class UsersService {
@@ -39,7 +40,7 @@ export class UsersService {
     try {
       // Find the VOTER role
       const voterRole = await this.roleModel.findOne({ roleCode: USER_ROLE.VOTER });
-      
+
       if (!voterRole) {
         console.log('Voter role not found');
         return [];
@@ -47,7 +48,7 @@ export class UsersService {
 
       // Find users who don't have the VOTER role
       const users = await this.userModel
-        .find({ 
+        .find({
           roleId: { $ne: voterRole._id }
         })
         .populate('roleId')
@@ -110,6 +111,15 @@ export class UsersService {
       }
       if (!req.citizenId) {
         throw new Error('Số căn cước công dân không được để trống !');
+      }
+      if (!isValidEmail(req.email)) {
+        throw new Error('Gmail không hợp lệ !');
+      }
+      if (!isValidPhone(req.phone)) {
+        throw new Error('Số điện thoại không hợp lệ !');
+      }
+      if (!isValidateCitizenId(req.citizenId)) {
+        throw new Error('Số căn cước công dân không hợp lệ !');
       }
       const checkValidUser = await this.userModel
         .findOne({
