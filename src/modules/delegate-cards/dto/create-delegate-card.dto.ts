@@ -36,6 +36,6 @@ export class CreateDelegateCardDto {
   //   description: 'Trạng thái thẻ (Active / Expired / Revoked)',
   // })
   @IsOptional()
-  @IsNotEmpty()
+  @IsString()
   status: string;
 }

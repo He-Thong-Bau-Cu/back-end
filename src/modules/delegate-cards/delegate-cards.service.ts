@@ -21,6 +21,7 @@ import { MinioService } from '../minio/minio.service';
 import console from 'console';
 import path from 'path';
 import { STATUS } from 'src/common/enums/status.enum';
+import axios from 'axios';
 
 
 @Injectable()
@@ -47,6 +48,30 @@ export class DelegateCardsService {
     const token = this.jwtService.sign(payload, { expiresIn: '24h' });
     return token;
   }
+  private async urlToBase64(imageUrl: string): Promise<string | null> {
+    try {
+      if (!imageUrl || !imageUrl.startsWith("http")) {
+        console.log("Hình thức của đường dẫn không hợp lệ:", imageUrl);
+        return null;
+      }
+
+      const response = await axios.get(imageUrl, { responseType: "arraybuffer" });
+
+      const mimeType = response.headers["content-type"] || "";
+      if (!mimeType.startsWith("image/")) {
+        console.log("Avatar không phải là một hình ảnh:", mimeType, imageUrl);
+        return null;
+      }
+
+      const base64 = Buffer.from(response.data, "binary").toString("base64");
+      return `data:${mimeType};base64,${base64}`;
+    } catch (error) {
+      console.log("Không thể truy cập URL ảnh:", imageUrl);
+      console.log("Lỗi Axios:", error?.response?.status, error?.response?.data);
+      return null;
+    }
+  }
+
 
   async generateDelegateCardQRCode(delegateCardId: string) {
     try {
@@ -112,7 +137,8 @@ export class DelegateCardsService {
       const token = this.generateToken(createDelegateCardDto.electionId, createDelegateCardDto.voterId);
       const { qrCode } = await this.authService.generateQRCode(token);
       const userIdObj = voterExists.userId as Users & { _id: string };
-      const avatarBase64: any = await this.minioService.getProfileImageUrl(userIdObj._id.toString(), userIdObj.image);
+      const avatar: any = await this.minioService.getProfileImageUrl(userIdObj._id.toString(), userIdObj.image);
+
 
 
 
@@ -136,7 +162,7 @@ export class DelegateCardsService {
         voterExists.userId.address,
         votingRight ? votingRight.shares : 0,
         createdDelegateCard._id,
-        avatarBase64,
+        avatar,
         qrCode
       );
 
@@ -163,8 +189,14 @@ export class DelegateCardsService {
 
       const delegateCard = await this.delegateCardModel
         .findOne({ token: token })
-        .populate('electionId')
-        .populate('voterId')
+        .populate('electionId', "title startDate endDate delegationStart delegationEnd status statusData decisionNumber decisionName")
+        .populate({
+          path: 'voterId',
+          populate: [
+            { path: "userId", select: "username fullName email position citizenId address image department dateOfBirth" },
+          ],
+
+        })
         .populate('delegationId')
         .populate('createdBy', 'username fullName email position')
         .populate('updatedBy', 'username fullName email position')
@@ -182,8 +214,14 @@ export class DelegateCardsService {
     try {
       const delegateCard = await this.delegateCardModel
         .findById(new Types.ObjectId(id))
-        .populate('electionId')
-        .populate('voterId')
+        .populate('electionId', "title startDate endDate delegationStart delegationEnd status statusData decisionNumber decisionName")
+        .populate({
+          path: 'voterId',
+          populate: [
+            { path: "userId", select: "username fullName email position citizenId address image department dateOfBirth" },
+          ],
+
+        })
         .populate('delegationId')
         .populate('createdBy', 'username fullName email position')
         .populate('updatedBy', 'username fullName email position')
@@ -206,8 +244,14 @@ export class DelegateCardsService {
       }
       const delegateCards = await this.delegateCardModel
         .find({ electionId: new Types.ObjectId(electionId) })
-        .populate('electionId')
-        .populate('voterId')
+        .populate('electionId', "title startDate endDate delegationStart delegationEnd status statusData decisionNumber decisionName")
+        .populate({
+          path: 'voterId',
+          populate: [
+            { path: "userId", select: "username fullName email position citizenId address image department dateOfBirth" },
+          ],
+
+        })
         .populate('delegationId')
         .populate('createdBy', 'username fullName email position')
         .populate('updatedBy', 'username fullName email position')
@@ -229,8 +273,14 @@ export class DelegateCardsService {
       }
       const delegateCards = await this.delegateCardModel
         .find({ voterId: new Types.ObjectId(voterId) })
-        .populate('electionId')
-        .populate('voterId')
+        .populate('electionId', "title startDate endDate delegationStart delegationEnd status statusData decisionNumber decisionName")
+        .populate({
+          path: 'voterId',
+          populate: [
+            { path: "userId", select: "username fullName email position citizenId address image department dateOfBirth" },
+          ],
+
+        })
         .populate('delegationId')
         .populate('createdBy', 'username fullName email position')
         .populate('updatedBy', 'username fullName email position')
@@ -293,7 +343,15 @@ export class DelegateCardsService {
 
     const printer = new PdfPrinter(fonts);
 
-    const hasAvatar = typeof avatarBase64 === 'string' && avatarBase64.startsWith('data:');
+    let avatarBase64Final = "";
+
+    if (avatarBase64?.startsWith("http")) {
+      avatarBase64Final = await this.urlToBase64(avatarBase64) || "";
+    } else if (avatarBase64 && avatarBase64.startsWith("data:")) {
+      avatarBase64Final = avatarBase64;
+    }
+
+    const hasAvatar = !!avatarBase64Final;
 
     const docDefinition = {
       pageMargins: [20, 20, 20, 20],
@@ -308,9 +366,12 @@ export class DelegateCardsService {
             },
             hasAvatar
               ? {
-                image: avatarBase64,
+                image: avatarBase64Final,
                 width: 90,
-                alignment: "right"
+                height: 110,
+                alignment: "right",
+                margin: [0, 0, 0, 10],
+                objectFit: "cover"
               }
               : { text: "" }
           ]
@@ -322,8 +383,8 @@ export class DelegateCardsService {
             body: [
               ["Họ tên đại biểu:", fullName],
               ["Số CMND:", citizenId],
-              ["Ngày cấp:", issuedAt],
-              ["Nơi cấp:", location],
+              ["Ngày phát hành thẻ:", issuedAt],
+              ["Địa chỉ đại biểu:", location],
               ["Số cổ phần đại diện:", shares]
             ]
           },
@@ -334,7 +395,7 @@ export class DelegateCardsService {
         { text: "\n" },
         {
           image: qrBase64,
-          width: 160,
+          width: 320,
           alignment: "center"
         }
       ],
