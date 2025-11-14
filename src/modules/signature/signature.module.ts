@@ -5,5 +5,6 @@ import { SigningService } from './signature.service';
 @Module({
   controllers: [SigningController],
   providers: [SigningService],
+  exports: [SigningService]
 })
 export class SignatureModule {}

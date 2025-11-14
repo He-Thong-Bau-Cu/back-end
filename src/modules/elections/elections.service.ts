@@ -241,4 +241,12 @@ export class ElectionsService {
   //     throw error;
   //   }
   // }
+
+  async approveAndSign(p12File: Express.Multer.File, electionId: string, password: string, userId: string){
+    try {
+
+    } catch (error) {
+      throw error;
+    }
+  }
 }

@@ -13,6 +13,7 @@ export enum METHOD {
   REGISTER = 'register',
   ALL = 'all',
   STATISTICS = 'statistics',
+  APPROVE = 'approve',
 }
 
 export enum ENDPOINT {

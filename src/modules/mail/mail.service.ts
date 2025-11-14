@@ -1,60 +1,56 @@
-import {Injectable} from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 
 import * as nodemailer from 'nodemailer';
 import { InjectModel } from '@nestjs/mongoose';
 
-
-
 @Injectable()
 export class MailService {
+  private transporter;
 
-    private transporter;
+  constructor() {
+    this.transporter = nodemailer.createTransport({
+      host: 'smtp.gmail.com',
+      port: 587,
+      secure: false,
+      auth: {
+        user: process.env.EMAIL_USERNAME,
+        pass: process.env.EMAIL_PASSWORD,
+      },
+    });
+  }
 
-    constructor() {
-        this.transporter = nodemailer.createTransport({
-            host: 'smtp.gmail.com',
-            port: 587,
-            secure: false,
-            auth: {
-                user: process.env.EMAIL_USERNAME,
-                pass: process.env.EMAIL_PASSWORD,
-            },
-        });
-    }
+  async sendMail(to: string, fullName: string, username: string, password: string) {
+    const htmlTemplate = this.getHtmlTemplate(fullName, username, password);
+    const info = await this.transporter.sendMail({
+      from: `"Hệ thống bầu cử" <${process.env.EMAIL_USERNAME}>`,
+      to,
+      subject: '🎉 Chào mừng bạn đến với hệ thống!',
+      html: htmlTemplate,
+    });
 
-    async sendMail(to: string, fullName: string, username: string, password: string) {
-        const htmlTemplate = this.getHtmlTemplate(fullName, username, password);
-        const info = await this.transporter.sendMail({
-            from: `"Hệ thống bầu cử" <${process.env.EMAIL_USERNAME}>`,
-            to,
-            subject: '🎉 Chào mừng bạn đến với hệ thống!',
-            html: htmlTemplate,
-        });
+    console.log('Email sent: %s', info.messageId);
+  }
 
-        console.log('Email sent: %s', info.messageId);
-    }
+  async sendMailInvitation(
+    to: string,
+    fullName: string,
+    username: string,
+    password: string,
+    token: string,
+  ) {
+    const htmlTemplate = this.getHtmlTemplateInvitation(fullName, username, password, token);
+    const info = await this.transporter.sendMail({
+      from: `"Hệ thống bầu cử" <${process.env.EMAIL_USERNAME}>`,
+      to,
+      subject: '🎉 Chào mừng bạn đến với hệ thống!',
+      html: htmlTemplate,
+    });
 
-    async sendMailInvitation(to: string, fullName: string, username: string, password: string, token:string) {
-        const htmlTemplate = this.getHtmlTemplateInvitation(fullName, username, password, token);
-        const info = await this.transporter.sendMail({
-            from: `"Hệ thống bầu cử" <${process.env.EMAIL_USERNAME}>`,
-            to,
-            subject: '🎉 Chào mừng bạn đến với hệ thống!',
-            html: htmlTemplate,
-        });
+    console.log('Email sent: %s', info.messageId);
+  }
 
-        console.log('Email sent: %s', info.messageId);
-    }
-
-
-
-    async sendMailDelegateCard(
-        to: string,
-        fullName: string,
-        electionName: string,
-        pdfPath: string,
-    ) {
-        const html = `
+  async sendMailDelegateCard(to: string, fullName: string, electionName: string, pdfPath: string) {
+    const html = `
       <div style="font-family:sans-serif;max-width:600px;margin:auto;padding:20px;background:#f9fafb;border-radius:12px;">
         <h2>Xin chào ${fullName} 👋</h2>
         <p>Thẻ đại biểu của bạn cho cuộc bầu cử <b>${electionName}</b> đã được cấp.</p>
@@ -62,38 +58,38 @@ export class MailService {
         <hr/>
         <p style="font-size:13px;color:#6b7280;">Nếu có thắc mắc, vui lòng liên hệ <b>employee.system.work@gmail.com</b></p>
       </div>`;
-        const info = await this.transporter.sendMail({
-            from: `"Hệ thống bầu cử" <${process.env.EMAIL_USERNAME}>`,
-            to,
-            subject: '🎫 Thẻ đại biểu (PDF) của bạn',
-            html,
-            attachments: [
-                {
-                    filename: 'the-dai-bieu.pdf',
-                    path: pdfPath,
-                    contentType: 'application/pdf',
-                },
-            ],
-        });
+    const info = await this.transporter.sendMail({
+      from: `"Hệ thống bầu cử" <${process.env.EMAIL_USERNAME}>`,
+      to,
+      subject: '🎫 Thẻ đại biểu (PDF) của bạn',
+      html,
+      attachments: [
+        {
+          filename: 'the-dai-bieu.pdf',
+          path: pdfPath,
+          contentType: 'application/pdf',
+        },
+      ],
+    });
 
-        console.log('Delegate card email with PDF sent: %s', info.messageId);
-    }
+    console.log('Delegate card email with PDF sent: %s', info.messageId);
+  }
 
-    async sendPasswordResetMail(to: string, fullName: string, username: string, password: string) {
-        const htmlTemplate = this.getPasswordResetHtmlTemplate(fullName, username, password);
-        const info = await this.transporter.sendMail({
-            from: `"Hệ thống bầu cử" <${process.env.EMAIL_USERNAME}>`,
-            to,
-            subject: '🔐 Mật khẩu mới của bạn',
-            html: htmlTemplate,
-        });
-       
-        console.log('Password reset email sent: %s', info.messageId);
-    }
+  async sendPasswordResetMail(to: string, fullName: string, username: string, password: string) {
+    const htmlTemplate = this.getPasswordResetHtmlTemplate(fullName, username, password);
+    const info = await this.transporter.sendMail({
+      from: `"Hệ thống bầu cử" <${process.env.EMAIL_USERNAME}>`,
+      to,
+      subject: '🔐 Mật khẩu mới của bạn',
+      html: htmlTemplate,
+    });
 
-    private getHtmlTemplate(fullName: string, username: string, password: string): string {
-        const createdDate = new Date().toLocaleDateString('vi-VN');
-        return `
+    console.log('Password reset email sent: %s', info.messageId);
+  }
+
+  private getHtmlTemplate(fullName: string, username: string, password: string): string {
+    const createdDate = new Date().toLocaleDateString('vi-VN');
+    return `
       <div style="font-family:sans-serif;max-width:600px;margin:auto;padding:20px;background:#f9fafb;border-radius:12px;">
         <h2>Xin chào ${fullName} 👋</h2>
         <p>Tài khoản của bạn đã được tạo thành công vào ngày <b>${createdDate}</b>.</p>
@@ -103,16 +99,21 @@ export class MailService {
         </div>
         <p style="color:#f59e0b;font-size:14px;">⚠️ Vui lòng đổi mật khẩu sau khi đăng nhập lần đầu để đảm bảo an toàn.</p>
 
-        
+
         <hr/>
         <p style="font-size:13px;color:#6b7280;">Nếu có thắc mắc, vui lòng liên hệ <b>employee.system.work@gmail.com</b></p>
       </div>
     `;
-    }
+  }
 
-        private getHtmlTemplateInvitation(fullName: string, username: string, password: string, token:string): string {
-        const createdDate = new Date().toLocaleDateString('vi-VN');
-        return `
+  private getHtmlTemplateInvitation(
+    fullName: string,
+    username: string,
+    password: string,
+    token: string,
+  ): string {
+    const createdDate = new Date().toLocaleDateString('vi-VN');
+    return `
       <div style="font-family:sans-serif;max-width:600px;margin:auto;padding:20px;background:#f9fafb;border-radius:12px;">
         <h2>Xin chào ${fullName} 👋</h2>
         <p>Tài khoản của bạn đã được tạo thành công vào ngày <b>${createdDate}</b>.</p>
@@ -129,25 +130,27 @@ export class MailService {
         <p style="font-size:13px;color:#6b7280;">Nếu có thắc mắc, vui lòng liên hệ <b>employee.system.work@gmail.com</b></p>
       </div>
     `;
-    }
+  }
 
+  async sendOtpMail(to: string, fullName: string, otp: string) {
+    const htmlTemplate = this.getOtpHtmlTemplate(fullName, otp);
+    const info = await this.transporter.sendMail({
+      from: `"Hệ thống bầu cử" <${process.env.EMAIL_USERNAME}>`,
+      to,
+      subject: '🔐 Mã xác thực OTP của bạn',
+      html: htmlTemplate,
+    });
 
+    console.log('OTP email sent: %s', info.messageId);
+  }
 
-    async sendOtpMail(to: string, fullName: string, otp: string) {
-        const htmlTemplate = this.getOtpHtmlTemplate(fullName, otp);
-        const info = await this.transporter.sendMail({
-            from: `"Hệ thống bầu cử" <${process.env.EMAIL_USERNAME}>`,
-            to,
-            subject: '🔐 Mã xác thực OTP của bạn',
-            html: htmlTemplate,
-        });
-
-        console.log('OTP email sent: %s', info.messageId);
-    }
-
-    private getPasswordResetHtmlTemplate(fullName: string, username: string, password: string): string {
-        const resetDate = new Date().toLocaleDateString('vi-VN');
-        return `
+  private getPasswordResetHtmlTemplate(
+    fullName: string,
+    username: string,
+    password: string,
+  ): string {
+    const resetDate = new Date().toLocaleDateString('vi-VN');
+    return `
       <div style="font-family:sans-serif;max-width:600px;margin:auto;padding:20px;background:#f9fafb;border-radius:12px;">
         <h2>Xin chào ${fullName} 👋</h2>
         <p>Bạn đã yêu cầu đặt lại mật khẩu vào ngày <b>${resetDate}</b>.</p>
@@ -161,19 +164,19 @@ export class MailService {
         <p style="font-size:13px;color:#6b7280;">Nếu có thắc mắc, vui lòng liên hệ <b>employee.system.work@gmail.com</b></p>
       </div>
     `;
-    }
+  }
 
-    private getDelegateCardHtmlTemplate(
-        fullName: string,
-        electionName: string,
-        issuedAt: Date,
-        expiresAt: Date | null,
-        qrCodeDataUrl: any,
-    ): string {
-        const issued = new Date(issuedAt).toLocaleString('vi-VN');
-        const expires = expiresAt ? new Date(expiresAt).toLocaleString('vi-VN') : 'Không thời hạn';
-        
-        return `
+  private getDelegateCardHtmlTemplate(
+    fullName: string,
+    electionName: string,
+    issuedAt: Date,
+    expiresAt: Date | null,
+    qrCodeDataUrl: any,
+  ): string {
+    const issued = new Date(issuedAt).toLocaleString('vi-VN');
+    const expires = expiresAt ? new Date(expiresAt).toLocaleString('vi-VN') : 'Không thời hạn';
+
+    return `
       <div style="font-family:sans-serif;max-width:600px;margin:auto;padding:20px;background:#f9fafb;border-radius:12px;">
         <h2>Thẻ đại biểu 🪪</h2>
         <p>Xin chào <b>${fullName}</b>, dưới đây là thông tin thẻ đại biểu của bạn.</p>
@@ -191,12 +194,12 @@ export class MailService {
         <p style="font-size:13px;color:#6b7280;">Nếu có thắc mắc, vui lòng liên hệ <b>employee.system.work@gmail.com</b></p>
       </div>
     `;
-    }
+  }
 
-    private getOtpHtmlTemplate(fullName: string, otp: string): string {
-        const sentDate = new Date().toLocaleDateString('vi-VN');
-        const sentTime = new Date().toLocaleTimeString('vi-VN');
-        return `
+  private getOtpHtmlTemplate(fullName: string, otp: string): string {
+    const sentDate = new Date().toLocaleDateString('vi-VN');
+    const sentTime = new Date().toLocaleTimeString('vi-VN');
+    return `
       <div style="font-family:sans-serif;max-width:600px;margin:auto;padding:20px;background:#f9fafb;border-radius:12px;">
         <h2>Xin chào ${fullName} 👋</h2>
         <p>Bạn đã yêu cầu mã xác thực OTP vào ngày <b>${sentDate}</b> lúc <b>${sentTime}</b>.</p>
@@ -210,5 +213,79 @@ export class MailService {
         <p style="font-size:13px;color:#6b7280;">Nếu có thắc mắc, vui lòng liên hệ <b>employee.system.work@gmail.com</b></p>
       </div>
     `;
+  }
+
+  async sendCaTemplate(to: string, zipBuffer: Buffer, filename: string, fullName: string) {
+    try {
+      const htmlTemplate = this.getCertificateHtmlTemplate(fullName);
+      const info = await this.transporter.sendMail({
+        from: `"Hệ thống bầu cử" <${process.env.EMAIL_USERNAME}>`,
+        to,
+        subject: '🔐 Chứng thư số của bạn',
+        html: htmlTemplate,
+        attachments: [
+          {
+            filename,
+            content: zipBuffer,
+            contentType: 'application/zip',
+          },
+        ],
+      });
+
+      console.log('OTP email sent: %s', info.messageId);
+    } catch (error) {
+      console.error('Error sending OTP email:', error);
     }
+  }
+
+  private getCertificateHtmlTemplate(fullName: string): string {
+    return `
+  <div style="font-family: Arial, sans-serif; background-color: #f5f5f5; padding: 20px;">
+    <div style="max-width: 600px; margin: auto; background: #ffffff; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); overflow: hidden;">
+
+      <div style="background: linear-gradient(90deg, #0047ab, #007bff); color: white; padding: 20px 30px;">
+        <h2 style="margin: 0;">CA Service - Hệ thống chứng thư số</h2>
+      </div>
+
+      <div style="padding: 30px;">
+        <p style="font-size: 16px;">Xin chào <strong>${fullName}</strong>,</p>
+
+        <p style="font-size: 15px; color: #333;">
+          Hệ thống đã tạo chứng thư số (Digital Certificate) dành cho bạn.
+          Vui lòng tải xuống file đính kèm <strong>ZIP</strong> để sử dụng trong quá trình ký số hoặc xác thực.
+        </p>
+
+        <div style="margin: 25px 0; text-align: center;">
+          <div style="display: inline-block; background: #007bff; color: #fff; padding: 12px 30px; border-radius: 8px; font-size: 16px;">
+            <strong>📎 File: Chứng thư số.zip</strong>
+          </div>
+        </div>
+
+        <p style="font-size: 14px; color: #555;">
+          File ZIP bao gồm:
+        </p>
+        <ul style="font-size: 14px; color: #444; line-height: 1.6;">
+          <li><strong>.p12</strong> – Tệp chứa khóa bí mật (private key) và chứng chỉ.</li>
+          <li><strong>.pem</strong> – Tệp chứng chỉ và khóa công khai.</li>
+          <li><strong>.chain.pem</strong> – Chuỗi chứng chỉ (CA chain).</li>
+        </ul>
+
+        <p style="font-size: 14px; color: #666; margin-top: 15px;">
+          🔒 <strong>Lưu ý bảo mật:</strong> Không chia sẻ file này cho người khác.
+          Hãy lưu trữ ở nơi an toàn để đảm bảo tính toàn vẹn và bảo mật của hệ thống.
+        </p>
+
+        <p style="margin-top: 30px; font-size: 13px; color: #888;">
+          Trân trọng,<br/>
+          <strong>Đội ngũ hỗ trợ Hệ thống CA Service</strong>
+        </p>
+      </div>
+
+      <div style="background: #f0f0f0; text-align: center; padding: 12px; font-size: 12px; color: #999;">
+        © ${new Date().getFullYear()} CA Service. Mọi quyền được bảo lưu.
+      </div>
+    </div>
+  </div>
+  `;
+  }
 }
