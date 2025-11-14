@@ -971,6 +971,8 @@ export class DelegationsService {
 
   async getSummaryDelegateByElectionId(electionId: string) {
     try {
+      const election = await this.electionModel.findById(new Types.ObjectId(electionId)).exec();
+      console.log(election, 123);
       const delegationsGrouped = await this.delegationModel.aggregate([
         {
           $match: {
@@ -1043,7 +1045,7 @@ export class DelegationsService {
       if (!election) {
         throw new NotFoundException('Không tìm thấy cuộc bầu cử!');
       }
-      if (election.delegationEnd < new Date()) {
+      if (election.delegationEnd > new Date()) {
         throw new Error('Bạn chỉ có thể kí khi thời hạn ủy quyền kết thúc!');
       }
       const dataSummaryElection = await this.getSummaryDelegateByElectionId(electionId);
@@ -1057,7 +1059,6 @@ export class DelegationsService {
         p12File.buffer,
         password,
       );
-      console.log(signFile);
       if (signFile) {
         const delegation = await this.delegationModel
           .find({ electionId: new Types.ObjectId(electionId) })
