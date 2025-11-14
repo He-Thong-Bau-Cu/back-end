@@ -40,6 +40,7 @@ import { MailModule } from './modules/mail/mail.module';
 import { ElectionDocumentsModule } from './modules/election-documents/election-documents.module';
 import { RedisModule } from './modules/redis/redis.module';
 import { StatisticsModule } from './modules/statistics/statistics.module';
+import { NotificationModule } from './modules/notification/notification.module';
 
 
 @Module({
@@ -85,6 +86,7 @@ import { StatisticsModule } from './modules/statistics/statistics.module';
     ElectionDocumentsModule,
     RedisModule,
     StatisticsModule,
+    NotificationModule,
   ],
   controllers: [],
   providers: [
