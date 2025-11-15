@@ -114,6 +114,8 @@ export enum MESSAGE {
   MEETING_DELETE_SUCCESS = "Xóa cuộc họp thành công",
   MEETING_GET_BY_ELECTION_SUCCESS = "Lấy danh sách cuộc họp theo cuộc bầu cử thành công",
   MEETING_ALREADY_EXISTS = "Cuộc họp đã tồn tại cho cuộc bầu cử này",
+  MEETING_SEARCH_SUCCESS = "Tìm kiếm cuộc họp thành công",
+
 
 
   //meetingAttendees
