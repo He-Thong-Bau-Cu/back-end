@@ -322,15 +322,21 @@ export class VotersService {
 
 
       // 1. Lấy tổng số voter trong cuộc bầu cử
-      const totalVoters = await this.voterModel.countDocuments({
-        electionId: new Types.ObjectId(electionId)
-      });
+      // const totalVoters = await this.voterModel.countDocuments({
+      //   electionId: new Types.ObjectId(electionId)
+      // });
 
       // 2. Lấy role VOTER
-      const voterRole = await this.rolesModel.findOne({ roleCode: USER_ROLE.VOTER });
+      const voterRole: any = await this.rolesModel.findOne({ roleCode: USER_ROLE.VOTER });
       if (!voterRole) {
         throw new NotFoundException('Không tìm thấy role VOTER trong hệ thống');
       }
+
+      // 1. Lấy tổng số voter trong cuộc bầu cử
+      const totalVoters = await this.electionParticipantsModel.countDocuments({
+        electionId: new Types.ObjectId(electionId),
+        roleId: new Types.ObjectId(voterRole._id),
+      });
 
       // 3. Lấy tổng số người tham gia cuộc bầu cử 
       const totalParticipants = await this.electionParticipantsModel.countDocuments({
@@ -351,7 +357,7 @@ export class VotersService {
       })
 
       return {
-        totalVoters,
+        totalVoters: totalVoters,
         totalParticipants,
         participationPercentage: parseFloat(participationPercentage),
         voterNotActive

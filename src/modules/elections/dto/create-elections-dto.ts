@@ -61,10 +61,13 @@ export class CreateElectionDto {
     endDate?: Date;
 
     @IsOptional()
-    startTime: Date;
-
-    @IsOptional()
-    endTime: Date;
+    timeline?: {
+        checkinAt?: Date;
+        reportAt?: Date;
+        votingAt?: Date;
+        resultAnnouncedAt?: Date;
+        closingAt?: Date;
+    };
 
     // @ApiPropertyOptional({
     //     description: 'Thời gian bắt đầu ủy quyền bỏ phiếu',

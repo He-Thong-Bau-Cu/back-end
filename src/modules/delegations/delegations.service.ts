@@ -43,7 +43,7 @@ export class DelegationsService {
     private readonly fileService: MinioService,
     @InjectModel(ElectionsParticipants.name)
     private readonly electionParticipantsModel: Model<ElectionsParticipantsDocument>,
-  ) {}
+  ) { }
   async getDelegatorIdAndElectionId(delegatorId: string, electionId: string) {
     try {
       //kiểm tra xem có electionId không
@@ -63,7 +63,7 @@ export class DelegationsService {
       }
 
       const delegation = await this.delegationModel
-        .findOne({
+        .find({
           delegatorId: new Types.ObjectId(delegatorId),
           electionId: new Types.ObjectId(electionId),
         })
@@ -421,7 +421,7 @@ export class DelegationsService {
       if (endDate <= startDate) {
         throw new Error('Ngày kết thúc phải lớn hơn ngày bắt đầu');
       }
-      if (startDate <= new Date()) {
+      if (startDate < new Date()) {
         throw new Error('Ngày bắt đầu phải lớn hơn ngày hiện tại');
       }
       if (endDate < new Date()) {
@@ -430,7 +430,7 @@ export class DelegationsService {
         );
       }
       //Check delegation period is within election delegation period
-      if (createDelegation.delegationType == ' ELECTION') {
+      if (createDelegation.delegationType == 'ELECTION') {
         if (startDate < electionExist.delegationStart || endDate > electionExist.delegationEnd) {
           throw new Error(
             'Thời gian ủy quyền phải trong khoảng thời gian ủy quyền của cuộc bầu cử',
@@ -518,12 +518,16 @@ export class DelegationsService {
 
   async searchDelegations(req: BaseSearchDTO) {
     try {
+      const keyword = req.keyword.normalize('NFC');
+
       //search theo election
       const elections = await this.electionModel
         .find({
-          title: { $regex: req.keyword || '', $options: 'i' },
+          $or: [
+            { title: { $regex: keyword || '', $options: 'i' } },
+            { decisionName: { $regex: keyword || '', $options: 'i' } },
+          ],
         })
-        .collation({ locale: 'vi', strength: 1 })
         .lean();
 
       const electionIds = elections.map((e) => e._id);
@@ -532,24 +536,22 @@ export class DelegationsService {
       const delegators = await this.userModel
         .find({
           $or: [
-            { fullName: { $regex: req.keyword || '', $options: 'i' } },
-            { email: { $regex: req.keyword || '', $options: 'i' } },
-            { username: { $regex: req.keyword || '', $options: 'i' } },
+            { fullName: { $regex: keyword || '', $options: 'i' } },
+            { email: { $regex: keyword || '', $options: 'i' } },
+            { username: { $regex: keyword || '', $options: 'i' } },
           ],
         })
-        .collation({ locale: 'vi', strength: 1 })
         .lean();
       const delegatorIds = delegators.map((d) => d._id);
       //search theo delegate
       const delegates = await this.userModel
         .find({
           $or: [
-            { fullName: { $regex: req.keyword || '', $options: 'i' } },
-            { email: { $regex: req.keyword || '', $options: 'i' } },
-            { username: { $regex: req.keyword || '', $options: 'i' } },
+            { fullName: { $regex: keyword || '', $options: 'i' } },
+            { email: { $regex: keyword || '', $options: 'i' } },
+            { username: { $regex: keyword || '', $options: 'i' } },
           ],
         })
-        .collation({ locale: 'vi', strength: 1 })
         .lean();
       const delegateIds = delegates.map((d) => d._id);
 
@@ -557,29 +559,28 @@ export class DelegationsService {
       const delegations = await this.delegationModel
         .find({
           $or: [
-            { delegateReason: { $regex: req.keyword || '', $options: 'i' } },
-            { status: { $regex: req.keyword || '', $options: 'i' } },
+            { delegateReason: { $regex: keyword || '', $options: 'i' } },
+            { status: { $regex: keyword || '', $options: 'i' } },
           ],
         })
-        .collation({ locale: 'vi', strength: 1 })
         .lean();
       const delegationIds = delegations.map((d) => d._id);
 
-      const query: any = {};
-      if (electionIds.length > 0) {
-        query.electionId = { $in: electionIds };
-      }
-      if (delegatorIds.length > 0) {
-        query.delegatorId = { $in: delegatorIds };
-      }
-      if (delegateIds.length > 0) {
-        query.delegateId = { $in: delegateIds };
-      }
-      if (delegationIds.length > 0) {
-        query._id = { $in: delegationIds };
-      }
+      const OR: any[] = [];
+
+      if (electionIds.length)
+        OR.push({ electionId: { $in: electionIds } });
+
+      if (delegatorIds.length)
+        OR.push({ delegatorId: { $in: delegatorIds } });
+
+      if (delegateIds.length)
+        OR.push({ delegateId: { $in: delegateIds } });
+
+      if (delegationIds.length)
+        OR.push({ _id: { $in: delegationIds } });
       const result = await this.delegationModel
-        .find(query)
+        .find({ $or: OR })
         .populate(
           'electionId',
           'title startDate endDate delegationStart delegationEnd status statusData decisionNumber decisionName',

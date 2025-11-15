@@ -29,10 +29,10 @@ export class CreateDelegationDto {
     @IsString()
     delegatorId: string
 
-    @ApiPropertyOptional({
-        description: "Id của người được ủy quyền",
-        example: "651f0a7c1f2b4d1a12345678"
-    })
+    // @ApiPropertyOptional({
+    //     description: "Id của người được ủy quyền",
+    //     example: "651f0a7c1f2b4d1a12345678"
+    // })
     @IsOptional()
     @IsString()
     delegateId: string
@@ -53,19 +53,19 @@ export class CreateDelegationDto {
     @IsString()
     endDate: Date
 
-    @ApiPropertyOptional({
-        description: "Id của tài liệu ủy quyền",
-        example: "651f0a7c1f2b4d1a12345678"
-    })
+    // @ApiPropertyOptional({
+    //     description: "Id của tài liệu ủy quyền",
+    //     example: "651f0a7c1f2b4d1a12345678"
+    // })
     @IsOptional()
     @IsString()
     documentId: string
 
-    @ApiPropertyOptional({
-        description: "Lí do ủy quyền",
-        example: "Vì có việc không thể tham gia nên tôi ..."
-    })
-    @IsOptional()
+    // @ApiPropertyOptional({
+    //     description: "Lí do ủy quyền",
+    //     example: "Vì có việc không thể tham gia nên tôi ..."
+    // })
+    // @IsOptional()
     @IsString()
     delegateReason: string;
 

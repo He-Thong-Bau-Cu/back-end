@@ -6,6 +6,7 @@ import { ApiBearerAuth, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { BaseResponse } from 'src/common/dto/base-response.dto';
 import { MESSAGE } from 'src/common/enums/message.enum';
 import { CustomRequest } from 'src/common/middleware/auth.middleware';
+import { BaseSearchDTO } from 'src/common/dto/base-search.dto';
 
 @ApiBearerAuth('access-token')
 @Controller('meetings')
@@ -82,6 +83,21 @@ export class MeetingsController {
     try {
       const resData = await this.meetingsService.update(id, updateMeeting, req.user.sub);
       return BaseResponse.success(resData, MESSAGE.MEETING_UPDATE_SUCCESS, HttpStatus.OK);
+    } catch (error) {
+      throw new HttpException(
+        { message: error.message },
+        HttpStatus.INTERNAL_SERVER_ERROR
+      )
+    }
+  }
+
+  @Post('search')
+  @ApiOperation({ summary: 'Tìm kiếm cuộc họp' })
+  @ApiResponse({ status: 200, description: 'Kết quả tìm kiếm cuộc họp.' })
+  async search(@Body() req: BaseSearchDTO): Promise<BaseResponse> {
+    try {
+      const resData = await this.meetingsService.search(req);
+      return BaseResponse.success(resData, MESSAGE.MEETING_SEARCH_SUCCESS, HttpStatus.OK);
     } catch (error) {
       throw new HttpException(
         { message: error.message },
