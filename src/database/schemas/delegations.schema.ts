@@ -22,9 +22,11 @@ export class Delegations extends BaseSchema {
   @Prop({ type: Types.ObjectId, ref: Users.name, required: true })
   delegatorId: Types.ObjectId;
 
-  @Prop({ type: Types.ObjectId, ref: Users.name, required: true })
+  @Prop({ type: Types.ObjectId, ref: Users.name })
   delegateId: Types.ObjectId;
 
+  @Prop({ type: Object })
+  delegateInfo: Record<string, any>;
 
   @Prop({ required: true })
   startDate: Date;
