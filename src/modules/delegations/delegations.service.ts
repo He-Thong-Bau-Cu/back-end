@@ -63,7 +63,7 @@ export class DelegationsService {
       }
 
       const delegation = await this.delegationModel
-        .findOne({
+        .find({
           delegatorId: new Types.ObjectId(delegatorId),
           electionId: new Types.ObjectId(electionId),
         })
@@ -421,7 +421,7 @@ export class DelegationsService {
       if (endDate <= startDate) {
         throw new Error('Ngày kết thúc phải lớn hơn ngày bắt đầu');
       }
-      if (startDate <= new Date()) {
+      if (startDate < new Date()) {
         throw new Error('Ngày bắt đầu phải lớn hơn ngày hiện tại');
       }
       if (endDate < new Date()) {
@@ -430,7 +430,7 @@ export class DelegationsService {
         );
       }
       //Check delegation period is within election delegation period
-      if (createDelegation.delegationType == ' ELECTION') {
+      if (createDelegation.delegationType == 'ELECTION') {
         if (startDate < electionExist.delegationStart || endDate > electionExist.delegationEnd) {
           throw new Error(
             'Thời gian ủy quyền phải trong khoảng thời gian ủy quyền của cuộc bầu cử',
