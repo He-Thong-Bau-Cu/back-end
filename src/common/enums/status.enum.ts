@@ -122,12 +122,12 @@ export enum MESSAGE_STATUS {
 }
 
 export enum DELEGATION_TYPE {
-  ELECTION = 'election',
-  LONG_TERM = 'long_term'
+  ELECTION = 'ELECTION',
+  LONG_TERM = 'LONG_TERM'
 }
 
 export enum SEVERITY {
-  LOW = 'low',
-  MEDIUM = 'medium',
-  HIGH = 'high',
+  LOW = 'LOW',
+  MEDIUM = 'MEDIUM',
+  HIGH = 'HIGH',
 }

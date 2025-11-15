@@ -28,11 +28,16 @@ export class Elections extends BaseSchema {
   @Prop({ default: null })
   endDate: Date;
 
-  @Prop({ default: null })
-  startTime: Date;
+  @Prop({ type: Object, default: null })
+  timeline: {
+    checkinAt?: Date;
+    reportAt?: Date;
+    votingAt?: Date;
+    resultAnnouncedAt?: Date;
+    closingAt?: Date;
+  }
 
-  @Prop({ default: null })
-  endTime: Date;
+
 
   @Prop({ default: null })
   delegationStart: Date;
