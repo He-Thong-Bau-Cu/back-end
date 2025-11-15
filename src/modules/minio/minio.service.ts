@@ -139,10 +139,11 @@ export class MinioService {
   async uploadSignedPdf(
     fileType: FileType,
     userId: string,
-    key: string,
-    signedPdfBytes: Uint8Array,
-  ): Promise<boolean> {
-    const encryptedBuffer = encryptBuffer(Buffer.from(signedPdfBytes), this.encryptionKey);
+    signedPdfBytes: Buffer,
+  ): Promise<any> {
+    let key: string;
+    key = this.generateFilePath(fileType, userId, `signed-${userId}-${Date.now()}.pdf`);
+    const encryptedBuffer = encryptBuffer(signedPdfBytes, this.encryptionKey);
 
     const command = new PutObjectCommand({
       Bucket: this.bucketName,
@@ -159,10 +160,15 @@ export class MinioService {
     const response = await this.s3Client.send(command);
     if (response.ETag) {
       console.log(`✅ File ghi đè thành công (đã mã hóa): ${key}, ETag: ${response.ETag}`);
-      return true;
+      return {
+        key,
+        ETag: response.ETag,
+        url: `${this.minioEndpoint}/${this.bucketName}/${key}`,
+        uploadDate: new Date(),
+      };
     }
     console.error(`❌ Upload không trả về ETag: ${key}`);
-    return false;
+    return null;
   }
 
   /**
@@ -493,7 +499,6 @@ export class MinioService {
     if (lowerKey.endsWith('.xls') || lowerKey.endsWith('.xlsx')) return 'application/vnd.ms-excel';
     return 'application/octet-stream';
   }
-
 
   async uploadFileNoEncrypt(
     fileType: FileType,

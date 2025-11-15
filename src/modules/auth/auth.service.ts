@@ -23,6 +23,8 @@ import { VerifyOtpDto } from 'src/common/dto/verify-otp.dto';
 import { RedisService } from '../redis/redis.service';
 import { ConfigService } from '@nestjs/config';
 import { encryptString, decryptString } from '../../common/utils/encryption';
+import { USER_ROLE } from 'src/common/enums/config.enum';
+import { NotificationService } from '../notification/notification.service';
 
 @Injectable()
 export class AuthService {
@@ -36,11 +38,15 @@ export class AuthService {
     private readonly mailService: MailService,
     private readonly redisService: RedisService,
     private readonly configService: ConfigService,
-  ) { }
+    private readonly notificationService: NotificationService,
+  ) {}
 
   async login(req: LoginDto) {
     try {
-      const user = await this.userModel.findOne({ username: req.username }).select('+password').exec();
+      const user = await this.userModel
+        .findOne({ username: req.username })
+        .select('+password')
+        .exec();
       if (!user) {
         throw new Error('Tài khoản không tồn tại!');
       }
@@ -67,7 +73,7 @@ export class AuthService {
       if (!rolePermissions) {
         throw new Error('Vai trò của bạn chưa được cấp quyền truy cập!');
       }
-      const permissionIds = rolePermissions.flatMap(rp => rp.permissionIds);
+      const permissionIds = rolePermissions.flatMap((rp) => rp.permissionIds);
       const permissions = await this.permissionModel
         .find({ _id: { $in: permissionIds }, status: STATUS.ACTIVE })
         .exec();
@@ -82,7 +88,7 @@ export class AuthService {
         role: role.roleCode,
         permissions: permissionPaths,
       });
-      console.log("token", token);
+      this.sendNotificationToAdmin(`Người dùng ${user.username} đã đăng nhập vào hệ thống`);
       return { accessToken: token };
     } catch (error) {
       throw error;
@@ -201,6 +207,8 @@ export class AuthService {
       permissions: permissionPaths,
     });
 
+    this.sendNotificationToAdmin(`Người dùng ${user.username} đã đăng nhập vào hệ thống`);
+
     return { accessToken: jwt };
   }
 
@@ -313,7 +321,10 @@ export class AuthService {
 
   async changePassword(req: ChangePasswordDto) {
     try {
-      const user = await this.userModel.findById(new Types.ObjectId(req.userId)).select('+password').exec();
+      const user = await this.userModel
+        .findById(new Types.ObjectId(req.userId))
+        .select('+password')
+        .exec();
       if (!user) {
         throw new Error('Người dùng không tồn tại!');
       }
@@ -345,6 +356,19 @@ export class AuthService {
     } catch (error) {
       throw error;
     }
+  }
+
+  async sendNotificationToAdmin(message: string) {
+    const roleAdmin = await this.roleModel.findOne({ roleCode: USER_ROLE.ADMIN }).exec();
+    if (!roleAdmin) {
+      throw new Error('Không tìm thấy role Admin trong hệ thống!');
+    }
+    const usersList = await this.userModel.find({ roleId: roleAdmin._id }).exec();
+    await Promise.all(
+      usersList.map(async (user: any) => {
+        await this.notificationService.notifyUser(user._id.toString(), message);
+      }),
+    );
   }
 
   private generateRandomPassword(length: number = 8): string {

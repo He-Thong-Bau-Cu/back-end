@@ -21,6 +21,8 @@ export class SigningService {
       p12Buffer: Buffer,
       passphrase?: string,
   ): Promise<Buffer> {
+    console.log(p12Buffer);
+    console.log(pdfBuffer);
     const signer = new SignPdf();
 
     const pdfWithPlaceholder = plainAddPlaceholder({

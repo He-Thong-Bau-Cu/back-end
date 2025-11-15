@@ -161,9 +161,10 @@ export class ElectionParticipantsService {
             .populate('permissionIds', 'url')
             .exec();
 
+            console.log(item)
           const voters = await this.votersModel.findOne({
-            electionId: item.electionId,
-            userId: item.userId,
+            electionId: item.electionId._id,
+            userId: item.userId._id,
           });
 
           const permissionElections =

@@ -12,6 +12,8 @@ import { Permissions, PermissionsSchema } from '../../database/schemas/permissio
 import { JwtModule } from '@nestjs/jwt';
 import { MailModule } from '../mail/mail.module';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import { NotificationModule } from '../notification/notification.module';
+import { NotificationGateway } from '../notification/notification.gateway';
 
 @Module({
   imports: [
@@ -31,6 +33,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
       }),
     }),
     MailModule,
+    NotificationModule,
   ],
   providers: [AuthService],
   controllers: [AuthController],

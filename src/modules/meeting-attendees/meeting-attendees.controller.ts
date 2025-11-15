@@ -100,6 +100,23 @@ export class MeetingAttendeesController {
     }
   }
 
+  @Get('attended/elections/:electionId')
+  @ApiOperation({ summary: "Lấy danh sách người tham gia đã tham dự cuộc họp theo ID cuộc bầu cử" })
+  @ApiResponse({ status: 200, description: "Lấy danh sách người tham gia đã tham dự cuộc họp theo ID cuộc bầu cử thành công" })
+  @ApiResponse({ status: 400, description: "Dữ liệu không hợp lệ" })
+  @ApiResponse({ status: 500, description: "Lỗi server" })
+  async getAttendedByElectionId(@Param('electionId') electionId: string) {
+    try {
+      const resData = await this.meetingAttendeesService.getParticipantsAttended(electionId);
+      return BaseResponse.success(resData, MESSAGE.MEETING_ATTENDEE_GET_ATTENDED_BY_ELECTION_ID_SUCCESS, HttpStatus.OK);
+    } catch (error) {
+      throw new HttpException(
+        { message: error.message },
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
 
   @Post()
   @ApiOperation({ summary: "Tạo người tham gia trong cuộc họp" })

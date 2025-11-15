@@ -3,6 +3,9 @@ import * as forge from 'node-forge';
 import * as fs from 'fs';
 import * as path from 'path';
 import { SignerInfo } from 'src/common/dto/singerInfo.dot';
+import { PassThrough } from 'stream';
+import archiver from 'archiver';
+import { MailService } from '../mail/mail.service';
 
 const CERTS_DIR = path.join(process.cwd(), 'certs');
 
@@ -11,7 +14,9 @@ export class CaService {
   rootKeyPath = path.join(CERTS_DIR, 'rootCA-key.pem');
   rootCertPath = path.join(CERTS_DIR, 'rootCA-crt.pem');
 
-  constructor() {
+  constructor(
+    private readonly mailService: MailService
+  ) {
     if (!fs.existsSync(CERTS_DIR)) fs.mkdirSync(CERTS_DIR, { recursive: true });
   }
 
@@ -65,7 +70,7 @@ export class CaService {
     return { created: true, message: 'Root CA created' };
   }
 
-  issueSigner(signerInfo: SignerInfo, password: string) {
+  async issueSigner(signerInfo: SignerInfo, password: string) {
     // load root
     const rootKeyPem = fs.readFileSync(this.rootKeyPath, 'utf8');
     const rootCertPem = fs.readFileSync(this.rootCertPath, 'utf8');
@@ -122,25 +127,17 @@ export class CaService {
 
     const baseName = `${signerInfo.commonName.replace(/\s+/g, '_')}_${Date.now()}`;
     const p12Path = path.join(CERTS_DIR, `${baseName}.p12`);
-    fs.writeFileSync(p12Path, p12Buffer);
+    const zipBuffer = await this.createZipBuffer({
+      [`${baseName}.p12`]: p12Buffer,
+      [`${baseName}.key.pem`]: signerKeyPem,
+      [`${baseName}.crt.pem`]: signerCertPem,
+      [`${baseName}.chain.pem`]: chain,
+    });
 
-    fs.writeFileSync(
-        path.join(CERTS_DIR, `${baseName}.key.pem`),
-        signerKeyPem,
-        { mode: 0o600 },
-    );
-    fs.writeFileSync(
-        path.join(CERTS_DIR, `${baseName}.crt.pem`),
-        signerCertPem,
-    );
-    fs.writeFileSync(path.join(CERTS_DIR, `${baseName}.chain.pem`), chain);
+    await this.mailService.sendCaTemplate(signerInfo.emailAddress, zipBuffer, `${baseName}.zip`, signerInfo.commonName);
 
     return {
-      signerInfo,
-      p12Path,
-      p12Buffer,
-      pemKeyPath: path.join(CERTS_DIR, `${baseName}.key.pem`),
-      pemCertPath: path.join(CERTS_DIR, `${baseName}.crt.pem`),
+      signerInfo
     };
   }
 
@@ -152,5 +149,25 @@ export class CaService {
   getRootCertPem() {
     if (!fs.existsSync(this.rootCertPath)) return null;
     return fs.readFileSync(this.rootCertPath, 'utf8');
+  }
+
+  private async createZipBuffer(files: Record<string, Buffer | string>): Promise<Buffer> {
+    return new Promise((resolve, reject) => {
+      const archive = archiver('zip', { zlib: { level: 9 } });
+      const zipStream = new PassThrough();
+      const chunks: Buffer[] = [];
+
+      zipStream.on('data', (chunk) => chunks.push(chunk));
+      zipStream.on('end', () => resolve(Buffer.concat(chunks)));
+      zipStream.on('error', (err) => reject(err));
+
+      archive.pipe(zipStream);
+
+      for (const [filename, data] of Object.entries(files)) {
+        archive.append(data, { name: filename });
+      }
+
+      archive.finalize();
+    });
   }
 }
