@@ -61,7 +61,14 @@ export class BallotsService {
             }
           ]
         })
-        .populate({ path: 'allocations.entityId', select: 'title description metaData fileUrl status proposerId' })
+        .populate({
+          path: 'allocations.entityId',
+          populate: [
+            { path: "electionTypeId", select: "typeCode typeName description status" }
+          ]
+          ,
+          select: 'title description metaData fileUrl status proposerId'
+        })
         .populate('createdBy', 'username fullName email position')
         .populate('updatedBy', 'username fullName email position')
         .exec();
@@ -92,6 +99,14 @@ export class BallotsService {
               select: "username fullName email position",
             }
           ]
+        })
+        .populate({
+          path: 'allocations.entityId',
+          populate: [
+            { path: "electionTypeId", select: "typeCode typeName description status" }
+          ]
+          ,
+          select: 'title description metaData fileUrl status proposerId'
         })
         .populate('createdBy', 'username fullName email position')
         .populate('updatedBy', 'username fullName email position')
@@ -126,6 +141,14 @@ export class BallotsService {
             }
           ]
         })
+        .populate({
+          path: 'allocations.entityId',
+          populate: [
+            { path: "electionTypeId", select: "typeCode typeName description status" }
+          ]
+          ,
+          select: 'title description metaData fileUrl status proposerId'
+        })
         .populate('createdBy', 'username fullName email position')
         .populate('updatedBy', 'username fullName email position')
         .exec();
@@ -159,6 +182,14 @@ export class BallotsService {
               select: "username fullName email position",
             }
           ]
+        })
+        .populate({
+          path: 'allocations.entityId',
+          populate: [
+            { path: "electionTypeId", select: "typeCode typeName description status" }
+          ]
+          ,
+          select: 'title description metaData fileUrl status proposerId'
         })
         .populate('createdBy', 'username fullName email position')
         .populate('updatedBy', 'username fullName email position')
@@ -469,6 +500,14 @@ export class BallotsService {
             path: 'userId',
             select: "username fullName email position"
           }
+        })
+        .populate({
+          path: 'allocations.entityId',
+          populate: [
+            { path: "electionTypeId", select: "typeCode typeName description status" }
+          ]
+          ,
+          select: 'title description metaData fileUrl status proposerId'
         })
         .populate('createdBy', 'username fullName email position')
         .populate('updatedBy', 'username fullName email position')

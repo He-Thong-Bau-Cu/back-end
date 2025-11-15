@@ -156,10 +156,10 @@ export class DelegateCardsService {
       });
 
       const delegateCardPDF = await this.generateDelegateCardPDF(
-        voterExists.userId.fullName,
-        voterExists.userId.citizenId,
+        voterExists?.userId?.fullName,
+        voterExists?.userId?.citizenId,
         formatDateDMY(issuedAt),
-        voterExists.userId.address,
+        voterExists?.userId?.address,
         votingRight ? votingRight.shares : 0,
         createdDelegateCard._id,
         avatar,

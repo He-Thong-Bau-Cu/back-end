@@ -32,7 +32,7 @@ export class Users extends BaseSchema {
   @Prop({ required: true, unique: true })
   phone: string;
 
-  @Prop()
+  @Prop({ required: true })
   address: string;
 
   @Prop({ default: USER_ROLE.USER })
@@ -41,10 +41,10 @@ export class Users extends BaseSchema {
   @Prop({ type: Types.ObjectId, ref: Roles.name, required: true })
   roleId: Types.ObjectId;
 
-  @Prop()
+  @Prop({ default: null })
   position: string;
 
-  @Prop()
+  @Prop({ default: null })
   department: string;
 
   @Prop({ default: null })
@@ -53,7 +53,7 @@ export class Users extends BaseSchema {
   @Prop({ default: true })
   isTwoFaEnabled: boolean;
 
-  @Prop({ default: '' })
+  @Prop({ default: null })
   twoFaSecret: string;
 }
 
