@@ -43,7 +43,7 @@ export class Delegations extends BaseSchema {
   @Prop({ default: null })
   signature: string;
 
-  @Prop({ default: STATUS.PENDING })
+  @Prop({ default: STATUS.DARFT })
   status: string;
 
   @Prop({ type: Types.ObjectId, ref: Users.name, default: null })
