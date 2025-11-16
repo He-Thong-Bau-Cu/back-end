@@ -131,7 +131,15 @@ export class BallotsService {
       }
 
       const ballots = await this.ballotsModel.find({ voterId: new Types.ObjectId(voterId) })
-        .populate('electionId', 'title startDate endDate delegationStart delegationEnd status statusData decisionNumber decisionName')
+        .populate({
+          path: 'electionId',
+          populate: [
+            { path: "typeId", select: "typeName typeNameCode description status" },
+            { path: "votingMethodId", select: "methodName methodCode description status" },
+            { path: "thresholdId", select: "thresholdName thresholdCode value description status" },
+          ],
+          select: 'title startDate endDate delegationStart delegationEnd status statusData decisionNumber decisionName'
+        })
         .populate({
           path: 'voterId',
           populate: [

@@ -36,29 +36,29 @@ export class UsersService {
     }
   }
 
-  async getNonVoterUsers() {
-    try {
-      // Find the VOTER role
-      const voterRole = await this.roleModel.findOne({ roleCode: USER_ROLE.VOTER });
+  // async getNonVoterUsers() {
+  //   try {
+  //     // Find the VOTER role
+  //     const voterRole = await this.roleModel.findOne({ roleCode: USER_ROLE.VOTER });
 
-      if (!voterRole) {
-        console.log('Voter role not found');
-        return [];
-      }
+  //     if (!voterRole) {
+  //       console.log('Voter role not found');
+  //       return [];
+  //     }
 
-      // Find users who don't have the VOTER role
-      const users = await this.userModel
-        .find({
-          roleId: { $ne: voterRole._id }
-        })
-        .populate('roleId')
-        .exec();
+  //     // Find users who don't have the VOTER role
+  //     const users = await this.userModel
+  //       .find({
+  //         roleId: { $ne: voterRole._id }
+  //       })
+  //       .populate('roleId')
+  //       .exec();
 
-      return users;
-    } catch (error) {
-      throw error;
-    }
-  }
+  //     return users;
+  //   } catch (error) {
+  //     throw error;
+  //   }
+  // }
 
   async getById(id: string) {
     try {

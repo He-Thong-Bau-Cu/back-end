@@ -35,24 +35,9 @@ export class UsersController {
   constructor(
     private readonly usersService: UsersService,
     private readonly fileService: MinioService,
-  ) {}
+  ) { }
 
-  @Get('non-voters')
-  @ApiOperation({ summary: 'Lấy danh sách người dùng không phải cử tri' })
-  @ApiResponse({ status: 200, description: 'Lấy danh sách người dùng không phải cử tri thành công.' })
-  @ApiResponse({ status: 400, description: 'Dữ liệu không hợp lệ.' })
-  @ApiResponse({ status: 500, description: 'Lỗi server' })
-  async getNonVoterUsers(): Promise<BaseResponse> {
-    try {
-      const resData = await this.usersService.getNonVoterUsers();
-      return BaseResponse.success(resData, MESSAGE.USER_GET_NON_VOTER_SUCCESS, HttpStatus.OK);
-    } catch (error) {
-      throw new HttpException(
-        { message: error.message },
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
-    }
-  }
+
 
   @Get(':id')
   @ApiOperation({ summary: 'Lấy thông tin người dùng' })

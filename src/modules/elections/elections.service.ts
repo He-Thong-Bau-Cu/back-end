@@ -97,25 +97,50 @@ export class ElectionsService {
         }
       }
 
-      //Kiểm tra ngày bắt đầu phải nhỏ hơn ngày kết thúc
-      if (createElection?.startDate && createElection?.endDate) {
-        const start = new Date(createElection.startDate);
-        const end = new Date(createElection.endDate);
-        if (end <= start) {
-          throw new BadRequestException('Ngày kết thúc phải sau ngày bắt đầu');
+      const createdAt = new Date();
+      if (createElection?.endDate && createElection?.startDate) {
+        //Kiểm tra ngày kết thúc phải lớn hơn ngày tạo ít nhất 20 ngày
+        const endDate = new Date(createElection?.endDate);
+        const minEnd = new Date(createdAt);
+        minEnd.setDate(minEnd.getDate() + 20);
+
+        if (endDate < minEnd) {
+          throw new Error("Ngày kết thúc phải lớn hơn ngày tạo ít nhất 20 ngày");
+        }
+
+        //Kiểm tra ngày bắt đầu cuộc bầu cử và ngày kết thúc cuộc bầu cử phải nằm trong cùng 1 Ngày
+        const startDate = new Date(createElection?.startDate);
+        if (startDate.toDateString() !== endDate.toDateString()) {
+          throw new Error("Ngày bắt đầu và ngày kết thúc cuộc bầu cử phải nằm trong cùng một ngày");
+        }
+        //  endDate > startDate (khác giờ)
+        if (endDate <= startDate) {
+          throw new Error("Giờ kết thúc phải lớn hơn giờ bắt đầu");
         }
       }
+      //Kiểm tra xem delegationEnd phải nhỏ hơn startDate ít nhất 10 Ngày
+      if (createElection?.delegationEnd && createElection?.startDate) {
+        const delegationEnd = new Date(createElection.delegationEnd);
+        const startDate = new Date(createElection.startDate);
+        const minStart = new Date(delegationEnd);
+        minStart.setDate(minStart.getDate() + 10);
+        if (startDate < minStart) {
+          throw new Error('Ngày kết thúc ủy quyền phải nhỏ hơn ngày bắt đầu cuộc bầu cử ít nhất 10 ngày');
+        }
+      }
+
 
       //Kiểm tra delegationDate có hợp lệ không
       if (createElection?.delegationStart && createElection?.delegationEnd) {
         const delStart = new Date(createElection.delegationStart);
         const delEnd = new Date(createElection.delegationEnd);
+
         if (delEnd <= delStart) {
           throw new BadRequestException('Ngày kết thúc ủy quyền phải sau ngày bắt đầu ủy quyền');
         }
         // Nếu có delegation, đảm bảo nằm trong phạm vi election
         if (createElection?.startDate && createElection?.endDate) {
-          if (delStart < createElection?.startDate || delEnd > createElection?.endDate) {
+          if (delStart < createdAt) {
             throw new BadRequestException('Thời gian ủy quyền phải trong khoảng thời gian của cuộc bầu cử');
           }
         }
@@ -131,12 +156,14 @@ export class ElectionsService {
           ? new Types.ObjectId(createElection.thresholdId)
           : null,
         createdBy: userId ? new Types.ObjectId(userId) : null,
+        createdAt: createdAt,
       });
       return election;
     } catch (error) {
       throw error;
     }
   }
+
 
   async getElectionById(id: string) {
     try {
@@ -242,7 +269,7 @@ export class ElectionsService {
   //   }
   // }
 
-  async approveAndSign(p12File: Express.Multer.File, electionId: string, password: string, userId: string){
+  async approveAndSign(p12File: Express.Multer.File, electionId: string, password: string, userId: string) {
     try {
 
     } catch (error) {

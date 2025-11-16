@@ -147,7 +147,7 @@ export class MeetingAttendeesController {
   async updateStatusAttendance(
     @Param('meetingId') meetingId: string,
     @Param('participantId') participantId: string,
-    @Body('attended') attended: boolean,
+    @Param('attended') attended: boolean,
     @Req() req: CustomRequest): Promise<BaseResponse> {
     try {
       const resData = await this.meetingAttendeesService.updateStatusAttendance(meetingId, participantId, attended, req.user.sub);

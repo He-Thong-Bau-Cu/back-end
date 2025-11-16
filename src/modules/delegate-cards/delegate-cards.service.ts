@@ -193,7 +193,7 @@ export class DelegateCardsService {
         .populate({
           path: 'voterId',
           populate: [
-            { path: "userId", select: "username fullName email position citizenId address image department dateOfBirth" },
+            { path: "userId", select: "username fullName email position citizenId address image department dateOfBirth phone" },
           ],
 
         })

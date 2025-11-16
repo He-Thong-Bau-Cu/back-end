@@ -422,11 +422,11 @@ export class DelegationsService {
         throw new Error('Ngày kết thúc phải lớn hơn ngày bắt đầu');
       }
       if (startDate < new Date()) {
-        throw new Error('Ngày bắt đầu phải lớn hơn ngày hiện tại');
+        throw new Error('Ngày bắt đầu phải lớn hơn hoặc bằng ngày hiện tại');
       }
       if (endDate < new Date()) {
         throw new Error(
-          'Ngày kết thúc phải lớn hơn ngày hiện tại và không được trùng với ngày hiện tại',
+          'Ngày kết thúc phải lớn hơn hoặc bằng ngày hiện tại',
         );
       }
       //Check delegation period is within election delegation period
