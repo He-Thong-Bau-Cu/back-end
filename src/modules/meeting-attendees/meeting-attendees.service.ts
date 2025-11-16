@@ -97,7 +97,7 @@ export class MeetingAttendeesService {
       if (!participantExist) {
         throw new Error(MESSAGE.ELECTION_PARTICIPANT_NOT_FOUND);
       }
-      return await this.meetingAttendeesModel.findOneAndUpdate(
+      const meetingAttendee = await this.meetingAttendeesModel.findOneAndUpdate(
         {
           meetingId: new Types.ObjectId(meetingId),
           participantId: new Types.ObjectId(participantId)
@@ -106,8 +106,21 @@ export class MeetingAttendeesService {
           attended: attended,
           updatedBy: userId ? new Types.ObjectId(userId) : null,
         },
-        { new: true }).exec();
-
+        { new: true })
+        .populate('meetingId')
+        .populate({
+          path: 'participantId',
+          populate: [
+            { path: 'electionId' },
+            { path: 'userId', select: 'fullName username email phone position department' }
+          ]
+        })
+        .exec();
+      //Check if meetingAttendee is exist or IsNotEmpty
+      if (!meetingAttendee) {
+        throw new Error(MESSAGE.MEETING_ATTENDEE_NOT_FOUND);
+      }
+      return meetingAttendee;
     } catch (error) {
       throw error;
     }
@@ -136,6 +149,10 @@ export class MeetingAttendeesService {
           ]
         })
         .exec();
+      //Kiểm tra nếu meetingAttendee tồn tại
+      if (!meetingAttendee) {
+        throw new Error(MESSAGE.MEETING_ATTENDEE_NOT_FOUND);
+      }
       return meetingAttendee;
     } catch (error) {
       throw error;

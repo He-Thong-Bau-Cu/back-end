@@ -38,7 +38,7 @@ export class StatisticsService {
       ] = await Promise.all([
         this.electionsModel.countDocuments(),
         this.votersModel.countDocuments(),
-        this.electionsModel.countDocuments({ statusData: STATUS.WAIT_APROVAL }),
+        this.electionsModel.countDocuments({ statusData: STATUS.WAIT_APPROVAL }),
       ]);
 
       //Lấy tông số hoạt động trong tháng

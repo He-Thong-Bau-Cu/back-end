@@ -49,7 +49,7 @@ export class Delegations extends BaseSchema {
   @Prop({ type: Types.ObjectId, ref: Users.name, default: null })
   confirmedBy: Types.ObjectId;
 
-  @Prop({ default: new Date() })
+  @Prop({ default: null })
   confirmedAt: Date;
 }
 

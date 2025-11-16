@@ -112,8 +112,22 @@ export class MeetingsService {
           electionId: updateMeeting.electionId ? new Types.ObjectId(updateMeeting.electionId) : null,
           updatedBy: userId ? new Types.ObjectId(userId) : null,
         }, { new: true })
+        .populate({
+          path: "electionId",
+          select: 'title startDate endDate delegationStart delegationEnd status statusData decisionNumber decisionName',
+          populate: [
+            { path: "typeId", select: "typeName typeNameCode description status" },
+            { path: "votingMethodId", select: "methodName methodCode description status" },
+            { path: "thresholdId", select: "thresholdName thresholdCode value description status" },
+            { path: 'createdBy', select: 'username fullName position department' },
+            { path: 'updatedBy', select: 'username fullName position department' }
+          ]
+        })
         .exec();
-
+      //Kiểm tra nếu updatedMeeting tồn tại
+      if (!updatedMeeting) {
+        throw new Error(MESSAGE.MEETING_NOT_FOUND);
+      }
       return updatedMeeting;
     }
     catch (error) {
