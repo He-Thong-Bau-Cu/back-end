@@ -1,9 +1,9 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { CreateDelegationDto } from './dto/create-delegation.dto';
 import { UpdateDelegationDto } from './dto/update-delegation.dto';
-import { InjectModel } from '@nestjs/mongoose';
+import { InjectConnection, InjectModel } from '@nestjs/mongoose';
 import { Delegations } from 'src/database/schemas/delegations.schema';
-import { Model, Types } from 'mongoose';
+import { Connection, Model, Types } from 'mongoose';
 import { Elections } from 'src/database/schemas/elections.schema';
 import { Users } from 'src/database/schemas/users.schema';
 import { ElectionDocuments } from 'src/database/schemas/electionDocuments.schema';
@@ -31,6 +31,7 @@ import { CreateUserDto } from '../users/dto/create-user.dto';
 import { UserDto } from 'src/common/dto/user.dto';
 import { VotingRights, VotingRightsDocument } from 'src/database/schemas/votingRights.schema';
 import { VotingRightsController } from '../voting-rights/voting-rights.controller';
+import { NotificationService } from '../notification/notification.service';
 
 @Injectable()
 export class DelegationsService {
@@ -54,6 +55,9 @@ export class DelegationsService {
     private readonly usersService: UsersService,
     @InjectModel(VotingRights.name)
     private readonly votingRightModel: Model<VotingRightsDocument>,
+    @InjectConnection()
+    private readonly connection: Connection,
+    private readonly notificationService: NotificationService,
   ) {}
   async getDelegatorIdAndElectionId(delegatorId: string, electionId: string) {
     try {
@@ -325,6 +329,17 @@ export class DelegationsService {
       }
 
       return delegation;
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  async getDelegationByElectionId(electionId: string) {
+    try {
+      const delegations = await this.delegationModel.find({
+        electionId: new Types.ObjectId(electionId),
+      }).exec();
+      return delegations;
     } catch (error) {
       throw error;
     }
@@ -810,6 +825,153 @@ export class DelegationsService {
     }
   }
 
+  async getSummaryDelegatesByElectionId(electionId: string) {
+    try {
+      const pipeline: any[] = [
+        {
+          $match: { electionId: new Types.ObjectId(electionId) },
+        },
+        {
+          $lookup: {
+            from: 'elections',
+            localField: 'electionId',
+            foreignField: '_id',
+            as: 'election',
+          },
+        },
+        { $unwind: '$election' },
+        {
+          $lookup: {
+            from: 'electiondocuments',
+            let: { eId: '$election._id' },
+            pipeline: [
+              {
+                $match: {
+                  $expr: { $eq: ['$electionId', '$$eId'] },
+                },
+              },
+              {
+                $match: {
+                  type: FileType.DELEGATION_SUMMARY_SIGNED,
+                },
+              },
+            ],
+            as: 'documents',
+          },
+        },
+        {
+          $lookup: {
+            from: 'users',
+            localField: 'delegatorId',
+            foreignField: '_id',
+            as: 'delegator',
+          },
+        },
+        { $unwind: '$delegator' },
+        {
+          $lookup: {
+            from: 'users',
+            localField: 'delegateId',
+            foreignField: '_id',
+            as: 'delegate',
+          },
+        },
+        {
+          $unwind: {
+            path: '$delegate',
+            preserveNullAndEmptyArrays: true,
+          },
+        },
+        {
+          $lookup: {
+            from: 'users',
+            localField: 'confirmedBy',
+            foreignField: '_id',
+            as: 'confirmedBy',
+          },
+        },
+        {
+          $unwind: {
+            path: '$confirmedBy',
+            preserveNullAndEmptyArrays: true,
+          },
+        },
+        {
+          $addFields: {
+            statusData: {
+              $switch: {
+                branches: [
+                  {
+                    case: {
+                      $and: [{ $ne: ['$confirmedBy', null] }, { $eq: ['$status', 'SIGNED'] }],
+                    },
+                    then: 'SIGNED',
+                  },
+                  {
+                    case: { $eq: ['$status', 'CONFIRMED'] },
+                    then: 'CONFIRMED',
+                  },
+                  {
+                    case: { $eq: ['$status', 'PENDING'] },
+                    then: 'PENDING',
+                  },
+                  {
+                    case: { $eq: ['$status', 'REJECT'] },
+                    then: 'REJECT',
+                  },
+                ],
+                default: 'PENDING',
+              },
+            },
+          },
+        },
+        {
+          $group: {
+            _id: '$election._id',
+            election: { $first: '$election' },
+            documents: { $first: '$documents' },
+            status: { $first: '$statusData' },
+            delegations: {
+              $push: {
+                id: '$_id',
+                delegateReason: '$delegateReason',
+                timeDelegation: {
+                  $floor: {
+                    $divide: [{ $subtract: ['$endDate', '$startDate'] }, 1000 * 60 * 60 * 24],
+                  },
+                },
+                delegator: {
+                  fullName: '$delegator.fullName',
+                  email: '$delegator.email',
+                  position: '$delegator.position',
+                  address: '$delegator.address',
+                  citizenId: '$delegator.citizenId',
+                  phone: '$delegator.phone',
+                },
+                delegate: {
+                  fullName: { $ifNull: ['$delegate.fullName', '$delegateInfo.fullName'] },
+                  email: { $ifNull: ['$delegate.email', '$delegateInfo.email'] },
+                  position: { $ifNull: ['$delegate.position', ''] },
+                  address: { $ifNull: ['$delegate.address', '$delegateInfo.address'] },
+                  citizenId: { $ifNull: ['$delegate.citizenId', '$delegateInfo.citizenId'] },
+                  phone: { $ifNull: ['$delegate.phone', '$delegateInfo.phone'] },
+                },
+
+                createdAt: '$createdAt',
+              },
+            },
+          },
+        },
+
+        { $sort: { 'election.startDate': 1 } },
+      ];
+
+      return await this.delegationModel.aggregate(pipeline);
+    } catch (error) {
+      throw error;
+    }
+  }
+
   async generateDelegationPdf(
     secretaryId: string,
     recipient: string,
@@ -1037,7 +1199,7 @@ export class DelegationsService {
 
   async getSummaryDelegateByElectionId(electionId: string) {
     try {
-      console.log(electionId)
+      console.log(electionId);
       const delegationsGrouped = await this.delegationModel.aggregate([
         {
           $match: {
@@ -1067,7 +1229,7 @@ export class DelegationsService {
         {
           $lookup: { from: 'users', localField: 'delegateId', foreignField: '_id', as: 'delegate' },
         },
-         {
+        {
           $unwind: {
             path: '$delegate',
             preserveNullAndEmptyArrays: true,
@@ -1097,7 +1259,7 @@ export class DelegationsService {
         },
         { $sort: { 'election.startDate': 1 } },
       ]);
-      console.log(delegationsGrouped)
+      console.log(delegationsGrouped);
 
       return delegationsGrouped;
     } catch (error) {
@@ -1225,6 +1387,7 @@ export class DelegationsService {
               electionParticipant.status = STATUS.INACTIVE;
               await electionParticipant.save();
             }
+            await this.notificationService.notifyUser(delegationItem.delegatorId.toString(), 'Tài liệu ủy quyền của bạn đã được kí duyệt !!!');
           }
         }
         const fileUpload = await this.fileService.uploadSignedPdf(
