@@ -180,6 +180,11 @@ export enum MESSAGE {
   // Thresholds & Voting Methods
   THRESHOLD_CODE_NOT_FOUND = 'Không tìm thấy mã của ngưỡng thông qua',
   THRESHOLD_NOT_FOUND = 'Ngưỡng thông qua không tồn tại',
+  THRESHOLD_GET_BY_ID_SUCCESS = 'Lấy thông tin ngưỡng thông qua theo ID thành công',
+  THRESHOLD_CREATE_SUCCESS = 'Tạo ngưỡng thông qua thành công',
+  THRESHOLD_UPDATE_SUCCESS = 'Cập nhật ngưỡng thông qua thành công',
+  THRESHOLD_DELETE_SUCCESS = 'Xóa ngưỡng thông qua thành công',
+  THRESHOLD_SEARCH_SUCCESS = 'Tìm kiếm ngưỡng thông qua thành công',
 
   //voting method
   VOTING_METHOD_SEARCH_SUCCESS = 'Tim kiếm phương thức bầu cử thành công',

@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, HttpException, HttpStatus, Req } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, HttpException, HttpStatus, Req, Put } from '@nestjs/common';
 import { ElectionTypesService } from './election-types.service';
 import { CreateElectionTypeDto } from './dto/create-election-type.dto';
 import { UpdateElectionTypeDto } from './dto/update-election-type.dto';
@@ -13,7 +13,25 @@ import { BaseSearchDTO } from 'src/common/dto/base-search.dto';
 export class ElectionTypesController {
   constructor(private readonly electionTypesService: ElectionTypesService) { }
 
-  @Get(':typeCode')
+  @Get(':id')
+  @ApiOperation({ summary: 'Lấy thông tin loại bầu cử theo ID' })
+  @ApiResponse({ status: 200, description: 'Thông tin loại bầu cử trả về thành công.' })
+  @ApiResponse({ status: 400, description: 'Dữ liệu không hợp lệ.' })
+  @ApiResponse({ status: 500, description: 'Lỗi server' })
+  async getElectionTypeById(@Param('id') id: string): Promise<BaseResponse> {
+    try {
+      const resData = await this.electionTypesService.getById(id);
+      return BaseResponse.success(resData, MESSAGE.ELECTION_TYPE_GET_BY_ID_SUCCESS, HttpStatus.OK);
+    } catch (error) {
+      throw new HttpException(
+        { message: error.message },
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+
+  @Get('typeCode/:typeCode')
   @ApiOperation({ summary: 'Lấy thông tin loại bầu cử theo mã' })
   @ApiResponse({ status: 200, description: 'Thông tin loại bầu cử trả về thành công.' })
   @ApiResponse({ status: 500, description: 'Lỗi server' })
@@ -60,6 +78,27 @@ export class ElectionTypesController {
     try {
       const resData = await this.electionTypesService.create(createElectionTypeDto, req.user.sub);
       return BaseResponse.success(resData, MESSAGE.ELECTION_TYPE_CREATE_SUCCESS, HttpStatus.CREATED);
+    } catch (error) {
+      throw new HttpException(
+        { message: error.message },
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @Put(':id')
+  @ApiOperation({ summary: 'Cập nhật loại bầu cử' })
+  @ApiResponse({ status: 200, description: 'Loại bầu cử đã được cập nhật thành công.' })
+  @ApiResponse({ status: 400, description: 'Dữ liệu không hợp lệ' })
+  @ApiResponse({ status: 500, description: 'Lỗi server' })
+  async update(
+    @Param('id') id: string,
+    @Body() updateElectionTypeDto: UpdateElectionTypeDto,
+    @Req() req: CustomRequest
+  ): Promise<BaseResponse> {
+    try {
+      const resData = await this.electionTypesService.update(id, updateElectionTypeDto, req.user.sub);
+      return BaseResponse.success(resData, MESSAGE.ELECTION_TYPE_UPDATE_SUCCESS, HttpStatus.OK);
     } catch (error) {
       throw new HttpException(
         { message: error.message },

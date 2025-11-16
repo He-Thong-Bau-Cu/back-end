@@ -134,7 +134,7 @@ export class BallotsService {
         .populate({
           path: 'electionId',
           populate: [
-            { path: "typeId", select: "typeName typeNameCode description status" },
+            { path: "typeId", select: "typeName typeCode description status" },
             { path: "votingMethodId", select: "methodName methodCode description status" },
             { path: "thresholdId", select: "thresholdName thresholdCode value description status" },
           ],

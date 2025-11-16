@@ -25,7 +25,10 @@ export class ElectionTypesService {
           { status: { $regex: req.keyword || '', $options: 'i' } },
         ]
       })
-        .collation({ locale: 'vi', strength: 1 }).lean();
+        .populate('createdBy', 'username fullName email position')
+        .populate('updatedBy', 'username fullName email position')
+        .exec();
+
       return paginate(
         types,
         req.page,
@@ -59,6 +62,35 @@ export class ElectionTypesService {
         createdBy: new Types.ObjectId(userId) || null,
       });
       return electionType;
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  async getById(id: string) {
+    try {
+      const electionType = await this.electionTypesModel
+        .findById(new Types.ObjectId(id)).exec();
+      if (!electionType) {
+        throw new Error(MESSAGE.ELECTION_TYPE_NOT_FOUND);
+      }
+      return electionType;
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  async update(id: string, updateElectionTypeDto: UpdateElectionTypeDto, userId: string) {
+    try {
+      const updatedElectionType = await this.electionTypesModel.findByIdAndUpdate(
+        new Types.ObjectId(id),
+        { ...updateElectionTypeDto, updatedBy: userId },
+        { new: true },
+      );
+      if (!updatedElectionType) {
+        throw new Error(MESSAGE.ELECTION_TYPE_NOT_FOUND);
+      }
+      return updatedElectionType;
     } catch (error) {
       throw error;
     }
