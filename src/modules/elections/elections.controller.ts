@@ -20,12 +20,13 @@ import { CreateElectionDto } from './dto/create-elections-dto';
 import { SearchDTO } from 'src/common/dto/search.dto';
 import { UpdateElectionDto } from './dto/update-elections-dto';
 import { CustomRequest } from 'src/common/middleware/auth.middleware';
+import { ElectionDto } from './dto/election.dto';
 
 @ApiBearerAuth('access-token')
 @ApiTags('Elections')
 @Controller('elections')
 export class ElectionsController {
-  constructor(private readonly electionsService: ElectionsService) { }
+  constructor(private readonly electionsService: ElectionsService) {}
 
   @Post(METHOD.SEARCH)
   @ApiOperation({ summary: 'Tìm kiếm danh sách kỳ bầu cử' })
@@ -39,10 +40,7 @@ export class ElectionsController {
       const resData = await this.electionsService.searchElections(req);
       return BaseResponse.success(resData, MESSAGE.ELECTION_SEARCH_SUCCESS, HttpStatus.OK);
     } catch (e) {
-      throw new HttpException(
-        { message: e.message },
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
+      throw new HttpException({ message: e.message }, HttpStatus.INTERNAL_SERVER_ERROR);
     }
   }
 
@@ -56,15 +54,9 @@ export class ElectionsController {
       const resData = await this.electionsService.getElectionById(id);
       return BaseResponse.success(resData, MESSAGE.ELECTION_GET_BY_ID_SUCCESS, HttpStatus.OK);
     } catch (e) {
-      throw new HttpException(
-        { message: e.message },
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
+      throw new HttpException({ message: e.message }, HttpStatus.INTERNAL_SERVER_ERROR);
     }
   }
-
-
-
 
   @Put(`${METHOD.UPDATE}/:id`)
   @ApiOperation({ summary: 'Cập nhật thông tin kỳ bầu cử' })
@@ -80,10 +72,7 @@ export class ElectionsController {
       const resData = await this.electionsService.updateElections(id, body, req.user.sub);
       return BaseResponse.success(resData, MESSAGE.ELECTION_UPDATE_SUCCESS, HttpStatus.OK);
     } catch (e) {
-      throw new HttpException(
-        { message: e.message },
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
+      throw new HttpException({ message: e.message }, HttpStatus.INTERNAL_SERVER_ERROR);
     }
   }
 
@@ -97,10 +86,7 @@ export class ElectionsController {
       const resData = await this.electionsService.deleteElection(id);
       return BaseResponse.success(resData, MESSAGE.ELECTION_DELETE_SUCCESS, HttpStatus.OK);
     } catch (e) {
-      throw new HttpException(
-        { message: e.message },
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
+      throw new HttpException({ message: e.message }, HttpStatus.INTERNAL_SERVER_ERROR);
     }
   }
 
@@ -147,21 +133,31 @@ export class ElectionsController {
   // }
 
   @Post('')
-  @ApiOperation({ summary: "Tạo mới cuộc bầu cử" })
+  @ApiOperation({ summary: 'Tạo mới cuộc bầu cử' })
   @ApiResponse({ status: 200, description: 'Tạo mới cuộc bầu cử thành công' })
   @ApiResponse({ status: 500, description: 'Lỗi server' })
   async createElection(
     @Req() req: CustomRequest,
-    @Body() createElection: CreateElectionDto)
-    : Promise<BaseResponse> {
+    @Body() createElection: CreateElectionDto,
+  ): Promise<BaseResponse> {
     try {
       const resData = await this.electionsService.createElection(createElection, req.user.sub);
       return BaseResponse.success(resData, MESSAGE.ELECTION_CREATE_SUCCESS, HttpStatus.CREATED);
     } catch (error) {
-      throw new HttpException(
-        { message: error.message },
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
+      throw new HttpException({ message: error.message }, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+  }
+
+  @Post('user-organizer')
+  @ApiOperation({ summary: 'Lấy danh sách user để phân quyền cho cuộc bầu cử' })
+  @ApiResponse({ status: 200, description: 'Thành công' })
+  @ApiResponse({ status: 500, description: 'Lỗi server' })
+  async getElectionOrganizer(@Body() req: ElectionDto): Promise<BaseResponse> {
+    try {
+      const resData = await this.electionsService.getElectionOrganizerByTime(req.startDate, req.endDate);
+      return BaseResponse.success(resData, MESSAGE.SUCCESS, HttpStatus.OK);
+    } catch (error) {
+      throw new HttpException({ message: error.message }, HttpStatus.INTERNAL_SERVER_ERROR);
     }
   }
 }

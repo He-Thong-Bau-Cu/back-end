@@ -166,6 +166,70 @@ export class UsersService {
     }
   }
 
+  async createByInfoDelegate(req: UserDto) {
+    try {
+      if (!req.fullName) {
+        throw new Error('Họ và tên không được để trống !');
+      }
+      if (!req.email) {
+        throw new Error('Gmail không được để trống !');
+      }
+      if (!req.phone) {
+        throw new Error('Số điện thoại không được để trống !');
+      }
+      if (!req.citizenId) {
+        throw new Error('Số căn cước công dân không được để trống !');
+      }
+      if (!isValidEmail(req.email)) {
+        throw new Error('Gmail không hợp lệ !');
+      }
+      if (!isValidPhone(req.phone)) {
+        throw new Error('Số điện thoại không hợp lệ !');
+      }
+      if (!isValidateCitizenId(req.citizenId)) {
+        throw new Error('Số căn cước công dân không hợp lệ !');
+      }
+      const checkValidUser = await this.userModel
+        .findOne({
+          $or: [{ email: req.email }, { phone: req.phone }],
+        })
+        .exec();
+
+      if (checkValidUser) {
+        throw new Error('Gmail hoặc số điện thoại đã tồn tại !');
+      }
+
+      const username = await this.generateUserName(req.fullName);
+      const password = this.generateRandomPassword(8);
+      const passwordHash = await bcrypt.hash(password, 10);
+
+      let roleData = await this.roleModel.findOne({ roleCode: USER_ROLE.USER }).exec();
+      if (!roleData) {
+        throw new Error(
+          'Vai trò người dùng không tồn tại trong hệ thống. Vui lòng tạo vai trò trước khi thêm người dùng.',
+        );
+      }
+
+      const newUser = new this.userModel({
+        username: username,
+        password: passwordHash,
+        fullName: req.fullName,
+        citizenId: req.citizenId,
+        email: req.email,
+        phone: req.phone,
+        address: req.address,
+        roleId: roleData._id,
+        isTempPassword: true,
+        status: STATUS.ACTIVE,
+      });
+      await newUser.save();
+      await this.mailService.sendMailDelegatge(req.email, req.fullName, username, password);
+      return newUser;
+    } catch (e) {
+      throw e;
+    }
+  }
+
 
 
   async updateUser(userId: string, req: UserDto) {
