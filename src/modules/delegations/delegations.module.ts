@@ -13,6 +13,7 @@ import { MinioModule } from '../minio/minio.module';
 import { ElectionsParticipants, ElectionsParticipantsSchema } from 'src/database/schemas/electionParticipants.schema';
 import { Roles, RolesSchema } from 'src/database/schemas/roles.schema';
 import { VotingRights, VotingRightsSchema } from 'src/database/schemas/votingRights.schema';
+import { NotificationModule } from '../notification/notification.module';
 
 @Module({
   imports: [
@@ -28,7 +29,8 @@ import { VotingRights, VotingRightsSchema } from 'src/database/schemas/votingRig
     ]),
     UsersModule,
     SignatureModule,
-    MinioModule
+    MinioModule,
+    NotificationModule
   ],
   controllers: [DelegationsController],
   providers: [DelegationsService],
