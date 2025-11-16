@@ -82,6 +82,23 @@ export class ElectionParticipantsController {
     }
   }
 
+  @Get('active/elections/:electionId')
+  @ApiOperation({ summary: 'Lấy danh sách người tham gia đang hoạt động theo cuộc bầu cử' })
+  @ApiResponse({ status: 200, description: 'Lấy danh sách người tham gia đang hoạt động theo cuộc bầu cử thành công' })
+  @ApiResponse({ status: 400, description: 'Dữ liệu không hợp lệ.' })
+  @ApiResponse({ status: 500, description: 'Lỗi server' })
+  async getActiveByElectionId(@Param('electionId') electionId: string): Promise<BaseResponse> {
+    try {
+      const resData = await this.electionParticipantsService.getParticipantsActive(electionId);
+      return BaseResponse.success(resData, MESSAGE.ELECTION_PARTICIPANT_GET_ACTIVE_BY_ELECTION, HttpStatus.OK);
+    } catch (error) {
+      throw new HttpException(
+        { message: error.message },
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      )
+    }
+  }
+
   @Post()
   @ApiOperation({ summary: 'Tạo người tham gia cuộc bầu cử mới' })
   @ApiResponse({ status: 201, description: 'Người tham gia cuộc bầu cử đã được tạo thành công.' })

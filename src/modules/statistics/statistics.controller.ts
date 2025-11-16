@@ -15,7 +15,7 @@ export class StatisticsController {
   @ApiOperation({ summary: 'Lấy thông tin thống kê cho chủ tịch' })
   @ApiResponse({ status: 200, description: 'Lấy thông tin thống kê cho chủ tịch thành công' })
   @ApiResponse({ status: 500, description: 'Lỗi server' })
-  async getDashboardPreside():Promise<BaseResponse> {
+  async getDashboardPreside(): Promise<BaseResponse> {
     try {
       const resData = await this.statisticsService.getDashboardPreside();
       return BaseResponse.success(resData, MESSAGE.STATISTICS_GET_DASHBOARD_PRESIDENT_SUCCESS, HttpStatus.OK);
@@ -37,6 +37,22 @@ export class StatisticsController {
       return BaseResponse.success(data, MESSAGE.STATISTICS_GET_DASHBOARD_PRESIDENT_SUCCESS, HttpStatus.OK);
     } catch (error) {
       throw new HttpException({ message: error.message }, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+  }
+
+  @Get('delegations')
+  @ApiOperation({ summary: 'Lấy thông tin thống kê cho ủy quyền' })
+  @ApiResponse({ status: 200, description: 'Lấy thông tin thống kê cho ủy quyền thành công' })
+  @ApiResponse({ status: 500, description: 'Lỗi server' })
+  async getStatisticsDelegations(): Promise<BaseResponse> {
+    try {
+      const resData = await this.statisticsService.statisticsDelegations();
+      return BaseResponse.success(resData, MESSAGE.STATISTICS_GET_DELEGATIONS_SUCCESS, HttpStatus.OK);
+    } catch (error) {
+      throw new HttpException(
+        { message: error.message },
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
     }
   }
 }

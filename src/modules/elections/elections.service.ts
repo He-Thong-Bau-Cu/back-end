@@ -15,7 +15,7 @@ import { CreateElectionDto } from './dto/create-elections-dto';
 import { UpdateElectionDto } from './dto/update-elections-dto';
 import { SearchElectionsDto } from './dto/search-dto';
 import { SearchDTO } from 'src/common/dto/search.dto';
-import removeVietnameseTones from 'src/common/utils/format';
+import removeVietnameseTones, { isValidateTimeline } from 'src/common/utils/format';
 import {
   ElectionsParticipants,
   ElectionsParticipantsDocument,
@@ -78,6 +78,18 @@ export class ElectionsService {
 
   async createElection(createElection: CreateElectionDto, userId: string) {
     try {
+      //Kiểm tra trong ngày đó đã có cuộc bầu cử nào chưa
+      if (createElection?.startDate && createElection?.endDate) {
+        const startDate = new Date(createElection.startDate);
+        const endDate = new Date(createElection.endDate);
+        const elections = await this.electionsModel.find({
+          startDate: { $lte: endDate },
+          endDate: { $gte: startDate },
+        });
+        if (elections.length > 0) {
+          throw new Error(MESSAGE.ELECTION_ALREADY_EXISTS);
+        }
+      }
       //Kiểm tra electionType có tồn tại hay Không
       if (createElection?.typeId) {
         const electionTypeExist = await this.electionTypeModel.exists({
@@ -208,22 +220,115 @@ export class ElectionsService {
   //   }
   // }
 
-  async updateElections(id: string, data: UpdateElectionDto, userId: string) {
+  async updateElections(id: string, updateElection: UpdateElectionDto, userId: string) {
     try {
-      //kiểm tra electionId có tồn tại không
-      const electionExist = await this.electionsModel.exists({ _id: id });
-      if (!electionExist) {
-        throw new Error(MESSAGE.ELECTION_NOT_FOUND);
+      //Kiểm tra nếu có timeline thì thời gian phải hợp lệ
+      if (updateElection?.timeline) {
+        isValidateTimeline(updateElection.timeline);
       }
+      //Kiểm tra trong ngày đó đã có cuộc bầu cử nào chưa
+      if (updateElection?.startDate && updateElection?.endDate) {
+        const startDate = new Date(updateElection.startDate);
+        const endDate = new Date(updateElection.endDate);
+        const elections = await this.electionsModel.find({
+          startDate: { $lte: endDate },
+          endDate: { $gte: startDate },
+        });
+        if (elections.length > 0) {
+          throw new Error(MESSAGE.ELECTION_ALREADY_EXISTS);
+        }
+      }
+      //Kiểm tra electionType có tồn tại hay Không
+      if (updateElection?.typeId) {
+        const electionTypeExist = await this.electionTypeModel.exists({
+          _id: new Types.ObjectId(updateElection.typeId),
+        });
+        if (!electionTypeExist) {
+          throw new Error(MESSAGE.ELECTION_TYPE_NOT_FOUND);
+        }
+      }
+      //Kiểm tra voting method có tồn tại hay Không
+      if (updateElection?.votingMethodId) {
+        const votingMethodExist = await this.votingMethodModel.exists({
+          _id: new Types.ObjectId(updateElection.votingMethodId),
+        });
+        if (!votingMethodExist) {
+          throw new Error(MESSAGE.VOTING_METHOD_NOT_FOUND);
+        }
+      }
+
+      //Kiểm tra electionType có tồn tại hay Không
+      if (updateElection?.thresholdId) {
+        const thresholdExist = await this.thresholdModel.exists({
+          _id: new Types.ObjectId(updateElection.thresholdId),
+        });
+        if (!thresholdExist) {
+          throw new Error(MESSAGE.THRESHOLD_NOT_FOUND);
+        }
+      }
+
+      const createdAt = new Date();
+      if (updateElection?.endDate && updateElection?.startDate) {
+        //Kiểm tra ngày kết thúc phải lớn hơn ngày tạo ít nhất 20 ngày
+        const endDate = new Date(updateElection?.endDate);
+        const minEnd = new Date(createdAt);
+        minEnd.setDate(minEnd.getDate() + 20);
+
+        if (endDate < minEnd) {
+          throw new Error("Ngày kết thúc phải lớn hơn ngày tạo ít nhất 20 ngày");
+        }
+
+        //Kiểm tra ngày bắt đầu cuộc bầu cử và ngày kết thúc cuộc bầu cử phải nằm trong cùng 1 Ngày
+        const startDate = new Date(updateElection?.startDate);
+        if (startDate.toDateString() !== endDate.toDateString()) {
+          throw new Error("Ngày bắt đầu và ngày kết thúc cuộc bầu cử phải nằm trong cùng một ngày");
+        }
+        //  endDate > startDate (khác giờ)
+        if (endDate <= startDate) {
+          throw new Error("Giờ kết thúc phải lớn hơn giờ bắt đầu");
+        }
+      }
+      //Kiểm tra xem delegationEnd phải nhỏ hơn startDate ít nhất 10 Ngày
+      if (updateElection?.delegationEnd && updateElection?.startDate) {
+        const delegationEnd = new Date(updateElection.delegationEnd);
+        const startDate = new Date(updateElection.startDate);
+        const minStart = new Date(delegationEnd);
+        minStart.setDate(minStart.getDate() + 10);
+        if (startDate < minStart) {
+          throw new Error('Ngày kết thúc ủy quyền phải nhỏ hơn ngày bắt đầu cuộc bầu cử ít nhất 10 ngày');
+        }
+      }
+
+
+      //Kiểm tra delegationDate có hợp lệ không
+      if (updateElection?.delegationStart && updateElection?.delegationEnd) {
+        const delStart = new Date(updateElection.delegationStart);
+        const delEnd = new Date(updateElection.delegationEnd);
+
+        if (delEnd <= delStart) {
+          throw new BadRequestException('Ngày kết thúc ủy quyền phải sau ngày bắt đầu ủy quyền');
+        }
+        // Nếu có delegation, đảm bảo nằm trong phạm vi election
+        if (updateElection?.startDate && updateElection?.endDate) {
+          if (delStart < createdAt) {
+            throw new BadRequestException('Thời gian ủy quyền phải trong khoảng thời gian của cuộc bầu cử');
+          }
+        }
+      }
+
 
       const election = await this.electionsModel
         .findByIdAndUpdate(
           new Types.ObjectId(id),
           {
-            ...data,
-            typeId: data.typeId ? new Types.ObjectId(data.typeId) : null,
-            votingMethodId: data.votingMethodId ? new Types.ObjectId(data.votingMethodId) : null,
-            thresholdId: data.thresholdId ? new Types.ObjectId(data.thresholdId) : null,
+            ...updateElection,
+            typeId: updateElection.typeId ? new Types.ObjectId(updateElection.typeId) : null,
+            votingMethodId: updateElection.votingMethodId ? new Types.ObjectId(updateElection.votingMethodId) : null,
+            thresholdId: updateElection.thresholdId ? new Types.ObjectId(updateElection.thresholdId) : null,
+            startDate: updateElection.startDate,
+            endDate: updateElection.endDate,
+            delegationStart: updateElection.delegationStart,
+            delegationEnd: updateElection.delegationEnd,
             updatedBy: userId ? new Types.ObjectId(userId) : null,
           },
           { new: true },

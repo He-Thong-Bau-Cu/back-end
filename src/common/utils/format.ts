@@ -59,3 +59,28 @@ export function isValidateCitizenId(id: string): boolean {
 
   return true;
 }
+
+export function isValidateTimeline(timeline: any) {
+  const { checkinAt, reportAt, votingAt, resultAnnouncedAt, closingAt } = timeline;
+
+  function isAfter(a?: Date, b?: Date): boolean {
+    if (!a || !b) return true; // nếu 1 trong 2 null thì bỏ qua
+    return new Date(a).getTime() > new Date(b).getTime();
+  }
+
+  if (!isAfter(reportAt, checkinAt)) {
+    throw new BadRequestException("reportAt must be after checkinAt");
+  }
+
+  if (!isAfter(votingAt, reportAt)) {
+    throw new BadRequestException("votingAt must be after reportAt");
+  }
+
+  if (!isAfter(resultAnnouncedAt, votingAt)) {
+    throw new BadRequestException("resultAnnouncedAt must be after votingAt");
+  }
+
+  if (!isAfter(closingAt, resultAnnouncedAt)) {
+    throw new BadRequestException("closingAt must be after resultAnnouncedAt");
+  }
+}

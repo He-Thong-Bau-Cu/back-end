@@ -11,6 +11,8 @@ import { STATUS } from 'src/common/enums/status.enum';
 import { USER_ROLE } from 'src/common/enums/config.enum';
 import { MESSAGE } from 'src/common/enums/message.enum';
 import { CLIENT_RENEG_LIMIT } from 'tls';
+import { Delegations } from 'src/database/schemas/delegations.schema';
+import { MeetingAttendees } from 'src/database/schemas/meetingAttendees.schema';
 
 @Injectable()
 export class StatisticsService {
@@ -27,6 +29,10 @@ export class StatisticsService {
     private readonly ballotsModel: Model<Ballots>,
     @InjectModel(SystemLog.name)
     private readonly systemLogModel: Model<SystemLog>,
+    @InjectModel(Delegations.name)
+    private readonly delegationsModel: Model<Delegations>,
+    @InjectModel(MeetingAttendees.name)
+    private readonly meetingAttendeeModel: Model<MeetingAttendees>,
   ) { }
 
   async getDashboardPreside() {
@@ -89,7 +95,7 @@ export class StatisticsService {
     try {
       // Lấy 5 cuộc bầu cử gần nhất đã kết thúc
       const elections = await this.electionsModel
-        .find({ status: 'FINISHED' })
+        .find({ status: STATUS.CLOSED })
         .sort({ endDate: -1 })
         .limit(5)
         .lean();
@@ -105,11 +111,24 @@ export class StatisticsService {
         // Đếm số người tham gia
         let voterActiveCount = 0;
         const voterRole = await this.rolesModel.findOne({ roleCode: USER_ROLE.VOTER });
-        if (voterRole) {
-          voterActiveCount = await this.participantsModel.countDocuments({
-            roleId: voterRole._id,
+        const participantAsVoters = await this.participantsModel.find({
+          electionId: election._id,
+          roleId: voterRole?._id,
+        });
+        for (const participant of participantAsVoters) {
+          const meetingAttendee = await this.meetingAttendeeModel.findOne({
+            electionId: election._id,
+            participantId: participant._id,
           });
+          if (meetingAttendee?.attended == true) {
+            voterActiveCount++;
+          }
         }
+        // if (voterRole) {
+        //   voterActiveCount = await this.participantsModel.countDocuments({
+        //     roleId: voterRole._id,
+        //   });
+        // }
 
         const rate =
           totalParticipants === 0
@@ -118,7 +137,9 @@ export class StatisticsService {
 
         result.push({
           title: election.title,
-          rate,
+          rateAttendance: rate,
+          totalVotersAttended: voterActiveCount,
+          totalParticipants
         });
       }
 
@@ -166,6 +187,38 @@ export class StatisticsService {
         totalInvalidVotes: invalidVotes,
         totalVoters,
         voterActiveCount,
+      };
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  async statisticsDelegations() {
+    try {
+      //Lấy tất cả ủy Quyền
+      const totalDelegations = await this.delegationsModel.find()
+        .populate(
+          'electionId',
+          'title startDate endDate delegationStart delegationEnd status statusData decisionNumber decisionName',
+        )
+        .populate('delegatorId', 'username fullName email position')
+        .populate('delegateId', 'username fullName email position')
+        .populate('confirmedBy', 'username fullName email position')
+        .populate('documentId', 'title file_url status')
+        .populate('createdBy', 'username fullName email position')
+        .populate('updatedBy', 'username fullName email position')
+        .exec();
+      //Tổng số đã phê duyện status = SIGNED
+      const totalSigned = await this.delegationsModel.countDocuments({ status: STATUS.SIGNED });
+      //Tổng số đang chờ phê duyệt status = CONFIRMED
+      const totalConfirmed = await this.delegationsModel.countDocuments({ status: STATUS.CONFIRMED });
+      //Tổng số bị từ chối status = REJECTED
+      const totalRejected = await this.delegationsModel.countDocuments({ status: STATUS.REJECTED });
+      return {
+        totalDelegations,
+        totalSigned,
+        totalConfirmed,
+        totalRejected,
       };
     } catch (error) {
       throw error;
