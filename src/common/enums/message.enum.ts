@@ -5,6 +5,14 @@ export enum MESSAGE {
   // Election
   ELECTION_NOT_FOUND = 'Không tìm thấy cuộc bầu cử',
   ELECTION_IS_NOT_ACTIVE = 'Cuộc bầu cử không hoạt động',
+  ELECTION_ALREADY_EXISTS = 'Cuộc bầu cử đã tồn tại với tiêu đề và ngày bắt đầu này',
+  ELECTION_DATE_INVALID = 'Ngày kết thúc phải sau ngày bắt đầu',
+  ELECTION_CREATE_SUCCESS = 'Tạo cuộc bầu cử thành công',
+  ELECTION_UPDATE_SUCCESS = 'Cập nhật cuộc bầu cử thành công',
+  ELECTION_GET_BY_ID_SUCCESS = 'Lấy thông tin cuộc bầu cử thành công',
+  ELECTION_SEARCH_SUCCESS = 'Lấy danh sách cuộc bầu cử thành công',
+  ELECTION_DELETE_SUCCESS = 'Xóa cuộc bầu cử thành công',
+
 
   // Election Documents
   ELECTION_DOCUMENT_NOT_FOUND = 'Không tìm thấy tài liệu kỳ bầu cử',
@@ -155,6 +163,7 @@ export enum MESSAGE {
   DELEGATE_INFO_INCOMPLETE = 'Thông tin người được ủy quyền chưa đầy đủ',
   DELEGATE_INFO_CONFLICT = 'Id của người được ủy quyền và thông tin tạm thời của người được ủy quyền không được cùng tồn tại',
   DELEGATION_NOT_PENDING = 'Trạng thái ủy quyền không thể duyệt hoặc từ chối',
+  STATISTICS_GET_DELEGATIONS_SUCCESS = 'Lấy thông tin thống kê cho ủy quyền thành công',
 
 
 
@@ -222,13 +231,7 @@ export enum MESSAGE {
 
 
 
-  // Success Messages - Elections
-  ELECTION_SEARCH_SUCCESS = 'Tìm kiếm kỳ bầu cử thành công',
-  ELECTION_GET_BY_ID_SUCCESS = 'Lấy thông tin kỳ bầu cử  thành công',
-  ELECTION_UPDATE_SUCCESS = 'Cập nhật kỳ bầu cử thành công',
-  ELECTION_DELETE_SUCCESS = 'Xóa kỳ bầu cử thành công',
 
-  ELECTION_CREATE_SUCCESS = 'Tạo mới cuộc bầu cử thành công',
 
   // Success Messages - Roles
   ROLE_NOT_FOUND = 'Không tìm thấy vai trò',
@@ -256,6 +259,7 @@ export enum MESSAGE {
   ELECTION_PARTICIPANT_ID_DOES_NOT_EXIST = 'ID người tham gia không tồn tại',
   ELECTION_PARTICIPANT_ROLE_NOT_FOUND = 'Không tìm thấy vai trò',
   ELECTION_PARTICIPANT_ALREADY_EXIST = "Người dùng này đã tham gia cuộc bầu cử rồi",
+  ELECTION_PARTICIPANT_GET_ACTIVE_BY_ELECTION = 'Lấy danh sách người tham gia đang hoạt động theo cuộc bầu cử thành công',
 
 
 

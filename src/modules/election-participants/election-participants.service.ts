@@ -35,7 +35,7 @@ export class ElectionParticipantsService {
     private readonly votersModel: Model<VotersDocument>,
     @InjectModel(Permissions.name)
     private readonly permissionsModel: Model<PermissionsDocument>,
-  ) {}
+  ) { }
   async getParticipantsAsVoter(electionId: string) {
     try {
       //kiểm tra xem electionId có tồn tại không
@@ -161,7 +161,7 @@ export class ElectionParticipantsService {
             .populate('permissionIds', 'url')
             .exec();
 
-            console.log(item)
+          console.log(item)
           const voters = await this.votersModel.findOne({
             electionId: item.electionId._id,
             userId: item.userId._id,
@@ -182,6 +182,33 @@ export class ElectionParticipantsService {
       throw error;
     }
   }
+
+  async getParticipantsActive(electionId: string) {
+    try {
+      const participantsActive = await this.electionParticipantsModel
+        .find({
+          electionId: new Types.ObjectId(electionId),
+          status: STATUS.ACTIVE,
+        })
+        .populate([
+          {
+            path: 'electionId',
+            select:
+              'title startDate endDate delegationStart delegationEnd status statusData decisionNumber decisionName',
+          },
+          { path: 'roleId' },
+          { path: 'userId', select: 'fullName username email phone position department' },
+          { path: 'createdBy', select: 'fullName username email phone position' },
+          { path: 'updatedBy', select: 'fullName username email phone position' },
+        ])
+        .lean();
+      return participantsActive;
+    } catch (error) {
+      throw error;
+    }
+  }
+
+
 
   async create(electionParticipants: CreateElectionParticipantDto, userId: string) {
     try {

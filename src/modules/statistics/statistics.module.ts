@@ -8,6 +8,8 @@ import { ElectionsParticipants, ElectionsParticipantsSchema } from 'src/database
 import { Roles, RolesSchema } from 'src/database/schemas/roles.schema';
 import { Ballots, BallotsSchema } from 'src/database/schemas/ballots.schema';
 import { SystemLog, SystemLogSchema } from 'src/database/schemas/systemLog.schema';
+import { Delegations, DelegationsSchema } from 'src/database/schemas/delegations.schema';
+import { MeetingAttendees, MeetingAttendeesSchema } from 'src/database/schemas/meetingAttendees.schema';
 
 @Module({
   imports: [
@@ -18,6 +20,8 @@ import { SystemLog, SystemLogSchema } from 'src/database/schemas/systemLog.schem
       { name: Roles.name, schema: RolesSchema },
       { name: Ballots.name, schema: BallotsSchema },
       { name: SystemLog.name, schema: SystemLogSchema },
+      { name: Delegations.name, schema: DelegationsSchema },
+      { name: MeetingAttendees.name, schema: MeetingAttendeesSchema },
     ]),
   ],
   controllers: [StatisticsController],
