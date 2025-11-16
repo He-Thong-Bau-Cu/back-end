@@ -9,6 +9,7 @@ import { ElectionEntities, ElectionEntitiesSchema } from 'src/database/schemas/e
 import { VotingRights, VotingRightsSchema } from 'src/database/schemas/votingRights.schema';
 import { ElectionTypes, ElectionTypesSchema } from 'src/database/schemas/electionTypes.schema';
 import { Users, UsersSchema } from 'src/database/schemas/users.schema';
+import { NotificationModule } from '../notification/notification.module';
 
 @Module({
   imports: [
@@ -20,7 +21,8 @@ import { Users, UsersSchema } from 'src/database/schemas/users.schema';
       { name: VotingRights.name, schema: VotingRightsSchema },
       { name: ElectionTypes.name, schema: ElectionTypesSchema },
       { name: Users.name, schema: UsersSchema },
-    ])
+    ]),
+    NotificationModule,
   ],
   controllers: [BallotsController],
   providers: [BallotsService],

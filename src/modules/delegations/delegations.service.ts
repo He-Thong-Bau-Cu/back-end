@@ -32,6 +32,7 @@ import { UserDto } from 'src/common/dto/user.dto';
 import { VotingRights, VotingRightsDocument } from 'src/database/schemas/votingRights.schema';
 import { VotingRightsController } from '../voting-rights/voting-rights.controller';
 import { NotificationService } from '../notification/notification.service';
+import e from 'express';
 
 @Injectable()
 export class DelegationsService {
@@ -58,7 +59,7 @@ export class DelegationsService {
     @InjectConnection()
     private readonly connection: Connection,
     private readonly notificationService: NotificationService,
-  ) {}
+  ) { }
   async getDelegatorIdAndElectionId(delegatorId: string, electionId: string) {
     try {
       //kiểm tra xem có electionId không
@@ -405,22 +406,22 @@ export class DelegationsService {
         throw new Error(MESSAGE.DELEGATE_INFO_CONFLICT);
       }
 
-      //Check delegator have already authorized or not
+      //Kiểm tra xem cử tri đã ủy quyền cho ai chưa trong cuộc bầu cử này chưa
       const delegatorAuthorized = await this.delegationModel.findOne({
         delegatorId: new Types.ObjectId(createDelegation.delegatorId),
         electionId: new Types.ObjectId(createDelegation.electionId),
-        status: { $in: [STATUS.ACTIVE, STATUS.PENDING, STATUS.CONFIRMED] },
+        status: { $in: [STATUS.ACTIVE, STATUS.PENDING, STATUS.CONFIRMED, STATUS.SIGNED, STATUS.DRAFT] },
       });
       if (delegatorAuthorized) {
         throw new Error(MESSAGE.DELEGATOR_ALREADY_AUTHORIZED);
       }
 
-      //Check delegate have adready been authorized or not
+      //Kiểm tra xem người được ủy quyền đã được ủy quyền trong cuộc bầu cử này chưa
       if (createDelegation?.delegateId) {
         const delegateAuthorized = await this.delegationModel.findOne({
           delegateId: new Types.ObjectId(createDelegation.delegateId),
           electionId: new Types.ObjectId(createDelegation.electionId),
-          status: { $in: [STATUS.ACTIVE, STATUS.PENDING, STATUS.CONFIRMED] },
+          status: { $in: [STATUS.ACTIVE, STATUS.PENDING, STATUS.CONFIRMED, STATUS.SIGNED, STATUS.DRAFT] },
         });
         if (delegateAuthorized) {
           throw new Error(MESSAGE.DELEGATE_ALREADY_AUTHORIZED);
@@ -446,28 +447,14 @@ export class DelegationsService {
           throw new Error(MESSAGE.DELEGATION_DELEGATOR_FAIL);
         }
       }
-      //kiểm tra thời gian bắt đầu và kết thúc
-      const startDate = new Date(createDelegation.startDate);
-      const endDate = new Date(createDelegation.endDate);
-      if (endDate <= startDate) {
-        throw new Error('Ngày kết thúc phải lớn hơn ngày bắt đầu');
-      }
-      if (startDate < new Date()) {
-        throw new Error('Ngày bắt đầu phải lớn hơn hoặc bằng ngày hiện tại');
-      }
-      if (endDate < new Date()) {
-        throw new Error(
-          'Ngày kết thúc phải lớn hơn hoặc bằng ngày hiện tại',
-        );
-      }
-      //Check delegation period is within election delegation period
-      if (createDelegation.delegationType == 'ELECTION') {
-        if (startDate < electionExist.delegationStart || endDate > electionExist.delegationEnd) {
-          throw new Error(
-            'Thời gian ủy quyền phải trong khoảng thời gian ủy quyền của cuộc bầu cử',
-          );
-        }
-      }
+
+      //Xem là loại bầu cử nào thì kiêm tra thời gian ủy quyền có hợp lệ không
+      // let startDate:Date;
+      // let endDate:Date;
+      // if (createDelegation.delegationType == 'ELECTION') {
+      //   endDate = new Date(electionExist.delegationEnd);
+      //   startDate = new Date(electionExist.delegationStart);
+      // } 
       //Check if the document is exist
       if (createDelegation.documentId) {
         const documentExist = await this.documentModel.exists({
@@ -499,6 +486,8 @@ export class DelegationsService {
         confirmedBy: createDelegation?.confirmedBy
           ? new Types.ObjectId(createDelegation.confirmedBy)
           : null,
+        startDate: createDelegation.delegationType == 'ELECTION' ? new Date(electionExist.startDate) : createDelegation?.startDate,
+        endDate: createDelegation.delegationType == 'ELECTION' ? new Date(electionExist.endDate) : createDelegation?.endDate,
         createdBy: new Types.ObjectId(userId) || null,
       });
 
@@ -734,11 +723,11 @@ export class DelegationsService {
           $match: {
             ...(req.electionName?.trim()
               ? {
-                  'election.title': {
-                    $regex: req.electionName,
-                    $options: 'i',
-                  },
-                }
+                'election.title': {
+                  $regex: req.electionName,
+                  $options: 'i',
+                },
+              }
               : {}),
           },
         },
