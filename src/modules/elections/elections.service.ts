@@ -16,6 +16,12 @@ import { UpdateElectionDto } from './dto/update-elections-dto';
 import { SearchElectionsDto } from './dto/search-dto';
 import { SearchDTO } from 'src/common/dto/search.dto';
 import removeVietnameseTones from 'src/common/utils/format';
+import {
+  ElectionsParticipants,
+  ElectionsParticipantsDocument,
+} from 'src/database/schemas/electionParticipants.schema';
+import { Roles, RolesDocument } from 'src/database/schemas/roles.schema';
+import { USER_ROLE } from 'src/common/enums/config.enum';
 
 @Injectable()
 export class ElectionsService {
@@ -32,7 +38,11 @@ export class ElectionsService {
     private readonly thresholdModel: Model<Thresholds>,
     @InjectModel(Users.name)
     private readonly userModel: Model<Users>,
-  ) { }
+    @InjectModel(ElectionsParticipants.name)
+    private readonly electionParticipantsModel: Model<ElectionsParticipantsDocument>,
+    @InjectModel(Roles.name)
+    private readonly rolesModel: Model<RolesDocument>,
+  ) {}
 
   async searchElections(req: SearchDTO) {
     try {
@@ -116,7 +126,9 @@ export class ElectionsService {
         // Nếu có delegation, đảm bảo nằm trong phạm vi election
         if (createElection?.startDate && createElection?.endDate) {
           if (delStart < createElection?.startDate || delEnd > createElection?.endDate) {
-            throw new BadRequestException('Thời gian ủy quyền phải trong khoảng thời gian của cuộc bầu cử');
+            throw new BadRequestException(
+              'Thời gian ủy quyền phải trong khoảng thời gian của cuộc bầu cử',
+            );
           }
         }
       }
@@ -242,9 +254,52 @@ export class ElectionsService {
   //   }
   // }
 
-  async approveAndSign(p12File: Express.Multer.File, electionId: string, password: string, userId: string){
+  async getElectionOrganizerByTime(startTime: Date, endTime: Date) {
     try {
+      const elections = await this.electionsModel
+        .find({
+          startDate: { $lt: endTime },
+          endDate: { $gt: startTime },
+        })
+        .exec();
 
+      const electionParticipants = await this.electionParticipantsModel
+        .find({
+          electionId: { $in: elections.map((e) => e._id) },
+        })
+        .populate('userId')
+        .exec();
+
+      const busyUserIds = electionParticipants.map((item) => item.userId._id);
+
+      const roles = await this.rolesModel
+        .find({
+          $or: [{ roleCode: USER_ROLE.ADMIN }, { roleCode: USER_ROLE.PRESIDE }],
+        })
+        .exec();
+
+      const roleIds = roles.map((role) => role._id);
+
+      const availableUsers = await this.userModel
+        .find({
+          _id: { $nin: busyUserIds },
+          roleId: { $nin: roleIds },
+        })
+        .exec();
+
+      return availableUsers;
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  async approveAndSign(
+    p12File: Express.Multer.File,
+    electionId: string,
+    password: string,
+    userId: string,
+  ) {
+    try {
     } catch (error) {
       throw error;
     }

@@ -284,4 +284,17 @@ export class DelegationsController {
       throw new HttpException({ message: error.message }, HttpStatus.INTERNAL_SERVER_ERROR);
     }
   }
+
+  @ApiOperation({ summary: 'Phê duyệt/từ chối trạng thái ủy quyền bởi thư kí' })
+  @ApiResponse({ status: 200, description: 'Thành công' })
+  @ApiResponse({ status: 500, description: 'Dữ liệu không hợp lệ' })
+  @Post(`${METHOD.APPROVE}/secretary`)
+  async approveBySecretary(@Body() req: {delegationId: string, status: string}) {
+    try {
+      const resData = await this.delegationsService.approveBySecretary(req.delegationId, req.status);
+      return BaseResponse.success(resData, MESSAGE.SUCCESS, HttpStatus.OK);
+    } catch (error) {
+      throw new HttpException({ message: error.message }, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+  }
 }

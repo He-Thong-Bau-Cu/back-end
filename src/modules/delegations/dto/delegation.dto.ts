@@ -24,4 +24,13 @@ export class DelegationDto {
     })
     @IsOptional()
     recipient: string
+
+    @ApiProperty({
+        description:"Tên cuộc bầu cử",
+        example:"ABC"
+    })
+    @IsOptional()
+    electionName: string
+
+    status: string;
 }

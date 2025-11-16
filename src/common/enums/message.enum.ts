@@ -154,6 +154,7 @@ export enum MESSAGE {
   DELEGATION_GET_BY_STATUS_ACTIVE_SUCCESS = 'Lấy danh sách ủy quyền theo đang hoạt động thành công',
   DELEGATE_INFO_INCOMPLETE = 'Thông tin người được ủy quyền chưa đầy đủ',
   DELEGATE_INFO_CONFLICT = 'Id của người được ủy quyền và thông tin tạm thời của người được ủy quyền không được cùng tồn tại',
+  DELEGATION_NOT_PENDING = 'Trạng thái ủy quyền không thể duyệt hoặc từ chối',
 
 
 
