@@ -87,6 +87,47 @@ export class MailService {
     console.log('Password reset email sent: %s', info.messageId);
   }
 
+  async sendMailDelegatge(to: string, fullName: string, username: string, password: string) {
+    const htmlTemplate = this.getHtmlTemplateDelegate(fullName, username, password);
+
+    const info = await this.transporter.sendMail({
+      from: `"Hệ thống bầu cử" <${process.env.EMAIL_USERNAME}>`,
+      to,
+      subject: '🔐 Tài khoản ủy quyền đã được tạo',
+      html: htmlTemplate,
+    });
+
+    console.log('Email sent: %s', info.messageId);
+  }
+
+  getHtmlTemplateDelegate(fullName: string, username: string, password: string) {
+    return `
+    <div style="font-family: Arial, sans-serif; padding: 20px; color: #333;">
+      <h2 style="color: #0052cc;">🔐 Tài khoản ủy quyền đã được tạo</h2>
+
+      <p>Xin chào <strong>${fullName}</strong>,</p>
+
+      <p>
+        Bạn đã được chỉ định làm <strong>người được ủy quyền</strong> trong hệ thống bầu cử nội bộ.
+        Tài khoản của bạn đã được tạo thành công. Vui lòng sử dụng thông tin sau để đăng nhập:
+      </p>
+
+      <div style="background: #f4f6fb; padding: 15px; border-radius: 8px; margin: 20px 0;">
+        <p><strong>Tên đăng nhập:</strong> ${username}</p>
+        <p><strong>Mật khẩu:</strong> ${password}</p>
+      </div>
+
+      <p>Vì lý do bảo mật, bạn nên thay đổi mật khẩu ngay sau khi đăng nhập lần đầu.</p>
+
+      <p>
+        Nếu bạn không mong đợi email này hoặc có thắc mắc, vui lòng liên hệ quản trị viên hệ thống.
+      </p>
+
+      <p>Trân trọng,<br/>Hệ thống Bầu Cử</p>
+    </div>
+  `;
+  }
+
   private getHtmlTemplate(fullName: string, username: string, password: string): string {
     const createdDate = new Date().toLocaleDateString('vi-VN');
     return `

@@ -11,6 +11,8 @@ import { SignatureModule } from '../signature/signature.module';
 import { Voters, VotersSchema } from 'src/database/schemas/voters.schema';
 import { MinioModule } from '../minio/minio.module';
 import { ElectionsParticipants, ElectionsParticipantsSchema } from 'src/database/schemas/electionParticipants.schema';
+import { Roles, RolesSchema } from 'src/database/schemas/roles.schema';
+import { VotingRights, VotingRightsSchema } from 'src/database/schemas/votingRights.schema';
 
 @Module({
   imports: [
@@ -21,6 +23,8 @@ import { ElectionsParticipants, ElectionsParticipantsSchema } from 'src/database
       { name: ElectionDocuments.name, schema: ElectionDocumentSchema },
       { name: Voters.name, schema: VotersSchema },
       { name: ElectionsParticipants.name, schema: ElectionsParticipantsSchema },
+      { name: Roles.name, schema: RolesSchema },
+      { name: VotingRights.name, schema: VotingRightsSchema },
     ]),
     UsersModule,
     SignatureModule,

@@ -25,6 +25,12 @@ import {
   ElectionsParticipants,
   ElectionsParticipantsDocument,
 } from 'src/database/schemas/electionParticipants.schema';
+import { Roles, RolesDocument } from 'src/database/schemas/roles.schema';
+import { USER_ROLE } from 'src/common/enums/config.enum';
+import { CreateUserDto } from '../users/dto/create-user.dto';
+import { UserDto } from 'src/common/dto/user.dto';
+import { VotingRights, VotingRightsDocument } from 'src/database/schemas/votingRights.schema';
+import { VotingRightsController } from '../voting-rights/voting-rights.controller';
 
 @Injectable()
 export class DelegationsService {
@@ -43,7 +49,12 @@ export class DelegationsService {
     private readonly fileService: MinioService,
     @InjectModel(ElectionsParticipants.name)
     private readonly electionParticipantsModel: Model<ElectionsParticipantsDocument>,
-  ) { }
+    @InjectModel(Roles.name)
+    private readonly rolesModel: Model<RolesDocument>,
+    private readonly usersService: UsersService,
+    @InjectModel(VotingRights.name)
+    private readonly votingRightModel: Model<VotingRightsDocument>,
+  ) {}
   async getDelegatorIdAndElectionId(delegatorId: string, electionId: string) {
     try {
       //kiểm tra xem có electionId không
@@ -364,7 +375,13 @@ export class DelegationsService {
 
       //Kiểm tra thông tin user nếu người được ủy quyền chưa có tài khoản trong hệ thống
       if (createDelegation.delegateInfo && createDelegation.delegateId == null) {
-        if (!createDelegation.delegateInfo.fullName || !createDelegation.delegateInfo.email || !createDelegation.delegateInfo.citizenId || !createDelegation.delegateInfo.phone || !createDelegation.delegateInfo.address) {
+        if (
+          !createDelegation.delegateInfo.fullName ||
+          !createDelegation.delegateInfo.email ||
+          !createDelegation.delegateInfo.citizenId ||
+          !createDelegation.delegateInfo.phone ||
+          !createDelegation.delegateInfo.address
+        ) {
           throw new Error(MESSAGE.DELEGATE_INFO_INCOMPLETE);
         }
       }
@@ -372,7 +389,6 @@ export class DelegationsService {
       if (createDelegation.delegateInfo && createDelegation.delegateId) {
         throw new Error(MESSAGE.DELEGATE_INFO_CONFLICT);
       }
-
 
       //Check delegator have already authorized or not
       const delegatorAuthorized = await this.delegationModel.findOne({
@@ -568,17 +584,13 @@ export class DelegationsService {
 
       const OR: any[] = [];
 
-      if (electionIds.length)
-        OR.push({ electionId: { $in: electionIds } });
+      if (electionIds.length) OR.push({ electionId: { $in: electionIds } });
 
-      if (delegatorIds.length)
-        OR.push({ delegatorId: { $in: delegatorIds } });
+      if (delegatorIds.length) OR.push({ delegatorId: { $in: delegatorIds } });
 
-      if (delegateIds.length)
-        OR.push({ delegateId: { $in: delegateIds } });
+      if (delegateIds.length) OR.push({ delegateId: { $in: delegateIds } });
 
-      if (delegationIds.length)
-        OR.push({ _id: { $in: delegationIds } });
+      if (delegationIds.length) OR.push({ _id: { $in: delegationIds } });
       const result = await this.delegationModel
         .find({ $or: OR })
         .populate(
@@ -637,14 +649,7 @@ export class DelegationsService {
 
   async getSummaryDelegatesForChair(req: DelegationDto) {
     try {
-      const delegationsGrouped = await this.delegationModel.aggregate([
-        {
-          $match: {
-            // confirmedBy: null ,
-            // status: 'PENDING',
-            // electionId: new Types.ObjectId(req.electionId),
-          },
-        },
+      const pipeline: any[] = [
         {
           $lookup: {
             from: 'elections',
@@ -656,6 +661,25 @@ export class DelegationsService {
         { $unwind: '$election' },
         {
           $lookup: {
+            from: 'electiondocuments',
+            let: { eId: '$election._id' },
+            pipeline: [
+              {
+                $match: {
+                  $expr: { $eq: ['$electionId', '$$eId'] },
+                },
+              },
+              {
+                $match: {
+                  type: FileType.DELEGATION_SUMMARY_SIGNED,
+                },
+              },
+            ],
+            as: 'documents',
+          },
+        },
+        {
+          $lookup: {
             from: 'users',
             localField: 'delegatorId',
             foreignField: '_id',
@@ -664,9 +688,19 @@ export class DelegationsService {
         },
         { $unwind: '$delegator' },
         {
-          $lookup: { from: 'users', localField: 'delegateId', foreignField: '_id', as: 'delegate' },
+          $lookup: {
+            from: 'users',
+            localField: 'delegateId',
+            foreignField: '_id',
+            as: 'delegate',
+          },
         },
-        { $unwind: '$delegate' },
+        {
+          $unwind: {
+            path: '$delegate',
+            preserveNullAndEmptyArrays: true,
+          },
+        },
         {
           $lookup: {
             from: 'users',
@@ -682,15 +716,35 @@ export class DelegationsService {
           },
         },
         {
+          $match: {
+            ...(req.electionName?.trim()
+              ? {
+                  'election.title': {
+                    $regex: req.electionName,
+                    $options: 'i',
+                  },
+                }
+              : {}),
+          },
+        },
+        {
           $addFields: {
             statusData: {
               $switch: {
                 branches: [
                   {
                     case: {
-                      $and: [{ $ne: ['$confirmedBy', null] }, { $eq: ['$status', 'CONFIRMED'] }],
+                      $and: [{ $ne: ['$confirmedBy', null] }, { $eq: ['$status', 'SIGNED'] }],
                     },
                     then: 'SIGNED',
+                  },
+                  {
+                    case: { $eq: ['$status', 'CONFIRMED'] },
+                    then: 'CONFIRMED',
+                  },
+                  {
+                    case: { $eq: ['$status', 'PENDING'] },
+                    then: 'PENDING',
                   },
                   {
                     case: { $eq: ['$status', 'REJECT'] },
@@ -706,6 +760,7 @@ export class DelegationsService {
           $group: {
             _id: '$election._id',
             election: { $first: '$election' },
+            documents: { $first: '$documents' },
             status: { $first: '$statusData' },
             delegations: {
               $push: {
@@ -722,23 +777,34 @@ export class DelegationsService {
                   position: '$delegator.position',
                   address: '$delegator.address',
                   citizenId: '$delegator.citizenId',
+                  phone: '$delegator.phone',
                 },
                 delegate: {
-                  fullName: '$delegate.fullName',
-                  email: '$delegate.email',
-                  position: '$delegate.position',
-                  address: '$delegate.address',
-                  citizenId: '$delegate.citizenId',
+                  fullName: { $ifNull: ['$delegate.fullName', '$delegateInfo.fullName'] },
+                  email: { $ifNull: ['$delegate.email', '$delegateInfo.email'] },
+                  position: { $ifNull: ['$delegate.position', ''] },
+                  address: { $ifNull: ['$delegate.address', '$delegateInfo.address'] },
+                  citizenId: { $ifNull: ['$delegate.citizenId', '$delegateInfo.citizenId'] },
+                  phone: { $ifNull: ['$delegate.phone', '$delegateInfo.phone'] },
                 },
+
                 createdAt: '$createdAt',
               },
             },
           },
         },
-        { $sort: { 'election.startDate': 1 } },
-      ]);
+        {
+          $match: {
+            ...(req.status && req.status.trim().toUpperCase() !== 'ALL'
+              ? { status: req.status.trim().toUpperCase() }
+              : {}),
+          },
+        },
 
-      return delegationsGrouped;
+        { $sort: { 'election.startDate': 1 } },
+      ];
+
+      return await this.delegationModel.aggregate(pipeline);
     } catch (error) {
       throw error;
     }
@@ -754,12 +820,11 @@ export class DelegationsService {
       status: STATUS.PENDING,
       electionId: new Types.ObjectId(electionId),
     });
-    console.log('delegations', delegations);
     const delegationsGrouped = await this.delegationModel.aggregate([
       {
         $match: {
           confirmedBy: null,
-          status: STATUS.PENDING,
+          status: STATUS.CONFIRMED,
           electionId: new Types.ObjectId(electionId),
         },
       },
@@ -972,13 +1037,12 @@ export class DelegationsService {
 
   async getSummaryDelegateByElectionId(electionId: string) {
     try {
-      const election = await this.electionModel.findById(new Types.ObjectId(electionId)).exec();
-      console.log(election, 123);
+      console.log(electionId)
       const delegationsGrouped = await this.delegationModel.aggregate([
         {
           $match: {
             confirmedBy: null,
-            status: STATUS.PENDING,
+            status: STATUS.CONFIRMED,
             electionId: new Types.ObjectId(electionId),
           },
         },
@@ -1003,7 +1067,12 @@ export class DelegationsService {
         {
           $lookup: { from: 'users', localField: 'delegateId', foreignField: '_id', as: 'delegate' },
         },
-        { $unwind: '$delegate' },
+         {
+          $unwind: {
+            path: '$delegate',
+            preserveNullAndEmptyArrays: true,
+          },
+        },
         // {
         //   $lookup: {
         //     from: 'users',
@@ -1020,7 +1089,7 @@ export class DelegationsService {
             delegations: {
               $push: {
                 delegator: '$delegator',
-                delegate: '$delegate',
+                delegate: { $ifNull: ['$delegate', '$delegateInfo'] },
                 createdAt: '$createdAt',
               },
             },
@@ -1028,6 +1097,7 @@ export class DelegationsService {
         },
         { $sort: { 'election.startDate': 1 } },
       ]);
+      console.log(delegationsGrouped)
 
       return delegationsGrouped;
     } catch (error) {
@@ -1050,7 +1120,6 @@ export class DelegationsService {
         throw new Error('Bạn chỉ có thể kí khi thời hạn ủy quyền kết thúc!');
       }
       const dataSummaryElection = await this.getSummaryDelegateByElectionId(electionId);
-      console.log(dataSummaryElection, 123);
       if (dataSummaryElection.length === 0) {
         throw new NotFoundException('Không tìm thấy dữ liệu tổng hợp!');
       }
@@ -1066,18 +1135,16 @@ export class DelegationsService {
           .exec();
 
         if (delegation.length > 0) {
+          const role = await this.rolesModel.findOne({ roleCode: USER_ROLE.VOTER }).exec();
+          if (!role) {
+            throw new NotFoundException('Không tìm thấy role Voter trong hệ thống!');
+          }
           for (const delegationItem of delegation) {
             await this.delegationModel.updateOne(
               { _id: delegationItem._id },
-              { $set: { status: STATUS.CONFIRMED, confirmedBy: new Types.ObjectId(userId) } },
+              { $set: { status: STATUS.SIGNED, confirmedBy: new Types.ObjectId(userId) } },
             );
-            const voter = new this.voterModel({
-              electionId: new Types.ObjectId(electionId),
-              userId: delegationItem.delegateId,
-              eligible: false,
-              status: STATUS.AUTHORIZED,
-            });
-            await voter.save();
+
             const voterDelegator = await this.voterModel
               .findOne({
                 electionId: new Types.ObjectId(electionId),
@@ -1088,6 +1155,76 @@ export class DelegationsService {
               voterDelegator.status = STATUS.INACTIVE;
               await voterDelegator.save();
             }
+
+            const votingRight = await this.votingRightModel
+              .findOne({
+                electionId: new Types.ObjectId(electionId),
+                voterId: voterDelegator?._id,
+              })
+              .exec();
+
+            if (delegationItem.delegateId) {
+              const voter = new this.voterModel({
+                electionId: new Types.ObjectId(electionId),
+                userId: delegationItem.delegateId,
+                eligible: false,
+                status: STATUS.AUTHORIZED,
+              });
+              await voter.save();
+              if (votingRight) {
+                votingRight.voterId = voter._id as Types.ObjectId;
+                await votingRight.save();
+              }
+              const electionParticipantVoter = new this.electionParticipantsModel({
+                electionId: new Types.ObjectId(electionId),
+                userId: delegationItem.delegateId,
+                roleId: role._id,
+                status: STATUS.ACTIVE,
+              });
+              await electionParticipantVoter.save();
+            } else {
+              let userDto = {
+                fullName: delegationItem.delegateInfo?.fullName,
+                email: delegationItem.delegateInfo?.email,
+                phone: delegationItem.delegateInfo?.phone,
+                citizenId: delegationItem.delegateInfo?.citizenId,
+                address: delegationItem.delegateInfo?.address,
+              } as UserDto;
+              const user = await this.usersService.createByInfoDelegate(userDto);
+              const voter = new this.voterModel({
+                electionId: new Types.ObjectId(electionId),
+                userId: user._id,
+                eligible: false,
+                status: STATUS.AUTHORIZED,
+              });
+              await voter.save();
+              if (votingRight) {
+                votingRight.voterId = voter._id as Types.ObjectId;
+                await votingRight.save();
+              }
+              const electionParticipantVoter = new this.electionParticipantsModel({
+                electionId: new Types.ObjectId(electionId),
+                userId: user._id,
+                roleId: role._id,
+                status: STATUS.ACTIVE,
+              });
+              await electionParticipantVoter.save();
+              await this.delegationModel.updateOne(
+                { _id: delegationItem._id },
+                { $set: { delegateId: user._id, delegateInfo: null } },
+              );
+            }
+
+            const electionParticipant = await this.electionParticipantsModel
+              .findOne({
+                electionId: new Types.ObjectId(electionId),
+                userId: delegationItem.delegatorId,
+              })
+              .exec();
+            if (electionParticipant) {
+              electionParticipant.status = STATUS.INACTIVE;
+              await electionParticipant.save();
+            }
           }
         }
         const fileUpload = await this.fileService.uploadSignedPdf(
@@ -1095,7 +1232,6 @@ export class DelegationsService {
           userId,
           signFile,
         );
-        console.log(fileUpload);
         const electionParticipant = await this.electionParticipantsModel
           .findOne({
             electionId: new Types.ObjectId(electionId),
@@ -1108,9 +1244,7 @@ export class DelegationsService {
             type: FileType.DELEGATION_SUMMARY_SIGNED,
           });
           if (electionDocumentDelete) {
-            await this.documentModel
-              .deleteOne({ _id: electionDocumentDelete._id })
-              .exec();
+            await this.documentModel.deleteOne({ _id: electionDocumentDelete._id }).exec();
           }
           const electionDocument = new this.documentModel({
             electionId: new Types.ObjectId(electionId),
@@ -1291,6 +1425,24 @@ export class DelegationsService {
         pdfDoc.on('error', (err) => reject(err));
         pdfDoc.end();
       });
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  async approveBySecretary(delegationId: string, status: string) {
+    try {
+      const delegation = await this.delegationModel
+        .findById(new Types.ObjectId(delegationId))
+        .exec();
+      if (!delegation) {
+        throw new Error(MESSAGE.DELEGATION_NOT_FOUND);
+      }
+      if (delegation.status !== STATUS.PENDING) {
+        throw new Error(MESSAGE.DELEGATION_NOT_PENDING);
+      }
+      delegation.status = STATUS.CONFIRMED;
+      return delegation.save();
     } catch (error) {
       throw error;
     }

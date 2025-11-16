@@ -22,7 +22,7 @@ export class ElectionsParticipants extends BaseSchema {
   @Prop({ type: Types.ObjectId, ref: Roles.name, required: true })
   roleId: Types.ObjectId;
 
-  @Prop({ required: true })
+  @Prop()
   position: string;
 
   @Prop({ default: STATUS.PENDING })

@@ -14,6 +14,8 @@ import { ElectionTypes, ElectionTypesSchema } from 'src/database/schemas/electio
 import { VotingMethods, VotingMethodsSchema } from 'src/database/schemas/votingMethods.schema';
 import { Thresholds, ThresholdsSchema } from 'src/database/schemas/thresholds.schema';
 import { Users, UsersSchema } from 'src/database/schemas/users.schema';
+import { ElectionsParticipants, ElectionsParticipantsSchema } from 'src/database/schemas/electionParticipants.schema';
+import { Roles, RolesSchema } from 'src/database/schemas/roles.schema';
 
 @Module({
   imports: [
@@ -24,6 +26,8 @@ import { Users, UsersSchema } from 'src/database/schemas/users.schema';
       { name: VotingMethods.name, schema: VotingMethodsSchema },
       { name: Thresholds.name, schema: ThresholdsSchema },
       { name: Users.name, schema: UsersSchema },
+      { name: ElectionsParticipants.name, schema: ElectionsParticipantsSchema },
+      { name: Roles.name, schema: RolesSchema },
     ]),
   ],
   providers: [ElectionsService],
