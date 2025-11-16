@@ -37,18 +37,18 @@ export class CreateDelegationDto {
     @IsString()
     delegateId: string
 
-    @ApiPropertyOptional({
-        description: "Ngày bắt đầu ủy quyền",
-        example: "2025-10-31T00:00:00.000Z"
-    })
+    // @ApiPropertyOptional({
+    //     description: "Ngày bắt đầu ủy quyền",
+    //     example: "2025-10-31T00:00:00.000Z"
+    // })
     @IsOptional()
     @IsString()
     startDate: Date
 
-    @ApiPropertyOptional({
-        description: "Ngày kết thúc ủy quyền",
-        example: "2025-10-31T00:00:00.000Z"
-    })
+    // @ApiPropertyOptional({
+    //     description: "Ngày kết thúc ủy quyền",
+    //     example: "2025-10-31T00:00:00.000Z"
+    // })
     @IsOptional()
     @IsString()
     endDate: Date
@@ -76,25 +76,25 @@ export class CreateDelegationDto {
     @IsString()
     signature: string
 
-    @ApiPropertyOptional({
-        description: "Trạng thái"
-    })
+    // @ApiPropertyOptional({
+    //     description: "Trạng thái"
+    // })
     @IsOptional()
     @IsString()
     status: string
 
-    @ApiPropertyOptional({
-        description: "Người xác nhận thông tin ủy quyền",
-        example: "6903a0eda315db370563b136"
-    })
+    // @ApiPropertyOptional({
+    //     description: "Người xác nhận thông tin ủy quyền",
+    //     example: "6903a0eda315db370563b136"
+    // })
     @IsOptional()
     @IsString()
     confirmedBy: string
 
-    @ApiPropertyOptional({
-        description: "Ngày xác nhận ủy quyền",
-        example: "2025-10-30T18:25:26.703+00:00"
-    })
+    // @ApiPropertyOptional({
+    //     description: "Ngày xác nhận ủy quyền",
+    //     example: "2025-10-30T18:25:26.703+00:00"
+    // })
     @IsOptional()
     @IsString()
     confirmedAt: Date

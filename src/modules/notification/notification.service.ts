@@ -9,7 +9,7 @@ export class NotificationService {
   constructor(
     @InjectModel(Notification.name) private notificationModel: Model<NotificationDocument>,
     private readonly notificationGateway: NotificationGateway,
-  ) {}
+  ) { }
 
   async notifyUser(userId: string, message: string) {
     if (!userId || !message) {
@@ -21,6 +21,14 @@ export class NotificationService {
       message,
     });
     this.notificationGateway.sendToUser(userId, notification);
+  }
+
+  async transferDataRealTime(electionId: string, data: any) {
+    if (!electionId || !data) {
+      throw new Error('ElectionId and data are required');
+    }
+
+    this.notificationGateway.dataToElectionId(electionId, data);
   }
 
   async getUserNotifications(userId: string) {

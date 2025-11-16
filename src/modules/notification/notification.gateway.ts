@@ -6,38 +6,42 @@ import { Server, Socket } from 'socket.io';
   namespace: '/notification',
 })
 export class NotificationGateway implements OnGatewayConnection, OnGatewayDisconnect {
-    @WebSocketServer()
-    server: Server;
+  @WebSocketServer()
+  server: Server;
 
-    private userIdSocketMap = new Map<string, string>();
+  private userIdSocketMap = new Map<string, string>();
 
-    handleConnection(client: Socket) {
-      const userId = client.handshake.auth.userId as string;
-      if (userId) {
-        this.userIdSocketMap.set(userId, client.id);
-        client.join(userId);
-      }
-      console.log('Client connected:', client.id, 'userId:', userId);
-      console.log('Client rooms:', client.rooms);
+  handleConnection(client: Socket) {
+    const userId = client.handshake.auth.userId as string;
+    if (userId) {
+      this.userIdSocketMap.set(userId, client.id);
+      client.join(userId);
     }
-
-    handleDisconnect(client: Socket) {
-      for (const [userId, socketId] of this.userIdSocketMap.entries()) {
-        if (socketId === client.id) {
-          this.userIdSocketMap.delete(userId);
-          break;
-        }
-      }
-      console.log('Client disconnected:', client.id);
-    }
-
-    broadcastNotification(data: any) {
-      this.server.emit('notification', data);
-    }
-
-    sendToUser(userId: string, data: any) {
-      this.server.to(userId).emit('notification', data);
-    console.log('Emitting to user:', userId, 'data:', data);
-
-    }
+    console.log('Client connected:', client.id, 'userId:', userId);
+    console.log('Client rooms:', client.rooms);
   }
+
+  handleDisconnect(client: Socket) {
+    for (const [userId, socketId] of this.userIdSocketMap.entries()) {
+      if (socketId === client.id) {
+        this.userIdSocketMap.delete(userId);
+        break;
+      }
+    }
+    console.log('Client disconnected:', client.id);
+  }
+
+  broadcastNotification(data: any) {
+    this.server.emit('notification', data);
+  }
+
+  sendToUser(userId: string, data: any) {
+    this.server.to(userId).emit('notification', data);
+    console.log('Emitting to user:', userId, 'data:', data);
+  }
+
+  dataToElectionId(electionId: string, data: any) {
+    this.server.to(electionId).emit('transferData', data);
+    console.log('Emitting to electionId:', electionId, 'data:', data);
+  }
+}

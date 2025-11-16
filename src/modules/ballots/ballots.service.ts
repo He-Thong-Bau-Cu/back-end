@@ -15,6 +15,7 @@ import { ElectionTypes } from 'src/database/schemas/electionTypes.schema';
 import { Users } from 'src/database/schemas/users.schema';
 import { BaseSearchDTO } from 'src/common/dto/base-search.dto';
 import { paginate } from 'src/common/dto/paignation';
+import { NotificationService } from '../notification/notification.service';
 
 @ApiBearerAuth('access-token')
 @Injectable()
@@ -35,6 +36,7 @@ export class BallotsService {
     private readonly electionTypesModel: Model<ElectionTypes>,
     @InjectModel(Users.name)
     private readonly usersModel: Model<Users>,
+    private readonly notificationService: NotificationService
   ) { }
 
 
@@ -250,7 +252,7 @@ export class BallotsService {
       if (!electionType) {
         throw new Error(MESSAGE.ELECTION_TYPE_NOT_FOUND);
       }
-      if (electionType.typeCode === "YES_NO" || electionType.typeCode === "SINGLE_CHOICE") {
+      if (electionType.typeCode === "YES_NO_ABSTAIN") {
         if (createBallot.allocations.length !== 1) {
           throw new Error("This election allows only one choice.");
         }
@@ -260,7 +262,7 @@ export class BallotsService {
         }
       }
 
-      if (electionType.typeCode === "MULTI_CHOICE") {
+      if (electionType.typeCode === "CUMULATIVE") {
         for (const allocation of createBallot.allocations) {
           if (allocation.entityId == null || allocation.entityId === '') {
             throw new Error("Entity ID is required");
@@ -276,7 +278,6 @@ export class BallotsService {
           }
         }
       }
-
 
       //Check votingRight shares and count > 0
       const votingRight = await this.votingRightsModel.findOne({
@@ -422,6 +423,13 @@ export class BallotsService {
             },
           },
         ]);
+
+      let data = {
+        total: ballots,
+        ballotStatus
+      };
+      await this.notificationService.transferDataRealTime(electionId, data);
+
       return {
         total: ballots,
         ballotStatus,
