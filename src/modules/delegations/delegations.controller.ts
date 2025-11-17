@@ -303,6 +303,25 @@ export class DelegationsController {
     }
   }
 
+  @Post(`voter/${METHOD.APPROVE}`)
+  @UseInterceptors(FileInterceptor('file'))
+  async approveDelegationByDelegator(
+    @UploadedFile() fileP12: Express.Multer.File,
+    @Body('delegationId') delegationId: string,
+    @Body('password') password: string
+  ) {
+    try {
+      const resData = await this.delegationsService.signByDelegator(delegationId, fileP12, password);
+      return BaseResponse.success(
+        resData,
+        'Ký thành công đăng ký ủy quyền!',
+        HttpStatus.OK,
+      );
+    } catch (error) {
+      throw new HttpException({ message: error.message }, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+  }
+
   @ApiOperation({ summary: 'Phê duyệt/từ chối trạng thái ủy quyền bởi thư kí' })
   @ApiResponse({ status: 200, description: 'Thành công' })
   @ApiResponse({ status: 500, description: 'Dữ liệu không hợp lệ' })

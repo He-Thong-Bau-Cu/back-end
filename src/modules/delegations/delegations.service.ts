@@ -6,7 +6,7 @@ import { Delegations } from 'src/database/schemas/delegations.schema';
 import { Connection, Model, Types } from 'mongoose';
 import { Elections } from 'src/database/schemas/elections.schema';
 import { Users } from 'src/database/schemas/users.schema';
-import { ElectionDocuments } from 'src/database/schemas/electionDocuments.schema';
+import { ElectionDocument, ElectionDocuments } from 'src/database/schemas/electionDocuments.schema';
 import { MESSAGE } from 'src/common/enums/message.enum';
 import { STATUS } from 'src/common/enums/status.enum';
 import { CustomRequest } from 'src/common/middleware/auth.middleware';
@@ -16,7 +16,7 @@ import PdfPrinter from 'pdfmake';
 import path from 'path';
 import { BaseSearchDTO } from 'src/common/dto/base-search.dto';
 import { paginate } from 'src/common/dto/paignation';
-import { validateStatusFormat } from 'src/common/utils/format';
+import { formatDateVN, validateStatusFormat } from 'src/common/utils/format';
 import { SigningService } from '../signature/signature.service';
 import { Voters, VotersDocument } from 'src/database/schemas/voters.schema';
 import { MinioService } from '../minio/minio.service';
@@ -44,7 +44,7 @@ export class DelegationsService {
     @InjectModel(Users.name)
     private readonly userModel: Model<Users>,
     @InjectModel(ElectionDocuments.name)
-    private readonly documentModel: Model<ElectionDocuments>,
+    private readonly documentModel: Model<ElectionDocument>,
     private readonly signatureService: SigningService,
     @InjectModel(Voters.name)
     private readonly voterModel: Model<VotersDocument>,
@@ -337,9 +337,11 @@ export class DelegationsService {
 
   async getDelegationByElectionId(electionId: string) {
     try {
-      const delegations = await this.delegationModel.find({
-        electionId: new Types.ObjectId(electionId),
-      }).exec();
+      const delegations = await this.delegationModel
+        .find({
+          electionId: new Types.ObjectId(electionId),
+        })
+        .exec();
       return delegations;
     } catch (error) {
       throw error;
@@ -1376,7 +1378,10 @@ export class DelegationsService {
               electionParticipant.status = STATUS.INACTIVE;
               await electionParticipant.save();
             }
-            await this.notificationService.notifyUser(delegationItem.delegatorId.toString(), 'Tài liệu ủy quyền của bạn đã được kí duyệt !!!');
+            await this.notificationService.notifyUser(
+              delegationItem.delegatorId.toString(),
+              'Tài liệu ủy quyền của bạn đã được kí duyệt !!!',
+            );
           }
         }
         const fileUpload = await this.fileService.uploadSignedPdf(
@@ -1597,6 +1602,244 @@ export class DelegationsService {
       return delegation.save();
     } catch (error) {
       throw error;
+    }
+  }
+
+  async signByDelegator(delegationId: string, p12File: Express.Multer.File, password: string) {
+    try {
+      const delegation = await this.delegationModel
+        .findById(new Types.ObjectId(delegationId))
+        .populate('delegatorId')
+        .populate('delegateId')
+        .exec();
+      if (!delegation) {
+        throw new Error(MESSAGE.DELEGATION_NOT_FOUND);
+      }
+
+      if (delegation.status !== STATUS.DRAFT) {
+        throw new Error('Không thể kí ở trạng thái hiện tại!');
+      }
+      let delegator = delegation?.delegatorId as any;
+      let delegate = delegation?.delegateId as any;
+      let delegateInfo = delegation?.delegateInfo as any;
+      const thoiHanNgay =
+        (delegation.endDate.getTime() - delegation.startDate.getTime()) / (1000 * 60 * 60 * 24);
+
+      let dataBinding = {
+        hoTen: delegator.fullName || '',
+        chucVu: delegator.position || '',
+        phone: delegator.phone || '',
+        cmnd: delegator.citizenId || '',
+        diaChiA: delegator.address || '',
+        uyQuyenCho: delegate ? delegate.fullName : delegateInfo.fullName,
+        phone2: delegate ? delegate.phone : delegateInfo.phone,
+        cmnd2: delegate ? delegate.citizenId : delegateInfo.citizenId,
+        diaChiB: delegate ? delegate.address : delegateInfo.address,
+        phamViUyQuyen:
+          'Được thay mặt tôi tiến hành toàn bộ các thủ tục liên quan đến việc tham dự, thực hiện quyền bầu cử, bỏ phiếu, ký nhận và thực hiện các công việc cần thiết khác theo đúng quy định pháp luật hiện hành và theo quy chế của cuộc bầu cử.',
+        thoiHan: `${thoiHanNgay} ngày, tính từ ngày ${formatDateVN(
+          delegation.startDate,
+        )} đến ngày ${formatDateVN(delegation.endDate)}`,
+      };
+      console.log('run');
+      const pdfFile = await this.generateUyQuyenPdf(dataBinding);
+      console.log('run2');
+      const signFile = await this.signatureService.signPdfWithP12(
+        pdfFile,
+        p12File.buffer,
+        password,
+      );
+        console.log('run3');
+
+        console.log(signFile)
+      if (signFile) {
+        const fileUpload = await this.fileService.uploadSignedPdf(
+          FileType.DELEGATION_DELEGATOR_SIGNED,
+          String(delegator._id),
+          signFile,
+        );
+
+        const electionDocument = new this.documentModel({
+          electionId: new Types.ObjectId(delegation.electionId),
+          preparedBy: delegator?._id || null,
+          title: 'Kí file',
+          type: FileType.DELEGATION_DELEGATOR_SIGNED,
+          fileUrl: fileUpload.key,
+          createdBy: new Types.ObjectId(delegator?._id),
+          createdAt: new Date(),
+        });
+        await electionDocument.save();
+        delegation.documentId = electionDocument.id;
+        delegation.status = STATUS.PENDING;
+        await delegation.save();
+        return delegation;
+      } else {
+        throw new Error('Kí file không thành công');
+      }
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  async generateUyQuyenPdf(data: any) {
+    try {
+      const fonts = {
+        Roboto: {
+          normal: path.join(process.cwd(), 'src', 'fonts', 'Roboto-Regular.ttf'),
+          bold: path.join(process.cwd(), 'src', 'fonts', 'Roboto-Bold.ttf'),
+        },
+      };
+      const printer = new PdfPrinter(fonts);
+
+      const currentDate = new Date();
+      const formattedDate = `${currentDate.getDate()}/${
+        currentDate.getMonth() + 1
+      }/${currentDate.getFullYear()}`;
+
+      const docDefinition: any = {
+        pageSize: 'A4',
+        pageMargins: [40, 40, 40, 40],
+
+        content: [
+          // ======= HEADER ========
+          {
+            stack: [
+              {
+                text: 'CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM',
+                bold: true,
+                alignment: 'center',
+                fontSize: 12,
+              },
+              {
+                text: 'Độc lập - Tự do - Hạnh phúc',
+                alignment: 'center',
+                fontSize: 11,
+                margin: [0, 2, 0, 2],
+              },
+              { text: '-----------------------------', alignment: 'center', margin: [0, 0, 0, 20] },
+            ],
+          },
+
+          // ======= TITLE ========
+          {
+            text: 'GIẤY ỦY QUYỀN',
+            alignment: 'center',
+            bold: true,
+            fontSize: 15,
+            margin: [0, 0, 0, 20],
+          },
+
+          // ======= FORM CONTENT ========
+          {
+            text: `Tôi là: ${
+              data.hoTen || '...........................................................'
+            }`,
+            margin: [0, 0, 0, 10],
+          },
+          {
+            text: `Chức vụ: ${
+              data.chucVu || '...........................................................'
+            }`,
+            margin: [0, 0, 0, 10],
+          },
+          {
+            text: `Số điện thoại: ${
+              data.phone || '...........................................................'
+            }`,
+            margin: [0, 0, 0, 10],
+          },
+          {
+            text: `CMND/CCCD số: ${
+              data.cmnd || '...........................................................'
+            }`,
+            margin: [0, 0, 0, 10],
+          },
+          {
+            text: `Địa chỉ: ${
+              data.diaChiA || '...........................................................'
+            }`,
+            margin: [0, 0, 0, 10],
+          },
+          {
+            text: `Ủy quyền cho ông/bà: ${
+              data.uyQuyenCho || '...........................................................'
+            }`,
+            margin: [0, 0, 0, 10],
+          },
+          {
+            text: `Số điện thoại: ${
+              data.phone2 || '...........................................................'
+            }`,
+            margin: [0, 0, 0, 10],
+          },
+          {
+            text: `CMND/CCCD số: ${
+              data.cmnd2 || '...........................................................'
+            }`,
+            margin: [0, 0, 0, 10],
+          },
+          {
+            text: `Địa chỉ tại: ${
+              data.diaChiB || '...........................................................'
+            }`,
+            margin: [0, 0, 0, 10],
+          },
+          {
+            text: `Phạm vi ủy quyền: ${
+              data.phamViUyQuyen || '...........................................................'
+            }`,
+            margin: [0, 0, 0, 10],
+          },
+
+          {
+            text: `Thời hạn ủy quyền: ${
+              data.thoiHan || '...........................................................'
+            }`,
+            margin: [0, 0, 0, 10],
+          },
+
+          {
+            text: 'Vì vậy, .................................................................................................................................',
+            margin: [0, 10, 0, 20],
+          },
+
+          // ======= FOOTER SIGN ========
+          {
+            columns: [
+              { width: '*', text: '' },
+              {
+                stack: [
+                  {
+                    text: `......., ngày .... tháng .... năm ${currentDate.getFullYear()}`,
+                    alignment: 'center',
+                  },
+                  {
+                    text: 'Người ủy quyền',
+                    alignment: 'center',
+                    bold: true,
+                    margin: [0, 20, 0, 60],
+                  },
+                  { text: '(Ký tên, đóng dấu)', alignment: 'center' },
+                ],
+                width: 200,
+              },
+            ],
+            margin: [0, 40, 0, 0],
+          },
+        ],
+      };
+
+      // Xuất PDF
+      const pdfDoc = printer.createPdfKitDocument(docDefinition);
+      const chunks: any[] = [];
+      return await new Promise<Buffer>((resolve, reject) => {
+        pdfDoc.on('data', (chunk) => chunks.push(chunk));
+        pdfDoc.on('end', () => resolve(Buffer.concat(chunks)));
+        pdfDoc.on('error', (err) => reject(err));
+        pdfDoc.end();
+      });
+    } catch (err) {
+      throw err;
     }
   }
 }

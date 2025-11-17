@@ -21,6 +21,9 @@ export enum FileType {
   // Delegation summary signed
   DELEGATION_SUMMARY_SIGNED = 'delegation-summary-signed',
 
+  // Delegation summary
+  DELEGATION_DELEGATOR_SIGNED = 'delegation-delegator-signed',
+
   // Signature related files
   SIGNED_DOCUMENT = 'signed-documents',
 
