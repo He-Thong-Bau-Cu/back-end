@@ -32,6 +32,7 @@ async function bootstrap() {
       whitelist: true,
     }),
   );
+  app.setGlobalPrefix('api');
   app.use(
     rateLimit({
       windowMs: 10 * 60 * 1000,
