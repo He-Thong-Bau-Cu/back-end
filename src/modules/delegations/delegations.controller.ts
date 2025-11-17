@@ -283,16 +283,37 @@ export class DelegationsController {
     res.send(pdfBuffer);
   }
 
+  @Post(`${METHOD.REJECT}`)
+  async rejectDelegation(
+    @Body('electionId') electionId: string,
+    @Body('delegationIds')
+    delegationIds: { id: string; rejectReason: string }[],
+  ) {
+    try {
+      const resData = await this.delegationsService.rejectDelegation(delegationIds, electionId);
+      return BaseResponse.success(resData, 'Từ chối thành công dữ liệu ủy quyền!', HttpStatus.OK);
+    } catch (error) {
+      throw new HttpException({ message: error.message }, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+  }
+
   @Post(`${METHOD.APPROVE}`)
   @UseInterceptors(FileInterceptor('file'))
   async approveDelegation(
     @UploadedFile() fileP12: Express.Multer.File,
     @Body('electionId') electionId: string,
     @Body('password') password: string,
+    @Body('delegationIds') delegationsIds: string[],
     @Req() req: CustomRequest,
   ) {
     try {
-      const resData = await this.delegationsService.approvedAndSign(fileP12, req.user.sub, electionId, password);
+      const resData = await this.delegationsService.approvedAndSign(
+        fileP12,
+        req.user.sub,
+        electionId,
+        password,
+        delegationsIds,
+      );
       return BaseResponse.success(
         resData,
         'Duyệt và ký thành công tổng hợp dữ liệu ủy quyền!',
@@ -308,15 +329,15 @@ export class DelegationsController {
   async approveDelegationByDelegator(
     @UploadedFile() fileP12: Express.Multer.File,
     @Body('delegationId') delegationId: string,
-    @Body('password') password: string
+    @Body('password') password: string,
   ) {
     try {
-      const resData = await this.delegationsService.signByDelegator(delegationId, fileP12, password);
-      return BaseResponse.success(
-        resData,
-        'Ký thành công đăng ký ủy quyền!',
-        HttpStatus.OK,
+      const resData = await this.delegationsService.signByDelegator(
+        delegationId,
+        fileP12,
+        password,
       );
+      return BaseResponse.success(resData, 'Ký thành công đăng ký ủy quyền!', HttpStatus.OK);
     } catch (error) {
       throw new HttpException({ message: error.message }, HttpStatus.INTERNAL_SERVER_ERROR);
     }
@@ -326,9 +347,12 @@ export class DelegationsController {
   @ApiResponse({ status: 200, description: 'Thành công' })
   @ApiResponse({ status: 500, description: 'Dữ liệu không hợp lệ' })
   @Post(`${METHOD.APPROVE}/secretary`)
-  async approveBySecretary(@Body() req: {delegationId: string, status: string}) {
+  async approveBySecretary(@Body() req: { delegationId: string; status: string }) {
     try {
-      const resData = await this.delegationsService.approveBySecretary(req.delegationId, req.status);
+      const resData = await this.delegationsService.approveBySecretary(
+        req.delegationId,
+        req.status,
+      );
       return BaseResponse.success(resData, MESSAGE.SUCCESS, HttpStatus.OK);
     } catch (error) {
       throw new HttpException({ message: error.message }, HttpStatus.INTERNAL_SERVER_ERROR);
