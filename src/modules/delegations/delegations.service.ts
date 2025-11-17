@@ -16,7 +16,7 @@ import PdfPrinter from 'pdfmake';
 import path from 'path';
 import { BaseSearchDTO } from 'src/common/dto/base-search.dto';
 import { paginate } from 'src/common/dto/paignation';
-import { formatDateVN, validateStatusFormat } from 'src/common/utils/format';
+import { formatDateDMYVN, formatDateVN, validateStatusFormat } from 'src/common/utils/format';
 import { SigningService } from '../signature/signature.service';
 import { Voters, VotersDocument } from 'src/database/schemas/voters.schema';
 import { MinioService } from '../minio/minio.service';
@@ -59,7 +59,7 @@ export class DelegationsService {
     @InjectConnection()
     private readonly connection: Connection,
     private readonly notificationService: NotificationService,
-  ) { }
+  ) {}
   async getDelegatorIdAndElectionId(delegatorId: string, electionId: string) {
     try {
       //kiểm tra xem có electionId không
@@ -412,7 +412,9 @@ export class DelegationsService {
       const delegatorAuthorized = await this.delegationModel.findOne({
         delegatorId: new Types.ObjectId(createDelegation.delegatorId),
         electionId: new Types.ObjectId(createDelegation.electionId),
-        status: { $in: [STATUS.ACTIVE, STATUS.PENDING, STATUS.CONFIRMED, STATUS.SIGNED, STATUS.DRAFT] },
+        status: {
+          $in: [STATUS.ACTIVE, STATUS.PENDING, STATUS.CONFIRMED, STATUS.SIGNED, STATUS.DRAFT],
+        },
       });
       if (delegatorAuthorized) {
         throw new Error(MESSAGE.DELEGATOR_ALREADY_AUTHORIZED);
@@ -423,7 +425,9 @@ export class DelegationsService {
         const delegateAuthorized = await this.delegationModel.findOne({
           delegateId: new Types.ObjectId(createDelegation.delegateId),
           electionId: new Types.ObjectId(createDelegation.electionId),
-          status: { $in: [STATUS.ACTIVE, STATUS.PENDING, STATUS.CONFIRMED, STATUS.SIGNED, STATUS.DRAFT] },
+          status: {
+            $in: [STATUS.ACTIVE, STATUS.PENDING, STATUS.CONFIRMED, STATUS.SIGNED, STATUS.DRAFT],
+          },
         });
         if (delegateAuthorized) {
           throw new Error(MESSAGE.DELEGATE_ALREADY_AUTHORIZED);
@@ -456,7 +460,7 @@ export class DelegationsService {
       // if (createDelegation.delegationType == 'ELECTION') {
       //   endDate = new Date(electionExist.delegationEnd);
       //   startDate = new Date(electionExist.delegationStart);
-      // } 
+      // }
       //Check if the document is exist
       if (createDelegation.documentId) {
         const documentExist = await this.documentModel.exists({
@@ -488,8 +492,14 @@ export class DelegationsService {
         confirmedBy: createDelegation?.confirmedBy
           ? new Types.ObjectId(createDelegation.confirmedBy)
           : null,
-        startDate: createDelegation.delegationType == 'ELECTION' ? new Date(electionExist.startDate) : createDelegation?.startDate,
-        endDate: createDelegation.delegationType == 'ELECTION' ? new Date(electionExist.endDate) : createDelegation?.endDate,
+        startDate:
+          createDelegation.delegationType == 'ELECTION'
+            ? new Date(electionExist.startDate)
+            : createDelegation?.startDate,
+        endDate:
+          createDelegation.delegationType == 'ELECTION'
+            ? new Date(electionExist.endDate)
+            : createDelegation?.endDate,
         createdBy: new Types.ObjectId(userId) || null,
       });
 
@@ -725,11 +735,11 @@ export class DelegationsService {
           $match: {
             ...(req.electionName?.trim()
               ? {
-                'election.title': {
-                  $regex: req.electionName,
-                  $options: 'i',
-                },
-              }
+                  'election.title': {
+                    $regex: req.electionName,
+                    $options: 'i',
+                  },
+                }
               : {}),
           },
         },
@@ -1188,7 +1198,7 @@ export class DelegationsService {
     });
   }
 
-  async getSummaryDelegateByElectionId(electionId: string) {
+  async getSummaryDelegateByElectionId(electionId: string, delegationsIds: string[]) {
     try {
       console.log(electionId);
       const delegationsGrouped = await this.delegationModel.aggregate([
@@ -1197,6 +1207,7 @@ export class DelegationsService {
             confirmedBy: null,
             status: STATUS.CONFIRMED,
             electionId: new Types.ObjectId(electionId),
+            _id: { $in: delegationsIds },
           },
         },
         {
@@ -1258,11 +1269,55 @@ export class DelegationsService {
     }
   }
 
+  async rejectDelegation(
+    delegationIds: { id: string; rejectReason: string }[],
+    electionId: string,
+  ) {
+    try {
+      const idDelegationMap = delegationIds.map((d) => d.id);
+
+      const delegations = await this.delegationModel
+        .find({
+          _id: { $in: idDelegationMap },
+          electionId: new Types.ObjectId(electionId),
+        })
+        .exec();
+
+      if (delegations.length === 0) {
+        throw new NotFoundException('Không tìm thấy dữ liệu ủy quyền!');
+      }
+
+      const reasonMap = new Map(delegationIds.map((d) => [d.id, d.rejectReason]));
+
+      for (const d of delegations) {
+        if (d.status !== STATUS.CONFIRMED) {
+          throw new Error(`Trạng thái không thể từ chối!`);
+        }
+
+        d.status = STATUS.REJECTED;
+
+        const rejectReason = reasonMap.get(String(d._id)) || '';
+
+        await this.notificationService.notifyUser(
+          String(d.delegatorId),
+          `Yêu cầu ủy quyền của bạn đã bị từ chối bởi chủ tọa. Lý do: ${rejectReason}`,
+        );
+
+        await d.save();
+      }
+
+      return delegations;
+    } catch (error) {
+      throw error;
+    }
+  }
+
   async approvedAndSign(
     p12File: Express.Multer.File,
     userId: string,
     electionId: string,
     password: string,
+    delegationIds: string[],
   ) {
     try {
       const election = await this.electionModel.findById(new Types.ObjectId(electionId)).exec();
@@ -1272,7 +1327,10 @@ export class DelegationsService {
       if (election.delegationEnd > new Date()) {
         throw new Error('Bạn chỉ có thể kí khi thời hạn ủy quyền kết thúc!');
       }
-      const dataSummaryElection = await this.getSummaryDelegateByElectionId(electionId);
+      const dataSummaryElection = await this.getSummaryDelegateByElectionId(
+        electionId,
+        delegationIds,
+      );
       if (dataSummaryElection.length === 0) {
         throw new NotFoundException('Không tìm thấy dữ liệu tổng hợp!');
       }
@@ -1637,21 +1695,19 @@ export class DelegationsService {
         diaChiB: delegate ? delegate.address : delegateInfo.address,
         phamViUyQuyen:
           'Được thay mặt tôi tiến hành toàn bộ các thủ tục liên quan đến việc tham dự, thực hiện quyền bầu cử, bỏ phiếu, ký nhận và thực hiện các công việc cần thiết khác theo đúng quy định pháp luật hiện hành và theo quy chế của cuộc bầu cử.',
-        thoiHan: `${thoiHanNgay} ngày, tính từ ngày ${formatDateVN(
+        thoiHan: `${thoiHanNgay} ngày, tính từ ngày ${formatDateDMYVN(
           delegation.startDate,
-        )} đến ngày ${formatDateVN(delegation.endDate)}`,
+        )} đến ngày ${formatDateDMYVN(delegation.endDate)}`,
       };
-      console.log('run');
       const pdfFile = await this.generateUyQuyenPdf(dataBinding);
-      console.log('run2');
       const signFile = await this.signatureService.signPdfWithP12(
         pdfFile,
         p12File.buffer,
         password,
       );
-        console.log('run3');
+      console.log('run3');
 
-        console.log(signFile)
+      console.log(signFile);
       if (signFile) {
         const fileUpload = await this.fileService.uploadSignedPdf(
           FileType.DELEGATION_DELEGATOR_SIGNED,

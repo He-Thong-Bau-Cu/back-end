@@ -14,6 +14,7 @@ export enum METHOD {
   ALL = 'all',
   STATISTICS = 'statistics',
   APPROVE = 'approve',
+  REJECT = 'reject',
 }
 
 export enum ENDPOINT {
