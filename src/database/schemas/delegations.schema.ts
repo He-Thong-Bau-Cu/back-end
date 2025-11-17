@@ -16,7 +16,7 @@ export class Delegations extends BaseSchema {
   @Prop({ required: true })
   delegationType: string;
 
-  @Prop({ type: Types.ObjectId, ref: Elections.name, required: true })
+  @Prop({ type: Types.ObjectId, ref: Elections.name, default: null })
   electionId: Types.ObjectId;
 
   @Prop({ type: Types.ObjectId, ref: Users.name, required: true })
