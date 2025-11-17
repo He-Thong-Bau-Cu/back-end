@@ -7,6 +7,12 @@ export function formatDateVN(date: Date): string {
     .format('YYYY-MM-DDTHH:mm:ss.SSSZ');
 }
 
+export function formatDateDMYVN(date: Date): string {
+  return moment(date)
+    .tz('Asia/Ho_Chi_Minh')
+    .format('DD/MM/YYYY');
+}
+
 export default function removeVietnameseTones(str: string) {
   return str
     .normalize("NFD")

@@ -16,7 +16,7 @@ import PdfPrinter from 'pdfmake';
 import path from 'path';
 import { BaseSearchDTO } from 'src/common/dto/base-search.dto';
 import { paginate } from 'src/common/dto/paignation';
-import { formatDateVN, validateStatusFormat } from 'src/common/utils/format';
+import { formatDateDMYVN, formatDateVN, validateStatusFormat } from 'src/common/utils/format';
 import { SigningService } from '../signature/signature.service';
 import { Voters, VotersDocument } from 'src/database/schemas/voters.schema';
 import { MinioService } from '../minio/minio.service';
@@ -1695,13 +1695,11 @@ export class DelegationsService {
         diaChiB: delegate ? delegate.address : delegateInfo.address,
         phamViUyQuyen:
           'Được thay mặt tôi tiến hành toàn bộ các thủ tục liên quan đến việc tham dự, thực hiện quyền bầu cử, bỏ phiếu, ký nhận và thực hiện các công việc cần thiết khác theo đúng quy định pháp luật hiện hành và theo quy chế của cuộc bầu cử.',
-        thoiHan: `${thoiHanNgay} ngày, tính từ ngày ${formatDateVN(
+        thoiHan: `${thoiHanNgay} ngày, tính từ ngày ${formatDateDMYVN(
           delegation.startDate,
-        )} đến ngày ${formatDateVN(delegation.endDate)}`,
+        )} đến ngày ${formatDateDMYVN(delegation.endDate)}`,
       };
-      console.log('run');
       const pdfFile = await this.generateUyQuyenPdf(dataBinding);
-      console.log('run2');
       const signFile = await this.signatureService.signPdfWithP12(
         pdfFile,
         p12File.buffer,
