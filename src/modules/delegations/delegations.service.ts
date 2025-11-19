@@ -8,7 +8,7 @@ import { Elections } from 'src/database/schemas/elections.schema';
 import { Users } from 'src/database/schemas/users.schema';
 import { ElectionDocument, ElectionDocuments } from 'src/database/schemas/electionDocuments.schema';
 import { MESSAGE } from 'src/common/enums/message.enum';
-import { STATUS } from 'src/common/enums/status.enum';
+import { DELEGATION_TYPE, STATUS } from 'src/common/enums/status.enum';
 import { CustomRequest } from 'src/common/middleware/auth.middleware';
 import { UsersService } from '../users/users.service';
 import { DelegationDto } from './dto/delegation.dto';
@@ -59,7 +59,7 @@ export class DelegationsService {
     @InjectConnection()
     private readonly connection: Connection,
     private readonly notificationService: NotificationService,
-  ) {}
+  ) { }
   async getDelegatorIdAndElectionId(delegatorId: string, electionId: string) {
     try {
       //kiểm tra xem có electionId không
@@ -383,101 +383,17 @@ export class DelegationsService {
 
   async create(createDelegation: CreateDelegationDto, userId: string) {
     try {
-      //Check if the election is exist
-      const electionExist = await this.electionModel.findById(
-        new Types.ObjectId(createDelegation.electionId),
-      );
-      if (!electionExist) {
-        throw new Error(MESSAGE.ELECTION_NOT_FOUND);
-      }
 
-      //Kiểm tra thông tin user nếu người được ủy quyền chưa có tài khoản trong hệ thống
-      if (createDelegation.delegateInfo && createDelegation.delegateId == null) {
-        if (
-          !createDelegation.delegateInfo.fullName ||
-          !createDelegation.delegateInfo.email ||
-          !createDelegation.delegateInfo.citizenId ||
-          !createDelegation.delegateInfo.phone ||
-          !createDelegation.delegateInfo.address
-        ) {
-          throw new Error(MESSAGE.DELEGATE_INFO_INCOMPLETE);
-        }
-      }
-      //Kiểm  tra delegateId và delegateInfo không được cùng tồn tại
-      if (createDelegation.delegateInfo && createDelegation.delegateId) {
-        throw new Error(MESSAGE.DELEGATE_INFO_CONFLICT);
-      }
+      const electionExist = await this.validateElection(createDelegation);
+      await this.validateDelegateInfo(createDelegation);
+      await this.validateDelegator(createDelegation);
+      await this.validateDelegate(createDelegation);
+      await this.validateDelegationTime(createDelegation, electionExist);
+      await this.validateDocument(createDelegation);
+      await this.validateConfirmedBy(createDelegation);
 
-      //Kiểm tra xem cử tri đã ủy quyền cho ai chưa trong cuộc bầu cử này chưa
-      const delegatorAuthorized = await this.delegationModel.findOne({
-        delegatorId: new Types.ObjectId(createDelegation.delegatorId),
-        electionId: new Types.ObjectId(createDelegation.electionId),
-        status: {
-          $in: [STATUS.ACTIVE, STATUS.PENDING, STATUS.CONFIRMED, STATUS.SIGNED, STATUS.DRAFT],
-        },
-      });
-      if (delegatorAuthorized) {
-        throw new Error(MESSAGE.DELEGATOR_ALREADY_AUTHORIZED);
-      }
 
-      //Kiểm tra xem người được ủy quyền đã được ủy quyền trong cuộc bầu cử này chưa
-      if (createDelegation?.delegateId) {
-        const delegateAuthorized = await this.delegationModel.findOne({
-          delegateId: new Types.ObjectId(createDelegation.delegateId),
-          electionId: new Types.ObjectId(createDelegation.electionId),
-          status: {
-            $in: [STATUS.ACTIVE, STATUS.PENDING, STATUS.CONFIRMED, STATUS.SIGNED, STATUS.DRAFT],
-          },
-        });
-        if (delegateAuthorized) {
-          throw new Error(MESSAGE.DELEGATE_ALREADY_AUTHORIZED);
-        }
-      }
-      //Check if the user is exist
-      const delegatorExist = await this.userModel.exists({
-        _id: new Types.ObjectId(createDelegation.delegatorId),
-      });
-      if (!delegatorExist) {
-        throw new Error(MESSAGE.DELEGATOR_NOT_FOUND);
-      }
-      //Check if the user is exist
-      if (createDelegation?.delegateId) {
-        const delegateExist = await this.userModel.exists({
-          _id: new Types.ObjectId(createDelegation.delegateId),
-        });
-        if (!delegateExist) {
-          throw new Error(MESSAGE.DELEGATE_NOT_FOUND);
-        }
-        //Kiểm tra người ủy quyền và người được ủy tuyển có trùng userId không
-        if (createDelegation.delegatorId === createDelegation.delegateId) {
-          throw new Error(MESSAGE.DELEGATION_DELEGATOR_FAIL);
-        }
-      }
 
-      //Xem là loại bầu cử nào thì kiêm tra thời gian ủy quyền có hợp lệ không
-      // let startDate:Date;
-      // let endDate:Date;
-      // if (createDelegation.delegationType == 'ELECTION') {
-      //   endDate = new Date(electionExist.delegationEnd);
-      //   startDate = new Date(electionExist.delegationStart);
-      // }
-      //Check if the document is exist
-      if (createDelegation.documentId) {
-        const documentExist = await this.documentModel.exists({
-          _id: new Types.ObjectId(createDelegation.documentId),
-        });
-        if (!documentExist) {
-          throw new Error(MESSAGE.ELECTION_DOCUMENT_NOT_FOUND);
-        }
-      }
-      //Check if the confirmedBy is exist
-
-      if (createDelegation.confirmedBy) {
-        const confirmedByExist = await this.userModel.exists({ _id: createDelegation.confirmedBy });
-        if (!confirmedByExist) {
-          throw new Error(MESSAGE.USER_NOT_FOUND);
-        }
-      }
       //Create delegation
       const delegation = await this.delegationModel.create({
         ...createDelegation,
@@ -486,20 +402,20 @@ export class DelegationsService {
         delegateId: createDelegation?.delegateId
           ? new Types.ObjectId(createDelegation.delegateId)
           : null,
-        documentId: createDelegation.documentId
+        documentId: createDelegation?.documentId
           ? new Types.ObjectId(createDelegation.documentId)
           : null,
         confirmedBy: createDelegation?.confirmedBy
           ? new Types.ObjectId(createDelegation.confirmedBy)
           : null,
         startDate:
-          createDelegation.delegationType == 'ELECTION'
+          createDelegation.delegationType == DELEGATION_TYPE.ELECTION
             ? new Date(electionExist.startDate)
-            : createDelegation?.startDate,
+            : createDelegation.startDate,
         endDate:
-          createDelegation.delegationType == 'ELECTION'
+          createDelegation.delegationType == DELEGATION_TYPE.ELECTION
             ? new Date(electionExist.endDate)
-            : createDelegation?.endDate,
+            : createDelegation.endDate,
         createdBy: new Types.ObjectId(userId) || null,
       });
 
@@ -735,11 +651,11 @@ export class DelegationsService {
           $match: {
             ...(req.electionName?.trim()
               ? {
-                  'election.title': {
-                    $regex: req.electionName,
-                    $options: 'i',
-                  },
-                }
+                'election.title': {
+                  $regex: req.electionName,
+                  $options: 'i',
+                },
+              }
               : {}),
           },
         },
@@ -1748,9 +1664,8 @@ export class DelegationsService {
       const printer = new PdfPrinter(fonts);
 
       const currentDate = new Date();
-      const formattedDate = `${currentDate.getDate()}/${
-        currentDate.getMonth() + 1
-      }/${currentDate.getFullYear()}`;
+      const formattedDate = `${currentDate.getDate()}/${currentDate.getMonth() + 1
+        }/${currentDate.getFullYear()}`;
 
       const docDefinition: any = {
         pageSize: 'A4',
@@ -1787,70 +1702,59 @@ export class DelegationsService {
 
           // ======= FORM CONTENT ========
           {
-            text: `Tôi là: ${
-              data.hoTen || '...........................................................'
-            }`,
+            text: `Tôi là: ${data.hoTen || '...........................................................'
+              }`,
             margin: [0, 0, 0, 10],
           },
           {
-            text: `Chức vụ: ${
-              data.chucVu || '...........................................................'
-            }`,
+            text: `Chức vụ: ${data.chucVu || '...........................................................'
+              }`,
             margin: [0, 0, 0, 10],
           },
           {
-            text: `Số điện thoại: ${
-              data.phone || '...........................................................'
-            }`,
+            text: `Số điện thoại: ${data.phone || '...........................................................'
+              }`,
             margin: [0, 0, 0, 10],
           },
           {
-            text: `CMND/CCCD số: ${
-              data.cmnd || '...........................................................'
-            }`,
+            text: `CMND/CCCD số: ${data.cmnd || '...........................................................'
+              }`,
             margin: [0, 0, 0, 10],
           },
           {
-            text: `Địa chỉ: ${
-              data.diaChiA || '...........................................................'
-            }`,
+            text: `Địa chỉ: ${data.diaChiA || '...........................................................'
+              }`,
             margin: [0, 0, 0, 10],
           },
           {
-            text: `Ủy quyền cho ông/bà: ${
-              data.uyQuyenCho || '...........................................................'
-            }`,
+            text: `Ủy quyền cho ông/bà: ${data.uyQuyenCho || '...........................................................'
+              }`,
             margin: [0, 0, 0, 10],
           },
           {
-            text: `Số điện thoại: ${
-              data.phone2 || '...........................................................'
-            }`,
+            text: `Số điện thoại: ${data.phone2 || '...........................................................'
+              }`,
             margin: [0, 0, 0, 10],
           },
           {
-            text: `CMND/CCCD số: ${
-              data.cmnd2 || '...........................................................'
-            }`,
+            text: `CMND/CCCD số: ${data.cmnd2 || '...........................................................'
+              }`,
             margin: [0, 0, 0, 10],
           },
           {
-            text: `Địa chỉ tại: ${
-              data.diaChiB || '...........................................................'
-            }`,
+            text: `Địa chỉ tại: ${data.diaChiB || '...........................................................'
+              }`,
             margin: [0, 0, 0, 10],
           },
           {
-            text: `Phạm vi ủy quyền: ${
-              data.phamViUyQuyen || '...........................................................'
-            }`,
+            text: `Phạm vi ủy quyền: ${data.phamViUyQuyen || '...........................................................'
+              }`,
             margin: [0, 0, 0, 10],
           },
 
           {
-            text: `Thời hạn ủy quyền: ${
-              data.thoiHan || '...........................................................'
-            }`,
+            text: `Thời hạn ủy quyền: ${data.thoiHan || '...........................................................'
+              }`,
             margin: [0, 0, 0, 10],
           },
 
@@ -1898,4 +1802,130 @@ export class DelegationsService {
       throw err;
     }
   }
+
+  private async validateElection(dto: CreateDelegationDto) {
+    let electionExist: any;
+    if (dto.delegationType == DELEGATION_TYPE.ELECTION) {
+      electionExist = await this.electionModel.findById(
+        new Types.ObjectId(dto.electionId),
+      );
+      //Kiểm tra electionId có tồn tại không
+      if (!electionExist) {
+        throw new Error(MESSAGE.ELECTION_NOT_FOUND);
+      }
+    }
+    return electionExist;
+  }
+  private async validateDelegateInfo(dto: CreateDelegationDto) {
+    //Kiểm  tra delegateId và delegateInfo không được cùng tồn tại
+    const { delegateInfo, delegateId } = dto;
+
+    if (delegateInfo && delegateId) {
+      throw new Error(MESSAGE.DELEGATE_INFO_CONFLICT);
+    }
+
+    if (!delegateInfo && !delegateId) {
+      throw new Error("Bạn phải chọn user hoặc nhập thông tin người được ủy quyền");
+    }
+
+    //Kiểm tra thông tin user nếu người được ủy quyền chưa có tài khoản trong hệ thống
+    if (delegateInfo && delegateId == null) {
+      if (
+        !delegateInfo.fullName ||
+        !delegateInfo.email ||
+        !delegateInfo.citizenId ||
+        !delegateInfo.phone ||
+        !delegateInfo.address
+      ) {
+        throw new Error(MESSAGE.DELEGATE_INFO_INCOMPLETE);
+      }
+    }
+  }
+  private async validateDelegator(dto: CreateDelegationDto) {
+    //Kiêm tra delegatorId có tồn tại không
+    const delegatorExist = await this.userModel.exists({
+      _id: new Types.ObjectId(dto.delegatorId),
+    });
+    if (!delegatorExist) {
+      throw new Error(MESSAGE.DELEGATOR_NOT_FOUND);
+    }
+
+    //Kiểm tra xem cử tri đã ủy quyền cho ai chưa trong cuộc bầu cử này chưa
+    const delegatorAuthorized = await this.delegationModel.findOne({
+      delegatorId: new Types.ObjectId(dto.delegatorId),
+      electionId: new Types.ObjectId(dto.electionId),
+      status: {
+        $in: [STATUS.ACTIVE, STATUS.PENDING, STATUS.CONFIRMED, STATUS.SIGNED, STATUS.DRAFT],
+      },
+    });
+    if (delegatorAuthorized) {
+      throw new Error(MESSAGE.DELEGATOR_ALREADY_AUTHORIZED);
+    }
+  }
+  private async validateDelegate(dto: CreateDelegationDto) {
+    if (!dto.delegateId) return;
+    //Kiểm tra xem người được ủy quyền đã được ủy quyền trong cuộc bầu cử này chưa
+    const delegateAuthorized = await this.delegationModel.findOne({
+      delegateId: new Types.ObjectId(dto.delegateId),
+      electionId: new Types.ObjectId(dto.electionId),
+      status: {
+        $in: [STATUS.ACTIVE, STATUS.PENDING, STATUS.CONFIRMED, STATUS.SIGNED, STATUS.DRAFT],
+      },
+    });
+    if (delegateAuthorized) {
+      throw new Error(MESSAGE.DELEGATE_ALREADY_AUTHORIZED);
+    }
+
+
+    //Kiểm tra người được ủy quyền có đang có vai trò khác trong cuộc bầu cử này không
+    const electionParticipant: any = await this.electionParticipantsModel.findOne({
+      electionId: new Types.ObjectId(dto.electionId),
+      userId: new Types.ObjectId(dto.delegateId),
+    }).populate('roleId').exec();
+    if (electionParticipant) {
+      throw new Error(`Người được ủy quyền đang có vai trò khác trong cuộc bầu cử này: ${electionParticipant.roleId.roleName}`);
+    }
+
+    //Kiểm tra người được ủy quyền có đang là quản trị viên hoặc chủ tọa của hệ thống không
+    const adminRole: any = await this.rolesModel.findOne({ roleCode: USER_ROLE.ADMIN });
+    const preside: any = await this.rolesModel.findOne({ roleCode: USER_ROLE.PRESIDE });
+    const delegateUser = await this.userModel.findById(new Types.ObjectId(dto.delegateId));
+    if (!delegateUser) {
+      throw new Error(MESSAGE.DELEGATE_NOT_FOUND);
+    }
+    if (delegateUser.roleId.toString() == adminRole?._id.toString() || delegateUser.roleId.toString() == preside?._id.toString()) {
+      throw new Error(MESSAGE.DELEGATE_CANNOT_ADMIN_PRESIDE);
+    }
+    //Kiểm tra người ủy quyền và người được ủy tuyển có trùng userId không
+    if (dto.delegatorId === dto.delegateId) {
+      throw new Error(MESSAGE.DELEGATION_DELEGATOR_FAIL);
+    }
+  }
+
+  private async validateDelegationTime(dto: CreateDelegationDto, election) {
+    if (dto.delegationType !== DELEGATION_TYPE.LONG_TERM) return;
+
+    if (!dto.startDate || !dto.endDate) {
+      throw new Error("Ngày bắt đầu/kết thúc ủy quyền không được để trống đối với ủy quyền dài hạn");
+    }
+
+    if (new Date(dto.startDate) >= new Date(dto.endDate)) {
+      throw new Error("Ngày bắt đầu ủy quyền phải trước ngày kết thúc ủy quyền");
+    }
+  }
+
+  private async validateDocument(dto: CreateDelegationDto) {
+    if (!dto.documentId) return;
+
+    const exists = await this.documentModel.exists({ _id: new Types.ObjectId(dto.documentId) });
+    if (!exists) throw new Error(MESSAGE.ELECTION_DOCUMENT_NOT_FOUND);
+  }
+  private async validateConfirmedBy(dto: CreateDelegationDto) {
+    if (!dto.confirmedBy) return;
+
+    const exists = await this.userModel.exists({ _id: new Types.ObjectId(dto.confirmedBy) });
+    if (!exists) throw new Error(MESSAGE.USER_NOT_FOUND);
+  }
+
+
 }

@@ -166,6 +166,7 @@ export enum MESSAGE {
   DELEGATE_INFO_CONFLICT = 'Id của người được ủy quyền và thông tin tạm thời của người được ủy quyền không được cùng tồn tại',
   DELEGATION_NOT_PENDING = 'Trạng thái ủy quyền không thể duyệt hoặc từ chối',
   STATISTICS_GET_DELEGATIONS_SUCCESS = 'Lấy thông tin thống kê cho ủy quyền thành công',
+  DELEGATE_CANNOT_ADMIN_PRESIDE = 'Người được ủy quyền không thể là quản trị viên hoặc chủ tọa cuộc bầu cử',
 
 
 
