@@ -75,7 +75,7 @@ export class ThresholdsService {
 
   async create(createThresholdDto: CreateThresholdDto, userId: string) {
     try {
-      const createdThreshold = this.thresholdsModel.create(createThresholdDto);
+      const createdThreshold = await this.thresholdsModel.create(createThresholdDto);
       return { ...createdThreshold, createdBy: userId };
     } catch (error) {
       throw error;

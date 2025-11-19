@@ -74,7 +74,7 @@ export class VotingMethodsService {
   }
   async create(createVotingMethodDto: CreateVotingMethodDto, userId: string) {
     try {
-      const createdVotingMethod = this.votingMethodsModel.create(createVotingMethodDto);
+      const createdVotingMethod = await this.votingMethodsModel.create(createVotingMethodDto);
       return { ...createdVotingMethod, createdBy: userId };
     } catch (error) {
       throw error;

@@ -34,6 +34,8 @@ export enum MESSAGE {
   USER_UPDATE_SUCCESS = 'Cập nhật người dùng thành công',
   USER_DELETE_SUCCESS = 'Xóa người dùng thành công',
   USER_GET_NON_VOTER_SUCCESS = 'Lấy danh sách người dùng không phải cử tri thành công',
+  USER_GET_NOT_VOTER_PRESIDE_SUCCESS = 'Lấy danh sách người dùng không phải cử tri và chủ tọa thành công',
+  USER_SEARCH_SUCCESS = 'Tìm kiếm người dùng thành công',
 
   // Voter
   VOTER_NOT_FOUND = 'Không tìm thấy cử tri',
