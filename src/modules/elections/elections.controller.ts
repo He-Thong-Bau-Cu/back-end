@@ -154,7 +154,23 @@ export class ElectionsController {
   @ApiResponse({ status: 500, description: 'Lỗi server' })
   async getElectionOrganizer(@Body() req: ElectionDto): Promise<BaseResponse> {
     try {
-      const resData = await this.electionsService.getElectionOrganizerByTime(req.startDate, req.endDate);
+      const resData = await this.electionsService.getElectionOrganizerByTime(
+        req.startDate,
+        req.endDate,
+      );
+      return BaseResponse.success(resData, MESSAGE.SUCCESS, HttpStatus.OK);
+    } catch (error) {
+      throw new HttpException({ message: error.message }, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+  }
+
+  @Post('user-voter/valid')
+  @ApiOperation({ summary: 'Lấy danh sách user để nhập dữ liệu cử tri' })
+  @ApiResponse({ status: 200, description: 'Thành công' })
+  @ApiResponse({ status: 500, description: 'Lỗi server' })
+  async getuserVoterValid(): Promise<BaseResponse> {
+    try {
+      const resData = await this.electionsService.getUserIsVoter();
       return BaseResponse.success(resData, MESSAGE.SUCCESS, HttpStatus.OK);
     } catch (error) {
       throw new HttpException({ message: error.message }, HttpStatus.INTERNAL_SERVER_ERROR);

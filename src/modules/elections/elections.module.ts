@@ -16,6 +16,8 @@ import { Thresholds, ThresholdsSchema } from 'src/database/schemas/thresholds.sc
 import { Users, UsersSchema } from 'src/database/schemas/users.schema';
 import { ElectionsParticipants, ElectionsParticipantsSchema } from 'src/database/schemas/electionParticipants.schema';
 import { Roles, RolesSchema } from 'src/database/schemas/roles.schema';
+import { Voters, VotersSchema } from 'src/database/schemas/voters.schema';
+import { Delegations, DelegationsSchema } from 'src/database/schemas/delegations.schema';
 
 @Module({
   imports: [
@@ -28,6 +30,8 @@ import { Roles, RolesSchema } from 'src/database/schemas/roles.schema';
       { name: Users.name, schema: UsersSchema },
       { name: ElectionsParticipants.name, schema: ElectionsParticipantsSchema },
       { name: Roles.name, schema: RolesSchema },
+      { name: Voters.name, schema: VotersSchema },
+      { name: Delegations.name, schema: DelegationsSchema },
     ]),
   ],
   providers: [ElectionsService],

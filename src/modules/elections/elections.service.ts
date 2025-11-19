@@ -22,6 +22,8 @@ import {
 } from 'src/database/schemas/electionParticipants.schema';
 import { Roles, RolesDocument } from 'src/database/schemas/roles.schema';
 import { USER_ROLE } from 'src/common/enums/config.enum';
+import { Voters, VotersDocument } from 'src/database/schemas/voters.schema';
+import { Delegations, DelegationsDocument } from 'src/database/schemas/delegations.schema';
 
 @Injectable()
 export class ElectionsService {
@@ -42,7 +44,11 @@ export class ElectionsService {
     private readonly electionParticipantsModel: Model<ElectionsParticipantsDocument>,
     @InjectModel(Roles.name)
     private readonly rolesModel: Model<RolesDocument>,
-  ) { }
+    @InjectModel(Voters.name)
+    private readonly voterModel: Model<VotersDocument>,
+    @InjectModel(Delegations.name)
+    private readonly delegationModel: Model<DelegationsDocument>,
+  ) {}
 
   async searchElections(req: SearchDTO) {
     try {
@@ -127,17 +133,17 @@ export class ElectionsService {
         minEnd.setDate(minEnd.getDate() + 20);
 
         if (endDate < minEnd) {
-          throw new Error("Ngày kết thúc phải lớn hơn ngày tạo ít nhất 20 ngày");
+          throw new Error('Ngày kết thúc phải lớn hơn ngày tạo ít nhất 20 ngày');
         }
 
         //Kiểm tra ngày bắt đầu cuộc bầu cử và ngày kết thúc cuộc bầu cử phải nằm trong cùng 1 Ngày
         const startDate = new Date(createElection?.startDate);
         if (startDate.toDateString() !== endDate.toDateString()) {
-          throw new Error("Ngày bắt đầu và ngày kết thúc cuộc bầu cử phải nằm trong cùng một ngày");
+          throw new Error('Ngày bắt đầu và ngày kết thúc cuộc bầu cử phải nằm trong cùng một ngày');
         }
         //  endDate > startDate (khác giờ)
         if (endDate <= startDate) {
-          throw new Error("Giờ kết thúc phải lớn hơn giờ bắt đầu");
+          throw new Error('Giờ kết thúc phải lớn hơn giờ bắt đầu');
         }
       }
       //Kiểm tra xem delegationEnd phải nhỏ hơn startDate ít nhất 10 Ngày
@@ -147,10 +153,11 @@ export class ElectionsService {
         const minStart = new Date(delegationEnd);
         minStart.setDate(minStart.getDate() + 10);
         if (startDate < minStart) {
-          throw new Error('Ngày kết thúc ủy quyền phải nhỏ hơn ngày bắt đầu cuộc bầu cử ít nhất 10 ngày');
+          throw new Error(
+            'Ngày kết thúc ủy quyền phải nhỏ hơn ngày bắt đầu cuộc bầu cử ít nhất 10 ngày',
+          );
         }
       }
-
 
       //Kiểm tra delegationDate có hợp lệ không
       if (createElection?.delegationStart && createElection?.delegationEnd) {
@@ -163,7 +170,9 @@ export class ElectionsService {
         // Nếu có delegation, đảm bảo nằm trong phạm vi election
         if (createElection?.startDate && createElection?.endDate) {
           if (delStart < createdAt) {
-            throw new BadRequestException('Thời gian ủy quyền phải trong khoảng thời gian của cuộc bầu cử');
+            throw new BadRequestException(
+              'Thời gian ủy quyền phải trong khoảng thời gian của cuộc bầu cử',
+            );
           }
         }
       }
@@ -185,7 +194,6 @@ export class ElectionsService {
       throw error;
     }
   }
-
 
   async getElectionById(id: string) {
     try {
@@ -275,17 +283,17 @@ export class ElectionsService {
         minEnd.setDate(minEnd.getDate() + 20);
 
         if (endDate < minEnd) {
-          throw new Error("Ngày kết thúc phải lớn hơn ngày tạo ít nhất 20 ngày");
+          throw new Error('Ngày kết thúc phải lớn hơn ngày tạo ít nhất 20 ngày');
         }
 
         //Kiểm tra ngày bắt đầu cuộc bầu cử và ngày kết thúc cuộc bầu cử phải nằm trong cùng 1 Ngày
         const startDate = new Date(updateElection?.startDate);
         if (startDate.toDateString() !== endDate.toDateString()) {
-          throw new Error("Ngày bắt đầu và ngày kết thúc cuộc bầu cử phải nằm trong cùng một ngày");
+          throw new Error('Ngày bắt đầu và ngày kết thúc cuộc bầu cử phải nằm trong cùng một ngày');
         }
         //  endDate > startDate (khác giờ)
         if (endDate <= startDate) {
-          throw new Error("Giờ kết thúc phải lớn hơn giờ bắt đầu");
+          throw new Error('Giờ kết thúc phải lớn hơn giờ bắt đầu');
         }
       }
       //Kiểm tra xem delegationEnd phải nhỏ hơn startDate ít nhất 10 Ngày
@@ -295,10 +303,11 @@ export class ElectionsService {
         const minStart = new Date(delegationEnd);
         minStart.setDate(minStart.getDate() + 10);
         if (startDate < minStart) {
-          throw new Error('Ngày kết thúc ủy quyền phải nhỏ hơn ngày bắt đầu cuộc bầu cử ít nhất 10 ngày');
+          throw new Error(
+            'Ngày kết thúc ủy quyền phải nhỏ hơn ngày bắt đầu cuộc bầu cử ít nhất 10 ngày',
+          );
         }
       }
-
 
       //Kiểm tra delegationDate có hợp lệ không
       if (updateElection?.delegationStart && updateElection?.delegationEnd) {
@@ -311,11 +320,12 @@ export class ElectionsService {
         // Nếu có delegation, đảm bảo nằm trong phạm vi election
         if (updateElection?.startDate && updateElection?.endDate) {
           if (delStart < createdAt) {
-            throw new BadRequestException('Thời gian ủy quyền phải trong khoảng thời gian của cuộc bầu cử');
+            throw new BadRequestException(
+              'Thời gian ủy quyền phải trong khoảng thời gian của cuộc bầu cử',
+            );
           }
         }
       }
-
 
       const election = await this.electionsModel
         .findByIdAndUpdate(
@@ -323,8 +333,12 @@ export class ElectionsService {
           {
             ...updateElection,
             typeId: updateElection.typeId ? new Types.ObjectId(updateElection.typeId) : null,
-            votingMethodId: updateElection.votingMethodId ? new Types.ObjectId(updateElection.votingMethodId) : null,
-            thresholdId: updateElection.thresholdId ? new Types.ObjectId(updateElection.thresholdId) : null,
+            votingMethodId: updateElection.votingMethodId
+              ? new Types.ObjectId(updateElection.votingMethodId)
+              : null,
+            thresholdId: updateElection.thresholdId
+              ? new Types.ObjectId(updateElection.thresholdId)
+              : null,
             startDate: updateElection.startDate,
             endDate: updateElection.endDate,
             delegationStart: updateElection.delegationStart,
@@ -385,43 +399,69 @@ export class ElectionsService {
   // }
 
   async getElectionOrganizerByTime(startTime: Date, endTime: Date) {
-    try {
-      const elections = await this.electionsModel
-        .find({
-          startDate: { $lt: endTime },
-          endDate: { $gt: startTime },
-        })
-        .exec();
+  try {
+    // 1. Lấy các election trong khoảng thời gian
+    const elections = await this.electionsModel
+      .find({
+        startDate: { $lt: endTime },
+        endDate: { $gt: startTime },
+      })
+      .exec();
 
-      const electionParticipants = await this.electionParticipantsModel
-        .find({
-          electionId: { $in: elections.map((e) => e._id) },
-        })
-        .populate('userId')
-        .exec();
+    const electionIds = elections.map(e => e._id);
 
-      const busyUserIds = electionParticipants.map((item) => item.userId._id);
+    // 2. Lấy tất cả participant trong các election này
+    const electionParticipants = await this.electionParticipantsModel
+      .find({
+        electionId: { $in: electionIds },
+      })
+      .populate('userId')
+      .exec();
 
-      const roles = await this.rolesModel
-        .find({
-          $or: [{ roleCode: USER_ROLE.ADMIN }, { roleCode: USER_ROLE.PRESIDE }],
-        })
-        .exec();
+    // 3. Lấy danh sách user bận
+    const busyUserIds = electionParticipants.map(item => item.userId._id);
 
-      const roleIds = roles.map((role) => role._id);
+    // 4. Lấy role ADMIN và PRESIDE
+    const roles = await this.rolesModel
+      .find({
+        $or: [{ roleCode: USER_ROLE.ADMIN }, { roleCode: USER_ROLE.PRESIDE }],
+      })
+      .exec();
+    const roleIds = roles.map(role => role._id);
 
-      const availableUsers = await this.userModel
-        .find({
-          _id: { $nin: busyUserIds },
-          roleId: { $nin: roleIds },
-        })
-        .exec();
+    // 5. Lấy user có sẵn
+    let availableUsers = await this.userModel
+      .find({
+        _id: { $nin: busyUserIds },
+        roleId: { $nin: roleIds },
+      })
+      .exec();
 
-      return availableUsers;
-    } catch (error) {
-      throw error;
-    }
+      const roleFilter = await this.rolesModel.findOne({ roleCode: USER_ROLE.VOTER }).exec();
+      if (!roleFilter) {
+        throw new Error('Không tìm thấy role VOTER');
+      }
+
+    // 6. Lọc thêm user không có trong voters và không phải participant role VOTER
+    const voterUsers = await this.voterModel.find({}).exec();
+    const voterUserIds = voterUsers.map(v => String(v.userId));
+
+    const voterParticipants = await this.electionParticipantsModel
+      .find({ roleId: roleFilter._id }) // nếu roleId là ObjectId của role VOTER, sửa tương ứng
+      .exec();
+    const voterParticipantIds = voterParticipants.map(p => String(p.userId));
+
+    availableUsers = availableUsers.filter(u =>
+      !voterUserIds.includes(String(u._id)) &&
+      !voterParticipantIds.includes(String(u._id))
+    );
+
+    return availableUsers;
+  } catch (error) {
+    throw error;
   }
+}
+
 
   async approveAndSign(
     p12File: Express.Multer.File,
@@ -433,5 +473,87 @@ export class ElectionsService {
     } catch (error) {
       throw error;
     }
+  }
+
+  async getUserIsVoter() {
+    const now = new Date();
+
+    const roleVoter = await this.rolesModel.findOne({ roleCode: USER_ROLE.VOTER });
+    if (!roleVoter) throw new Error('Không tìm thấy role VOTER');
+
+    const roleFilter = await this.rolesModel.findOne({ roleCode: USER_ROLE.USER });
+    if (!roleFilter) throw new Error('Không tìm thấy role USER');
+
+    const users = await this.userModel.find({ roleId: roleFilter._id }).lean();
+
+    const result: any[] = [];
+
+    for (const user of users) {
+      const userId = user._id;
+
+      // Lấy tất cả delegation liên quan
+      const delegations = await this.delegationModel
+        .find({
+          delegationType: 'LONG_TERM',
+          status: 'SIGNED',
+          $or: [{ delegateId: userId }, { delegatorId: userId }],
+        })
+        .sort({ createdAt: -1 })
+        .lean();
+
+      const delegationsWithStatus = delegations.map((d) => ({
+        ...d,
+        isActive: d.endDate > now,
+        hasExpired: d.endDate <= now,
+      }));
+
+      // --- Delegations còn hạn ---
+      const activeDelegations = delegationsWithStatus.filter((d) => d.isActive);
+
+      // User có đang là delegator còn hạn không?
+      const isDelegatorActive = activeDelegations.some(
+        (d) => String(d.delegatorId) === String(userId),
+      );
+
+      // Delegate hợp lệ nếu còn hạn
+      const isDelegateValid = activeDelegations.some(
+        (d) => String(d.delegateId) === String(userId),
+      );
+
+      // --- Delegations hết hạn: chỉ để loại delegateId cũ ---
+      const expiredDelegations = delegationsWithStatus.filter((d) => d.hasExpired);
+      const expiredDelegateIds = expiredDelegations.map((d) => String(d.delegateId));
+
+      // Kiểm tra voter table
+      let isVoterTable = false;
+      if (!isDelegatorActive && !expiredDelegateIds.includes(String(userId))) {
+        const voterRecord = await this.voterModel.findOne({
+          userId,
+          status: { $ne: 'AUTHORIZED' },
+        });
+        isVoterTable = !!voterRecord;
+      }
+
+      // Kiểm tra participant
+      let isParticipant = false;
+      if (!isDelegatorActive && !expiredDelegateIds.includes(String(userId))) {
+        const participant = await this.electionParticipantsModel.findOne({
+          userId,
+          roleId: roleVoter._id,
+        });
+        isParticipant = !!participant;
+      }
+
+      // Nếu thỏa 1 trong 3 → push result
+      if (isDelegateValid || isVoterTable || isParticipant) {
+        result.push({
+          _id: user._id,
+          fullName: user.fullName,
+          email: user.email,
+        });
+      }
+    }
+
+    return result;
   }
 }
