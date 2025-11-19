@@ -27,6 +27,7 @@ import { CustomRequest } from 'src/common/middleware/auth.middleware';
 import { MinioService } from '../minio/minio.service';
 import { FileType } from 'src/common/enums/file-type.enum';
 import { FileResponseDto } from '../minio/dto/fileResponse.dto';
+import Api from 'twilio/lib/rest/Api';
 
 @ApiBearerAuth('access-token')
 @ApiTags('Users')
@@ -195,4 +196,6 @@ export class UsersController {
       throw new HttpException({ message: error.message }, HttpStatus.INTERNAL_SERVER_ERROR);
     }
   }
+
+
 }

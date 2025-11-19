@@ -14,6 +14,8 @@ import * as bcrypt from 'bcrypt';
 import { USER_ROLE } from '../../common/enums/config.enum';
 import { MinioService } from '../minio/minio.service';
 import { isValidateCitizenId, isValidEmail, isValidPhone } from 'src/common/utils/format';
+import { Elections } from 'src/database/schemas/elections.schema';
+import { ElectionsParticipants } from 'src/database/schemas/electionParticipants.schema';
 
 @Injectable()
 export class UsersService {
@@ -23,6 +25,10 @@ export class UsersService {
     private userModel: Model<UserDocument>,
     @InjectModel(Roles.name)
     private roleModel: Model<RolesDocument>,
+    @InjectModel(ElectionsParticipants.name)
+    private electionParticipantModel: Model<ElectionsParticipants>,
+    @InjectModel(Elections.name)
+    private electionsModel: Model<Elections>,
     private mailService: MailService,
     private fileService: MinioService,
   ) { }
@@ -59,6 +65,10 @@ export class UsersService {
   //     throw error;
   //   }
   // }
+
+
+
+
 
   async getById(id: string) {
     try {
