@@ -30,7 +30,7 @@ export class ElectionEntities extends BaseSchema {
   @Prop({ default: null })
   fileUrl: string;
 
-  @Prop({ type: Types.ObjectId, ref: Users.name, required: true })
+  @Prop({ type: Types.ObjectId, ref: Users.name, default: null })
   proposerId: Types.ObjectId;
 
   @Prop({ default: STATUS.ACTIVE })

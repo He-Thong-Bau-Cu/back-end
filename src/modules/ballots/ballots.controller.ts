@@ -13,6 +13,23 @@ import { BaseSearchDTO } from 'src/common/dto/base-search.dto';
 export class BallotsController {
   constructor(private readonly ballotsService: BallotsService) { }
 
+  @Get(':id')
+  @ApiOperation({ summary: 'Lấy phiếu bầu theo Id' })
+  @ApiResponse({ status: 200, description: 'Lấy phiếu bầu theo Id thành công' })
+  @ApiResponse({ status: 400, description: 'Dữ liệu không hợp lệ' })
+  @ApiResponse({ status: 500, description: 'Lỗi server' })
+  async getById(@Param('id') id: string): Promise<BaseResponse> {
+    try {
+      const resData = await this.ballotsService.getById(id);
+      return BaseResponse.success(resData, MESSAGE.BALLOT_GET_BY_ID_SUCCESS, HttpStatus.OK);
+    } catch (error) {
+      throw new HttpException(
+        { message: error.message },
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      )
+    }
+  }
+
   @Get('elections/:electionId')
   @ApiOperation({ summary: "Lấy danh sách phiếu bầu theo ID cuộc bầu cử" })
   @ApiResponse({ status: 200, description: 'Lấy danh sách phiếu bầu theo ID cuộc bầu cử thành công' })
@@ -82,22 +99,7 @@ export class BallotsController {
   }
 
 
-  @Get(':id')
-  @ApiOperation({ summary: 'Lấy phiếu bầu theo Id' })
-  @ApiResponse({ status: 200, description: 'Lấy phiếu bầu theo Id thành công' })
-  @ApiResponse({ status: 400, description: 'Dữ liệu không hợp lệ' })
-  @ApiResponse({ status: 500, description: 'Lỗi server' })
-  async getById(@Param('id') id: string): Promise<BaseResponse> {
-    try {
-      const resData = await this.ballotsService.getById(id);
-      return BaseResponse.success(resData, MESSAGE.BALLOT_GET_BY_ID_SUCCESS, HttpStatus.OK);
-    } catch (error) {
-      throw new HttpException(
-        { message: error.message },
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      )
-    }
-  }
+
 
   @Post()
   @ApiOperation({ summary: 'Tạo phiếu bầu' })
@@ -157,7 +159,7 @@ export class BallotsController {
     }
   }
 
-  @Patch('status')
+  @Patch('status/:id')
   @ApiOperation({ summary: 'Cập nhật trạng thái phiếu bầu' })
   @ApiResponse({ status: 200, description: 'Cập nhật trạng thái phiếu bầu thành công' })
   @ApiResponse({ status: 400, description: 'Dữ liệu không hợp lệ' })
