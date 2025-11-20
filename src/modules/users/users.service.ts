@@ -68,6 +68,10 @@ export class UsersService {
   //   }
   // }
 
+
+
+
+
   async getById(id: string) {
     try {
       const user = await this.userModel.findById(new Types.ObjectId(id)).populate('roleId').exec();

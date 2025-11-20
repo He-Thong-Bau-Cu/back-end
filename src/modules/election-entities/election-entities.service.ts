@@ -71,7 +71,7 @@ export class ElectionEntitiesService {
     }
   }
 
-  async create(electionEntity: CreateElectionEntityDto, userId:string) {
+  async create(electionEntity: CreateElectionEntityDto, userId: string) {
     try {
       // Kiểm tra electionId có tồn tại không
       const electionExists = await this.electionsModel.exists({ _id: electionEntity.electionId });
@@ -86,16 +86,17 @@ export class ElectionEntitiesService {
       }
 
       //Kiểm tra xem có participant nào liên kết với electionId không
-      const participantExists = await this.electionParticipants.exists({ _id: electionEntity.proposerId });
-      if (!participantExists) {
-        throw new Error(MESSAGE.NO_PARTICIPANTS_LINKED);
+      if (electionEntity?.proposerId != null) {
+        const participantExists = await this.electionParticipants.exists({ _id: electionEntity.proposerId });
+        if (!participantExists) {
+          throw new Error(MESSAGE.NO_PARTICIPANTS_LINKED);
+        }
       }
-
       const entity = await this.electionEntityModel.create({
         ...electionEntity,
         electionId: new Types.ObjectId(electionEntity.electionId),
         electionTypeId: new Types.ObjectId(electionEntity.electionTypeId),
-        proposerId: new Types.ObjectId(electionEntity.proposerId),
+        proposerId: new Types.ObjectId(electionEntity?.proposerId) || null,
         createdBy: new Types.ObjectId(userId) || null,
       });
       return entity;
@@ -106,7 +107,7 @@ export class ElectionEntitiesService {
 
 
 
-  async update(id: string, electionEntity: UpdateElectionEntityDto, userId:string) {
+  async update(id: string, electionEntity: UpdateElectionEntityDto, userId: string) {
     try {
       // Kiểm tra entity có tồn tại không
       const entityExists = await this.electionEntityModel.exists({ _id: id });

@@ -13,11 +13,11 @@ export class CreateDelegationDto {
     @IsEnum(DELEGATION_TYPE)
     delegationType: string
 
-    @ApiProperty({
+    @ApiPropertyOptional({
         description: "Id của cuộc bầu cử",
         example: "651f0a7c1f2b4d1a12345678"
     })
-    @IsNotEmpty()
+    @IsOptional()
     @IsString()
     electionId: string
 

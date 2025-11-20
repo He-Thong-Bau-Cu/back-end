@@ -346,7 +346,14 @@ export class BallotsService {
             }
           ]
         })
-        .populate('entityId')
+        .populate({
+          path: 'allocations.entityId',
+          populate: [
+            { path: "electionTypeId", select: "typeCode typeName description status" }
+          ]
+          ,
+          select: 'title description metaData fileUrl status proposerId'
+        })
         .exec();
       return ballot;
     } catch (error) {
