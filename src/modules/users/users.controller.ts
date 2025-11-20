@@ -12,6 +12,7 @@ import {
   UseInterceptors,
   UploadedFile,
   Req,
+  Res,
 } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
@@ -27,6 +28,7 @@ import { CustomRequest } from 'src/common/middleware/auth.middleware';
 import { MinioService } from '../minio/minio.service';
 import { FileType } from 'src/common/enums/file-type.enum';
 import { FileResponseDto } from '../minio/dto/fileResponse.dto';
+import { Response } from 'express';
 import Api from 'twilio/lib/rest/Api';
 
 @ApiBearerAuth('access-token')
@@ -184,6 +186,35 @@ export class UsersController {
     }
   }
 
+  @Get('export/excel')
+  @ApiOperation({ summary: 'Xuất danh sách người dùng ra Excel' })
+  @ApiResponse({ status: 200, description: MESSAGE.USER_EXPORT_SUCCESS })
+  async exportUsers(@Res() res: Response) {
+    try {
+      const file = await this.usersService.exportUsersToExcel();
+      res.set({
+        'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        'Content-Disposition': `attachment; filename="${file.fileName}"`,
+      });
+      return res.status(HttpStatus.OK).send(file.buffer);
+    } catch (error) {
+      throw new HttpException({ message: error.message }, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+  }
+
+  @Post('import/excel')
+  @UseInterceptors(FileInterceptor('file'))
+  @ApiOperation({ summary: 'Nhập người dùng từ file Excel' })
+  @ApiResponse({ status: 200, description: MESSAGE.USER_IMPORT_SUCCESS })
+  async importUsers(@UploadedFile() file: Express.Multer.File) {
+    try {
+      const resData = await this.usersService.importUsersFromExcel(file);
+      return BaseResponse.success(resData, MESSAGE.USER_IMPORT_SUCCESS, HttpStatus.OK);
+    } catch (error) {
+      throw new HttpException({ message: error.message }, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+  }
+
   @Post('avatar/upload')
   @UseInterceptors(FileInterceptor('file'))
   async uploadAvatar(@UploadedFile() file: Express.Multer.File, @Req() req: CustomRequest) {
@@ -196,6 +227,4 @@ export class UsersController {
       throw new HttpException({ message: error.message }, HttpStatus.INTERNAL_SERVER_ERROR);
     }
   }
-
-
 }

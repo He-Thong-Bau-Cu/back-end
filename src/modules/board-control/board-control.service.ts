@@ -1,0 +1,849 @@
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { InjectModel } from '@nestjs/mongoose';
+import { Model, Types } from 'mongoose';
+import { Elections, ElectionsDocument } from 'src/database/schemas/elections.schema';
+import { Voters, VotersDocument } from 'src/database/schemas/voters.schema';
+import { Ballots, BallotsDocument } from 'src/database/schemas/ballots.schema';
+import { Results, ResultsDocument } from 'src/database/schemas/results.schema';
+import { AuditLogs, AuditLogsDocument } from 'src/database/schemas/auditLogs.schema';
+import { SystemLog, SystemLogDocument } from 'src/database/schemas/systemLog.schema';
+import { Reports, ReportsDocument } from 'src/database/schemas/reports.schema';
+import { ElectionsParticipants, ElectionsParticipantsDocument } from 'src/database/schemas/electionParticipants.schema';
+import { Roles, RolesDocument } from 'src/database/schemas/roles.schema';
+import { Users, UserDocument } from 'src/database/schemas/users.schema';
+import { Meetings, MeetingsDocument } from 'src/database/schemas/meetings.schema';
+import { MeetingAttendees, MeetingAttendeesDocument } from 'src/database/schemas/meetingAttendees.schema';
+import { MESSAGE } from 'src/common/enums/message.enum';
+import { STATUS } from 'src/common/enums/status.enum';
+import { USER_ROLE } from 'src/common/enums/config.enum';
+import { createHash } from 'crypto';
+import PdfPrinter from 'pdfmake';
+import * as path from 'path';
+
+@Injectable()
+export class BoardControlService {
+  constructor(
+    @InjectModel(Elections.name)
+    private readonly electionsModel: Model<ElectionsDocument>,
+    @InjectModel(Voters.name)
+    private readonly votersModel: Model<VotersDocument>,
+    @InjectModel(Ballots.name)
+    private readonly ballotsModel: Model<BallotsDocument>,
+    @InjectModel(Results.name)
+    private readonly resultsModel: Model<ResultsDocument>,
+    @InjectModel(AuditLogs.name)
+    private readonly auditLogsModel: Model<AuditLogsDocument>,
+    @InjectModel(SystemLog.name)
+    private readonly systemLogModel: Model<SystemLogDocument>,
+    @InjectModel(Reports.name)
+    private readonly reportsModel: Model<ReportsDocument>,
+    @InjectModel(ElectionsParticipants.name)
+    private readonly electionParticipantsModel: Model<ElectionsParticipantsDocument>,
+    @InjectModel(Roles.name)
+    private readonly rolesModel: Model<RolesDocument>,
+    @InjectModel(Users.name)
+    private readonly usersModel: Model<UserDocument>,
+    @InjectModel(Meetings.name)
+    private readonly meetingsModel: Model<MeetingsDocument>,
+    @InjectModel(MeetingAttendees.name)
+    private readonly meetingAttendeesModel: Model<MeetingAttendeesDocument>,
+  ) {}
+
+  private ensureObjectId(id: string): Types.ObjectId {
+    if (!Types.ObjectId.isValid(id)) {
+      throw new NotFoundException(MESSAGE.ELECTION_NOT_FOUND);
+    }
+    return new Types.ObjectId(id);
+  }
+
+  private async getElectionOrThrow(electionId: string) {
+    const election = await this.electionsModel.findById(electionId).lean();
+    if (!election) {
+      throw new NotFoundException(MESSAGE.ELECTION_NOT_FOUND);
+    }
+    return election;
+  }
+
+  private async getBoardControlRole() {
+    const role = await this.rolesModel.findOne({ roleCode: USER_ROLE.BOARD_OF_CONTROL }).exec();
+    if (!role) {
+      throw new NotFoundException('Không tìm thấy role Ban Kiểm soát');
+    }
+    return role;
+  }
+
+  private async getOrCreateReport(electionObjectId: Types.ObjectId, type: string) {
+    let report = await this.reportsModel
+      .findOne({ electionId: electionObjectId, type })
+      .exec();
+    if (!report) {
+      report = await this.reportsModel.create({
+        electionId: electionObjectId,
+        type,
+        status: STATUS.ACTIVE,
+      });
+    }
+    return report;
+  }
+
+  private async getOrCreateArchiveReport(electionObjectId: Types.ObjectId, reportData: any) {
+    const archiveType = 'ARCHIVE';
+    let report = await this.reportsModel
+      .findOne({ electionId: electionObjectId, type: archiveType })
+      .exec();
+
+    if (!report) {
+      // Lần đầu: tạo report mới với status PENDING
+      report = await this.reportsModel.create({
+        electionId: electionObjectId,
+        type: archiveType,
+        status: STATUS.PENDING,
+        description: reportData.description || null,
+        summary: reportData.summary || null,
+        fileUrl: reportData.fileUrl || null,
+        severity: reportData.severity || STATUS.ACTIVE,
+      });
+    } else {
+      // Các lần sau: chỉ update nếu status là PENDING
+      if (report.status === STATUS.PENDING) {
+        report.description = reportData.description || report.description;
+        report.summary = reportData.summary || report.summary;
+        report.fileUrl = reportData.fileUrl || report.fileUrl;
+        report.severity = reportData.severity || report.severity;
+        await report.save();
+      }
+      // Nếu status khác PENDING thì chỉ trả về, không update
+    }
+
+    return report;
+  }
+
+  private formatDate(date?: Date | null, withTime = false) {
+    if (!date) {
+      return '--';
+    }
+    const options: Intl.DateTimeFormatOptions = withTime
+      ? {
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit',
+          day: '2-digit',
+          month: '2-digit',
+          year: 'numeric',
+          hour12: false,
+        }
+      : { day: '2-digit', month: '2-digit', year: 'numeric' };
+    return new Intl.DateTimeFormat('vi-VN', options).format(date);
+  }
+
+  private buildChecksum(source: string) {
+    return createHash('sha256').update(source).digest('hex').slice(0, 16);
+  }
+
+  async getVotingOverview(electionId: string) {
+    const election = await this.getElectionOrThrow(electionId);
+    const electionObjectId = this.ensureObjectId(electionId);
+
+    const [totalVoters, totalBallots, castBallots, invalidBallots] = await Promise.all([
+      this.votersModel.countDocuments({ electionId: electionObjectId }),
+      this.ballotsModel.countDocuments({ electionId: electionObjectId }),
+      this.ballotsModel.countDocuments({ electionId: electionObjectId, status: STATUS.CAST }),
+      this.ballotsModel.countDocuments({ electionId: electionObjectId, status: STATUS.INVALID }),
+    ]);
+
+    const percent = totalVoters ? +((castBallots / totalVoters) * 100).toFixed(2) : 0;
+    const now = new Date();
+    const endDate = election.endDate ? new Date(election.endDate) : null;
+    const timeLeftSeconds =
+      endDate && endDate.getTime() > now.getTime()
+        ? Math.floor((endDate.getTime() - now.getTime()) / 1000)
+        : 0;
+
+    const tenMinutesAgo = new Date(now.getTime() - 10 * 60 * 1000);
+    const recentVotes = await this.ballotsModel.countDocuments({
+      electionId: electionObjectId,
+      status: STATUS.CAST,
+      castAt: { $gte: tenMinutesAgo },
+    });
+    const speed = Math.max(0, Math.round(recentVotes / 10));
+
+    return {
+      election: {
+        id: election._id,
+        title: election.title,
+        startDate: election.startDate,
+        endDate: election.endDate,
+        status: election.status,
+      },
+      timer: {
+        timeLeftSeconds,
+        endDate: election.endDate,
+      },
+      summary: {
+        percent,
+        voted: castBallots,
+        total: totalVoters,
+        validVotes: castBallots - invalidBallots,
+        speed,
+      },
+      ballots: {
+        total: totalBallots,
+        cast: castBallots,
+        invalid: invalidBallots,
+      },
+    };
+  }
+
+  async getVerificationReport(electionId: string) {
+    const election = await this.getElectionOrThrow(electionId);
+    const electionObjectId = this.ensureObjectId(electionId);
+    const verificationReport = await this.getOrCreateReport(electionObjectId, 'VERIFICATION');
+
+    // Populate report để lấy đầy đủ thông tin
+    const populatedReport = await this.reportsModel
+      .findById(verificationReport._id)
+      .populate('electionId', 'title decisionNumber decisionName status statusData startDate endDate delegationStart delegationEnd')
+      .populate('reviewedBy', 'username fullName email position')
+      .populate('signedBy', 'username fullName email position')
+      .populate('createdBy', 'username fullName email position')
+      .populate('updatedBy', 'username fullName email position')
+      .lean();
+
+    // Lấy danh sách meetings của election để đếm check-in
+    const meetings = await this.meetingsModel
+      .find({ electionId: electionObjectId })
+      .select('_id')
+      .lean();
+    const meetingIds = meetings.map(m => m._id);
+
+    // Đếm số người đã check-in (attended = true) từ MeetingAttendees
+    const totalCheckin = meetingIds.length > 0
+      ? await this.meetingAttendeesModel.countDocuments({
+          meetingId: { $in: meetingIds },
+          attended: true,
+        })
+      : 0;
+
+    const [totalVoters, castBallots, invalidBallots, results] = await Promise.all([
+      this.votersModel.countDocuments({ electionId: electionObjectId }),
+      this.ballotsModel.countDocuments({ electionId: electionObjectId, status: STATUS.CAST }),
+      this.ballotsModel.countDocuments({ electionId: electionObjectId, status: STATUS.INVALID }),
+      this.resultsModel
+        .find({ electionId: electionObjectId })
+        .populate('entityId', 'title')
+        .lean(),
+    ]);
+
+    const totalResultVotes = results.reduce((sum, item) => sum + (item.votesCount || 0), 0);
+    const candidates = results.map((item) => ({
+      name: (item.entityId as any)?.title || 'Ứng viên',
+      votes: item.votesCount || 0,
+      percent: totalResultVotes
+        ? +(((item.votesCount || 0) / totalResultVotes) * 100).toFixed(2)
+        : 0,
+    }));
+
+    const summaryCards = [
+      { title: 'Tổng số Cử tri', value: totalVoters.toLocaleString('vi-VN') },
+      { title: 'Số phiếu đã vào', value: castBallots.toLocaleString('vi-VN') },
+      {
+        title: 'Tỷ lệ Tham gia',
+        value: totalVoters ? `${((castBallots / totalVoters) * 100).toFixed(1)}%` : '0%',
+      },
+      {
+        title: 'Phiếu Hợp lệ',
+        value: (castBallots - invalidBallots).toLocaleString('vi-VN'),
+        highlight: true,
+      },
+    ];
+
+    const checksumBase = `${electionId}:${castBallots}:${invalidBallots}:${totalVoters}`;
+    const defaultChecksum = this.buildChecksum(checksumBase);
+
+    // Lấy checksum từ summary field của report (lưu dạng JSON string)
+    let checksumBefore = defaultChecksum;
+    let checksumAfter = defaultChecksum;
+    let isConfirmed = false;
+
+    if (verificationReport.summary) {
+      try {
+        const summaryData = JSON.parse(verificationReport.summary);
+        checksumBefore = summaryData.checksumBefore || defaultChecksum;
+        checksumAfter = summaryData.checksumAfter || defaultChecksum;
+        isConfirmed = !!verificationReport.signedBy;
+      } catch {
+        // Nếu không parse được, dùng giá trị mặc định
+      }
+    }
+
+    const verification = {
+      totalCheckin: totalCheckin, // Sử dụng số check-in thực tế từ MeetingAttendees
+      totalVotes: castBallots - invalidBallots,
+      isDataValid: invalidBallots === 0,
+      checksumBefore,
+      checksumAfter,
+      isConfirmed,
+    };
+
+    const ballots = await this.ballotsModel
+      .find({ electionId: electionObjectId })
+      .sort({ castAt: -1 })
+      .limit(20)
+      .lean();
+
+    const logs = ballots.map((ballot) => ({
+      id: ballot._id?.toString() || '',
+      time: this.formatDate(ballot.castAt ?? ballot.issuedAt ?? ballot.createdAt, true),
+      status: ballot.status === STATUS.CAST ? 'Hợp lệ' : 'Không hợp lệ',
+    }));
+
+    return {
+      election: {
+        id: election._id,
+        title: election.title,
+        decisionNumber: election.decisionNumber,
+        decisionName: election.decisionName,
+        status: election.status,
+        statusData: election.statusData,
+        startDate: election.startDate,
+        endDate: election.endDate,
+        delegationStart: election.delegationStart,
+        delegationEnd: election.delegationEnd,
+      },
+      candidates,
+      summaryCards,
+      verification,
+      logs,
+      // Thêm các trường từ report
+      report: populatedReport ? {
+        _id: populatedReport._id,
+        type: populatedReport.type,
+        description: populatedReport.description,
+        summary: populatedReport.summary,
+        fileUrl: populatedReport.fileUrl,
+        status: populatedReport.status,
+        severity: populatedReport.severity,
+        createdAt: populatedReport.createdAt,
+        updatedAt: populatedReport.updatedAt,
+        reviewedAt: populatedReport.reviewedAt,
+        createdBy: populatedReport.createdBy,
+        updatedBy: populatedReport.updatedBy,
+        reviewedBy: populatedReport.reviewedBy,
+        signedBy: populatedReport.signedBy,
+        electionId: populatedReport.electionId,
+      } : null,
+    };
+  }
+
+  async approveVerification(electionId: string, userId: string | undefined) {
+    if (!userId) {
+      throw new BadRequestException(MESSAGE.USER_NOT_FOUND);
+    }
+    const userIdObjectId = this.ensureObjectId(userId);
+    const electionObjectId = this.ensureObjectId(electionId);
+    const verificationReport = await this.getOrCreateReport(electionObjectId, 'VERIFICATION');
+
+    const checksumBefore = this.buildChecksum(`${electionId}:${Date.now()}:before`);
+    const checksumAfter = this.buildChecksum(`${electionId}:${Date.now()}:after`);
+
+    verificationReport.signedBy = userIdObjectId;
+    verificationReport.reviewedBy = userIdObjectId;
+    verificationReport.reviewedAt = new Date();
+    verificationReport.summary = JSON.stringify({
+      checksumBefore,
+      checksumAfter,
+      confirmedAt: new Date(),
+    });
+
+    await verificationReport.save();
+
+    return {
+      isConfirmed: true,
+      confirmedAt: verificationReport.reviewedAt,
+      confirmedBy: userIdObjectId,
+      checksumBefore,
+      checksumAfter,
+    };
+  }
+
+  async getAuditReport(electionId: string, reportData?: any) {
+    const election = await this.getElectionOrThrow(electionId);
+    const electionObjectId = this.ensureObjectId(electionId);
+
+    // Sử dụng logic tương tự archive report
+    const auditType = 'AUDIT';
+    let auditReport = await this.reportsModel
+      .findOne({ electionId: electionObjectId, type: auditType })
+      .exec();
+
+    if (!auditReport) {
+      // Lần đầu: tạo report mới với status PENDING
+      auditReport = await this.reportsModel.create({
+        electionId: electionObjectId,
+        type: auditType,
+        status: STATUS.PENDING,
+        description: reportData?.description || null,
+        summary: reportData?.summary || null,
+        fileUrl: reportData?.fileUrl || null,
+        severity: reportData?.severity || STATUS.ACTIVE,
+      });
+    } else {
+      // Các lần sau: chỉ update nếu status là PENDING
+      if (auditReport.status === STATUS.PENDING && reportData) {
+        auditReport.description = reportData.description || auditReport.description;
+        auditReport.summary = reportData.summary || auditReport.summary;
+        auditReport.fileUrl = reportData.fileUrl || auditReport.fileUrl;
+        auditReport.severity = reportData.severity || auditReport.severity;
+        await auditReport.save();
+      }
+      // Nếu status khác PENDING thì chỉ trả về, không update
+    }
+
+    const [invalidBallots, auditLogs] = await Promise.all([
+      this.ballotsModel.countDocuments({ electionId: electionObjectId, status: STATUS.INVALID }),
+      this.auditLogsModel
+        .find({
+          $or: [
+            { 'new_value.electionId': electionId },
+            { 'old_value.electionId': electionId },
+            { module: new RegExp(election.title, 'i') },
+            { module: /ELECTION/i },
+          ],
+        })
+        .sort({ createdAt: -1 })
+        .limit(20)
+        .populate('userId', 'fullName email username')
+        .lean(),
+    ]);
+
+    const startWindow = new Date();
+    startWindow.setDate(startWindow.getDate() - 7);
+    const [totalSystemLogs, healthySystemLogs] = await Promise.all([
+      this.systemLogModel.countDocuments({ createdAt: { $gte: startWindow } }),
+      this.systemLogModel.countDocuments({
+        createdAt: { $gte: startWindow },
+        statusCode: { $lt: 400 },
+      }),
+    ]);
+
+    const uptime = totalSystemLogs
+      ? +((healthySystemLogs / totalSystemLogs) * 100).toFixed(2)
+      : 100;
+
+    const managementActions = auditLogs.length;
+    const securityEvents = invalidBallots;
+
+    const summaryCards = [
+      { title: 'Sự kiện An ninh', value: securityEvents },
+      { title: 'Hành động Quản trị', value: managementActions },
+      { title: 'Tỷ lệ Uptime', value: `${uptime}%` },
+      {
+        title: 'Toàn vẹn Dữ liệu',
+        value: invalidBallots === 0 ? 'HỢP LỆ' : 'CẦN KIỂM TRA',
+        highlight: invalidBallots === 0,
+      },
+    ];
+
+    const logs = auditLogs.map((log) => ({
+      time: this.formatDate(log.createdAt, true),
+      user:
+        (log.userId as any)?.fullName ||
+        (log.userId as any)?.username ||
+        (log.userId as any)?.email ||
+        'Hệ thống',
+      action: log.action,
+      details: log.module,
+    }));
+
+    // Populate report để lấy đầy đủ thông tin
+    const populatedReport = await this.reportsModel
+      .findById(auditReport._id)
+      .populate('electionId', 'title decisionNumber decisionName status statusData startDate endDate delegationStart delegationEnd')
+      .populate('reviewedBy', 'username fullName email position')
+      .populate('signedBy', 'username fullName email position')
+      .populate('createdBy', 'username fullName email position')
+      .populate('updatedBy', 'username fullName email position')
+      .lean();
+
+    const reportInfo = {
+      id: populatedReport?._id ? `AUD-${populatedReport._id.toString().slice(-6).toUpperCase()}` : `AUD-${electionId.slice(-6).toUpperCase()}`,
+      createdDate: populatedReport?.createdAt ? this.formatDate(populatedReport.createdAt, false) : this.formatDate(new Date(), false),
+      reportPeriod: `${this.formatDate(election.startDate)} - ${this.formatDate(election.endDate)}`,
+      status: populatedReport?.signedBy ? 'Đã ký số' : populatedReport?.status === STATUS.PENDING ? 'Chờ ký duyệt' : populatedReport?.status || 'Chờ ký duyệt',
+    };
+
+    // Lấy thông tin người ký từ report
+    let signerName = 'Ban Kiểm soát';
+    let signerRole = 'Trưởng ban kiểm soát';
+
+    if (populatedReport?.signedBy && typeof populatedReport.signedBy === 'object') {
+      signerName = (populatedReport.signedBy as any)?.fullName || signerName;
+      // Có thể lấy role từ ElectionsParticipants nếu cần
+    }
+
+    return {
+      info: reportInfo,
+      summaryCards,
+      logs,
+      signature: {
+        signerName,
+        signerRole,
+        isConfirmed: !!populatedReport?.signedBy,
+      },
+      // Thêm các trường từ report
+      report: populatedReport ? {
+        _id: populatedReport._id,
+        type: populatedReport.type,
+        description: populatedReport.description,
+        summary: populatedReport.summary,
+        fileUrl: populatedReport.fileUrl,
+        status: populatedReport.status,
+        severity: populatedReport.severity,
+        createdAt: populatedReport.createdAt,
+        updatedAt: populatedReport.updatedAt,
+        reviewedAt: populatedReport.reviewedAt,
+        createdBy: populatedReport.createdBy,
+        updatedBy: populatedReport.updatedBy,
+        reviewedBy: populatedReport.reviewedBy,
+        signedBy: populatedReport.signedBy,
+        electionId: populatedReport.electionId,
+      } : null,
+    };
+  }
+
+  async confirmAuditReport(electionId: string, userId: string | undefined) {
+    if (!userId) {
+      throw new BadRequestException(MESSAGE.USER_NOT_FOUND);
+    }
+    const userIdObjectId = this.ensureObjectId(userId);
+    const electionObjectId = this.ensureObjectId(electionId);
+    const auditReport = await this.getOrCreateReport(electionObjectId, 'AUDIT');
+
+    auditReport.signedBy = userIdObjectId;
+    auditReport.reviewedBy = userIdObjectId;
+    auditReport.reviewedAt = new Date();
+
+    await auditReport.save();
+
+    // Lấy thông tin user để trả về
+    const user = await this.usersModel.findById(userIdObjectId).lean();
+
+    return {
+      signerName: user?.fullName || 'Ban Kiểm soát',
+      signerRole: 'Trưởng ban kiểm soát',
+      isConfirmed: true,
+      confirmedAt: auditReport.reviewedAt,
+      confirmedBy: userIdObjectId,
+    };
+  }
+
+  async getOrUpdateArchiveReport(electionId: string, reportData?: any) {
+    const election = await this.getElectionOrThrow(electionId);
+    const electionObjectId = this.ensureObjectId(electionId);
+
+    const report = await this.getOrCreateArchiveReport(electionObjectId, reportData || {});
+
+    // Populate các thông tin liên quan đầy đủ
+    const populatedReport = await this.reportsModel
+      .findById(report._id)
+      .populate('electionId', 'title decisionNumber decisionName status statusData startDate endDate delegationStart delegationEnd createdAt updatedAt')
+      .populate('reviewedBy', 'username fullName email position')
+      .populate('signedBy', 'username fullName email position')
+      .populate('createdBy', 'username fullName email position')
+      .populate('updatedBy', 'username fullName email position')
+      .lean();
+
+    return populatedReport;
+  }
+
+  async generateAuditReportPdf(electionId: string): Promise<Buffer> {
+    const reportData = await this.getAuditReport(electionId);
+    const election = await this.getElectionOrThrow(electionId);
+
+    const fonts = {
+      Roboto: {
+        normal: path.join(process.cwd(), 'src', 'fonts', 'Roboto-Regular.ttf'),
+        bold: path.join(process.cwd(), 'src', 'fonts', 'Roboto-Bold.ttf'),
+      },
+    };
+    const printer = new PdfPrinter(fonts);
+
+    const currentDate = new Date();
+    const formattedDate = this.formatDate(currentDate, false);
+
+    const docDefinition: any = {
+      pageSize: 'A4',
+      pageOrientation: 'portrait',
+      pageMargins: [40, 60, 40, 60],
+      content: [
+        // Header
+        {
+          text: 'BÁO CÁO KIỂM SOÁT HỆ THỐNG',
+          style: 'header',
+          alignment: 'center',
+          margin: [0, 0, 0, 20],
+        },
+        // Thông tin báo cáo
+        {
+          columns: [
+            {
+              text: [
+                { text: 'Mã báo cáo: ', bold: true },
+                { text: reportData.info.id },
+              ],
+              margin: [0, 0, 0, 5],
+            },
+            {
+              text: [
+                { text: 'Ngày tạo: ', bold: true },
+                { text: reportData.info.createdDate },
+              ],
+              margin: [0, 0, 0, 5],
+            },
+          ],
+        },
+        {
+          text: [
+            { text: 'Kỳ báo cáo: ', bold: true },
+            { text: reportData.info.reportPeriod },
+          ],
+          margin: [0, 0, 0, 5],
+        },
+        {
+          text: [
+            { text: 'Trạng thái: ', bold: true },
+            { text: reportData.info.status },
+          ],
+          margin: [0, 0, 0, 20],
+        },
+        // Tổng quan
+        {
+          text: 'TỔNG QUAN & CÁC CHỈ SỐ CHÍNH',
+          style: 'subheader',
+          margin: [0, 20, 0, 10],
+        },
+        {
+          table: {
+            widths: ['*', '*'],
+            body: reportData.summaryCards.map((card) => [
+              { text: card.title, bold: true },
+              { text: String(card.value) },
+            ]),
+          },
+          margin: [0, 0, 0, 20],
+        },
+        // Nhật ký
+        {
+          text: 'NHẬT KÝ HOẠT ĐỘNG',
+          style: 'subheader',
+          margin: [0, 20, 0, 10],
+        },
+        {
+          table: {
+            widths: ['20%', '25%', '20%', '35%'],
+            headerRows: 1,
+            body: [
+              [
+                { text: 'Thời gian', bold: true },
+                { text: 'Người thực hiện', bold: true },
+                { text: 'Hành động', bold: true },
+                { text: 'Chi tiết', bold: true },
+              ],
+              ...reportData.logs.slice(0, 20).map((log) => [
+                log.time,
+                log.user,
+                log.action,
+                log.details,
+              ]),
+            ],
+          },
+          margin: [0, 0, 0, 20],
+        },
+        // Footer
+        {
+          text: `Báo cáo được tạo vào: ${formattedDate}`,
+          style: 'footer',
+          alignment: 'center',
+          margin: [0, 20, 0, 0],
+        },
+      ],
+      styles: {
+        header: {
+          fontSize: 18,
+          bold: true,
+        },
+        subheader: {
+          fontSize: 14,
+          bold: true,
+        },
+        footer: {
+          fontSize: 10,
+          italics: true,
+        },
+      },
+    };
+
+    return new Promise((resolve, reject) => {
+      const pdfDoc = printer.createPdfKitDocument(docDefinition);
+      const chunks: Buffer[] = [];
+
+      pdfDoc.on('data', (chunk) => chunks.push(chunk));
+      pdfDoc.on('end', () => resolve(Buffer.concat(chunks)));
+      pdfDoc.on('error', (err) => reject(err));
+      pdfDoc.end();
+    });
+  }
+
+  async generateArchiveReportPdf(electionId: string, reportId?: string): Promise<Buffer> {
+    const election = await this.getElectionOrThrow(electionId);
+    const electionObjectId = this.ensureObjectId(electionId);
+
+    let report;
+    if (reportId) {
+      report = await this.reportsModel
+        .findById(reportId)
+        .populate('electionId', 'title decisionNumber decisionName')
+        .populate('signedBy', 'fullName username')
+        .populate('createdBy', 'fullName username')
+        .lean();
+    } else {
+      const archiveReport = await this.getOrUpdateArchiveReport(electionObjectId, {});
+      report = await this.reportsModel
+        .findById(archiveReport._id)
+        .populate('electionId', 'title decisionNumber decisionName')
+        .populate('signedBy', 'fullName username')
+        .populate('createdBy', 'fullName username')
+        .lean();
+    }
+
+    if (!report) {
+      throw new NotFoundException('Không tìm thấy báo cáo lưu trữ');
+    }
+
+    const fonts = {
+      Roboto: {
+        normal: path.join(process.cwd(), 'src', 'fonts', 'Roboto-Regular.ttf'),
+        bold: path.join(process.cwd(), 'src', 'fonts', 'Roboto-Bold.ttf'),
+      },
+    };
+    const printer = new PdfPrinter(fonts);
+
+    const currentDate = new Date();
+    const formattedDate = this.formatDate(currentDate, false);
+
+    const docDefinition: any = {
+      pageSize: 'A4',
+      pageOrientation: 'portrait',
+      pageMargins: [40, 60, 40, 60],
+      content: [
+        // Header
+        {
+          text: 'BÁO CÁO LƯU TRỮ',
+          style: 'header',
+          alignment: 'center',
+          margin: [0, 0, 0, 20],
+        },
+        // Thông tin báo cáo
+        {
+          text: [
+            { text: 'Tên báo cáo: ', bold: true },
+            { text: (report as any).description || 'Báo cáo lưu trữ' },
+          ],
+          margin: [0, 0, 0, 5],
+        },
+        {
+          text: [
+            { text: 'Cuộc bầu cử: ', bold: true },
+            { text: (report.electionId as any)?.title || '-' },
+          ],
+          margin: [0, 0, 0, 5],
+        },
+        {
+          text: [
+            { text: 'Loại báo cáo: ', bold: true },
+            { text: (report as any).type || 'ARCHIVE' },
+          ],
+          margin: [0, 0, 0, 5],
+        },
+        {
+          text: [
+            { text: 'Trạng thái: ', bold: true },
+            { text: (report as any).status || '-' },
+          ],
+          margin: [0, 0, 0, 5],
+        },
+        {
+          text: [
+            { text: 'Ngày tạo: ', bold: true },
+            { text: (report as any).createdAt ? this.formatDate((report as any).createdAt, false) : '-' },
+          ],
+          margin: [0, 0, 0, 5],
+        },
+        {
+          text: [
+            { text: 'Người tạo: ', bold: true },
+            { text: (report.createdBy as any)?.fullName || (report.createdBy as any)?.username || '-' },
+          ],
+          margin: [0, 0, 0, 5],
+        },
+        {
+          text: [
+            { text: 'Người ký: ', bold: true },
+            { text: (report.signedBy as any)?.fullName || (report.signedBy as any)?.username || 'Chưa ký' },
+          ],
+          margin: [0, 0, 0, 20],
+        },
+        // Mô tả
+        ...((report as any).description ? [{
+          text: 'MÔ TẢ',
+          style: 'subheader',
+          margin: [0, 20, 0, 10],
+        }, {
+          text: (report as any).description,
+          margin: [0, 0, 0, 20],
+        }] : []),
+        // Tóm tắt
+        ...((report as any).summary ? [{
+          text: 'TÓM TẮT',
+          style: 'subheader',
+          margin: [0, 20, 0, 10],
+        }, {
+          text: (report as any).summary,
+          margin: [0, 0, 0, 20],
+        }] : []),
+        // Footer
+        {
+          text: `Báo cáo được tạo vào: ${formattedDate}`,
+          style: 'footer',
+          alignment: 'center',
+          margin: [0, 20, 0, 0],
+        },
+      ],
+      styles: {
+        header: {
+          fontSize: 18,
+          bold: true,
+        },
+        subheader: {
+          fontSize: 14,
+          bold: true,
+        },
+        footer: {
+          fontSize: 10,
+          italics: true,
+        },
+      },
+    };
+
+    return new Promise((resolve, reject) => {
+      const pdfDoc = printer.createPdfKitDocument(docDefinition);
+      const chunks: Buffer[] = [];
+
+      pdfDoc.on('data', (chunk) => chunks.push(chunk));
+      pdfDoc.on('end', () => resolve(Buffer.concat(chunks)));
+      pdfDoc.on('error', (err) => reject(err));
+      pdfDoc.end();
+    });
+  }
+}
+

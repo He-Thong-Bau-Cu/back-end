@@ -36,6 +36,8 @@ export enum MESSAGE {
   USER_GET_NON_VOTER_SUCCESS = 'Lấy danh sách người dùng không phải cử tri thành công',
   USER_GET_NOT_VOTER_PRESIDE_SUCCESS = 'Lấy danh sách người dùng không phải cử tri và chủ tọa thành công',
   USER_SEARCH_SUCCESS = 'Tìm kiếm người dùng thành công',
+  USER_EXPORT_SUCCESS = 'Xuất danh sách người dùng thành công',
+  USER_IMPORT_SUCCESS = 'Nhập người dùng từ Excel thành công',
 
   // Voter
   VOTER_NOT_FOUND = 'Không tìm thấy cử tri',
@@ -180,6 +182,25 @@ export enum MESSAGE {
   REPORT_CREATE_SUCCESS = 'Tạo báo cáo thành công',
   REPORT_UPDATE_SUCCESS = 'Cập nhật báo cáo thành công',
 
+  // Data management / Backups
+  BACKUP_SEARCH_SUCCESS = 'Lấy danh sách dữ liệu sao lưu thành công',
+  BACKUP_IMPORT_SUCCESS = 'Nhập dữ liệu sao lưu thành công',
+  BACKUP_EXPORT_SUCCESS = 'Xuất dữ liệu sao lưu thành công',
+  BACKUP_NOT_FOUND = 'Không tìm thấy bản sao lưu dữ liệu',
+
+  // System config
+  SYSTEM_CONFIG_CREATE_SUCCESS = 'Tạo cấu hình hệ thống thành công',
+  SYSTEM_CONFIG_UPDATE_SUCCESS = 'Cập nhật cấu hình hệ thống thành công',
+  SYSTEM_CONFIG_DELETE_SUCCESS = 'Xóa cấu hình hệ thống thành công',
+  SYSTEM_CONFIG_GET_ALL_SUCCESS = 'Lấy danh sách cấu hình hệ thống thành công',
+  SYSTEM_CONFIG_GET_BY_ID_SUCCESS = 'Lấy cấu hình hệ thống theo ID thành công',
+  SYSTEM_CONFIG_ALREADY_EXIST = 'Khoá cấu hình đã tồn tại',
+  SYSTEM_CONFIG_NOT_FOUND = 'Không tìm thấy cấu hình hệ thống',
+
+  // System report
+  SYSTEM_REPORT_VIEW_SUCCESS = 'Lấy báo cáo hệ thống thành công',
+  SYSTEM_REPORT_EXPORT_SUCCESS = 'Xuất báo cáo hệ thống thành công',
+
   // Thresholds & Voting Methods
   THRESHOLD_CODE_NOT_FOUND = 'Không tìm thấy mã của ngưỡng thông qua',
   THRESHOLD_NOT_FOUND = 'Ngưỡng thông qua không tồn tại',
@@ -300,4 +321,9 @@ export enum MESSAGE {
 
   //statistic
   STATISTICS_GET_DASHBOARD_PRESIDENT_SUCCESS = 'Lấy thông tin thống kê cho chủ tọa thành công',
+  BOARD_VOTING_OVERVIEW_SUCCESS = 'Lấy dữ liệu giám sát bầu cử thành công',
+  BOARD_VERIFICATION_SUCCESS = 'Lấy dữ liệu xác minh kết quả thành công',
+  BOARD_VERIFICATION_APPROVED = 'Đã xác nhận kết quả bầu cử',
+  BOARD_AUDIT_REPORT_SUCCESS = 'Lấy báo cáo kiểm soát hệ thống thành công',
+  BOARD_AUDIT_SIGN_SUCCESS = 'Đã ký số báo cáo kiểm soát hệ thống',
 }

@@ -18,6 +18,10 @@ export enum FileType {
   // Delegation related files
   DELEGATION_DOCUMENT = 'delegation-documents',
 
+  // Data management
+  DATA_BACKUP = 'data-backups',
+  SYSTEM_REPORT = 'system-reports',
+
   // Delegation summary signed
   DELEGATION_SUMMARY_SIGNED = 'delegation-summary-signed',
 
