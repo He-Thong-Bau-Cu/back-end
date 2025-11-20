@@ -696,7 +696,6 @@ export class BoardControlService {
 
   async generateArchiveReportPdf(electionId: string, reportId?: string): Promise<Buffer> {
     const election = await this.getElectionOrThrow(electionId);
-    const electionObjectId = this.ensureObjectId(electionId);
 
     let report;
     if (reportId) {
@@ -707,7 +706,10 @@ export class BoardControlService {
         .populate('createdBy', 'fullName username')
         .lean();
     } else {
-      const archiveReport = await this.getOrUpdateArchiveReport(electionObjectId, {});
+      const archiveReport = await this.getOrUpdateArchiveReport(electionId, {});
+      if (!archiveReport || !archiveReport._id) {
+        throw new NotFoundException('Không tìm thấy báo cáo lưu trữ');
+      }
       report = await this.reportsModel
         .findById(archiveReport._id)
         .populate('electionId', 'title decisionNumber decisionName')
