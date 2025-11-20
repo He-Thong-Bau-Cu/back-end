@@ -21,7 +21,7 @@ export class Reports extends BaseSchema {
   @Prop({ type: Types.ObjectId, ref: Users.name, default: null })
   reviewedBy: Types.ObjectId;
 
-  @Prop({ type: Types.ObjectId, ref: Users.name, required: true })
+  @Prop({ type: Types.ObjectId, ref: Users.name, default: null })
   signedBy: Types.ObjectId;
 
   @Prop({ default: null })

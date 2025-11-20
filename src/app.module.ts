@@ -41,6 +41,10 @@ import { ElectionDocumentsModule } from './modules/election-documents/election-d
 import { RedisModule } from './modules/redis/redis.module';
 import { StatisticsModule } from './modules/statistics/statistics.module';
 import { NotificationModule } from './modules/notification/notification.module';
+import { DataManagementModule } from './modules/data-management/data-management.module';
+import { SystemConfigModule } from './modules/system-config/system-config.module';
+import { SystemReportModule } from './modules/system-report/system-report.module';
+import { BoardControlModule } from './modules/board-control/board-control.module';
 
 
 @Module({
@@ -87,6 +91,10 @@ import { NotificationModule } from './modules/notification/notification.module';
     RedisModule,
     StatisticsModule,
     NotificationModule,
+    DataManagementModule,
+    SystemConfigModule,
+    SystemReportModule,
+    BoardControlModule,
   ],
   controllers: [],
   providers: [

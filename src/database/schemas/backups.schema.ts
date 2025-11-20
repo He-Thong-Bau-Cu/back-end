@@ -30,6 +30,9 @@ export class Backups extends BaseSchema {
 
   @Prop({ default: null })
   filePath: string;
+
+  @Prop({ default: null })
+  note: string;
 }
 
 export const BackupsSchema = SchemaFactory.createForClass(Backups);
