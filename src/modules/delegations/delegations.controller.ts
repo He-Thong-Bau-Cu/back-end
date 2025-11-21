@@ -303,16 +303,18 @@ export class DelegationsController {
     @UploadedFile() fileP12: Express.Multer.File,
     @Body('electionId') electionId: string,
     @Body('password') password: string,
-    @Body('delegationIds') delegationsIds: string[],
+    @Body('delegationIds') delegationIds: string[] | string,
     @Req() req: CustomRequest,
   ) {
     try {
+      const ids = Array.isArray(delegationIds) ? delegationIds : [delegationIds];
+
       const resData = await this.delegationsService.approvedAndSign(
         fileP12,
         req.user.sub,
         electionId,
         password,
-        delegationsIds,
+        ids,
       );
       return BaseResponse.success(
         resData,
