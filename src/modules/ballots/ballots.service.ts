@@ -264,11 +264,11 @@ export class BallotsService {
       }
 
       //Check election voting method
-      const electionType = await this.electionTypesModel.findById(new Types.ObjectId(electionExists.typeId));
+      const electionType = await this.electionTypesModel.findById(new Types.ObjectId(electionExists?.typeId));
       if (!electionType) {
         throw new Error(MESSAGE.ELECTION_TYPE_NOT_FOUND);
       }
-      if (electionType.typeCode === "YES_NO_ABSTAIN") {
+      if (electionType?.typeCode === "YES_NO_ABSTAIN") {
         if (createBallot.allocations.length !== 1) {
           throw new Error("This election allows only one choice.");
         }
@@ -278,7 +278,7 @@ export class BallotsService {
         }
       }
 
-      if (electionType.typeCode === "CUMULATIVE") {
+      if (electionType?.typeCode === "CUMULATIVE") {
         for (const allocation of createBallot.allocations) {
           if (allocation.entityId == null || allocation.entityId === '') {
             throw new Error("Entity ID is required");
@@ -305,7 +305,8 @@ export class BallotsService {
           throw new Error(MESSAGE.VOTING_RIGHT_NOT_ELIGIBLE);
         }
         // Validate total allocated votes <= votingRight.votes
-        const totalVotes = createBallot.allocations.reduce(
+        const allocations = createBallot.allocations || [];
+        const totalVotes = allocations.reduce(
           (sum, item) => sum + Number(item.voteValue || 0),
           0,
         );

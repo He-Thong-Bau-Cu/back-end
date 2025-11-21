@@ -1803,6 +1803,46 @@ export class DelegationsService {
     }
   }
 
+  //Lấy danh sách người được ủy quyền theo electionId
+  async getDelegateNotAsParticipants(electionId: string) {
+    try {
+      //Kiểm tra electionId có tồn tại không
+      const electionExist = await this.electionModel.findById(
+        new Types.ObjectId(electionId),
+      ).exec();
+      if (!electionExist) {
+        throw new Error(MESSAGE.ELECTION_NOT_FOUND);
+      }
+      //Lấy danh sách người được ủy quyền không phải là voter, admin, preside và không phải là người tham gia cuộc bầu cử
+      //Lấy danh sách voter
+      const voters = await this.voterModel.find({
+        electionId: new Types.ObjectId(electionId),
+      }).exec();
+      const voterUserIds = voters.map((v) => v.userId.toString());
+
+      //Lấy danh sách người tham gia cuộc bầu cử
+      const electionParticipants = await this.electionParticipantsModel.find({
+        electionId: new Types.ObjectId(electionId),
+      }).exec();
+      const participantUserIds = electionParticipants.map((ep) => ep.userId.toString());
+      //Lấy danh sách admin và preside
+      const sepcialRoles = await this.rolesModel.find({ roleCode: { $in: [USER_ROLE.ADMIN, USER_ROLE.PRESIDE] } }).exec();
+      const sepcialRoleIds = sepcialRoles.map((role) => role._id);
+
+      const users = await this.userModel.find({
+        _id: { $nin: [...voterUserIds, ...participantUserIds], },
+        roleId: { $nin: sepcialRoleIds },
+      })
+        .populate('roleId')
+        .exec();
+
+
+      return users;
+    } catch (error) {
+      throw error;
+    }
+  }
+
   private async validateElection(dto: CreateDelegationDto) {
     let electionExist: any;
     if (dto.delegationType == DELEGATION_TYPE.ELECTION) {
