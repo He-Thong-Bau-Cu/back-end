@@ -358,4 +358,18 @@ export class DelegationsController {
       throw new HttpException({ message: error.message }, HttpStatus.INTERNAL_SERVER_ERROR);
     }
   }
+
+  @Get('users-not-special/elections/:electionId')
+  @ApiOperation({ summary: 'Lấy danh sách người dùng chưa được ủy quyền theo ID cuộc bầu cử' })
+  @ApiResponse({ status: 200, description: 'Lấy danh sách người dùng chưa được ủy quyền theo ID cuộc bầu cử thành công' })
+  @ApiResponse({ status: 400, description: 'Dữ liệu không hợp lệ' })
+  @ApiResponse({ status: 500, description: 'Lỗi server' })
+  async getUsersNotSpecial(@Param('electionId') electionId: string) {
+    try {
+      const resData = await this.delegationsService.getDelegateNotAsParticipants(electionId);
+      return BaseResponse.success(resData, MESSAGE.SUCCESS, HttpStatus.OK);
+    } catch (error) {
+      throw new HttpException({ message: error.message }, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+  }
 }
