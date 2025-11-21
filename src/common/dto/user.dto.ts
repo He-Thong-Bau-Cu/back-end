@@ -13,7 +13,7 @@ export class UserDto extends BaseRequest {
     })
     @IsOptional()
     @IsString()
-    username: string;
+    username?: string;
 
     @ApiPropertyOptional({
         description: 'Họ và tên',
@@ -21,21 +21,21 @@ export class UserDto extends BaseRequest {
     })
     @IsOptional()
     @IsString()
-    fullName: string;
+    fullName?: string;
 
     @ApiPropertyOptional({
         description: 'Ngày sinh',
         example: '1990-01-01',
     })
     @IsOptional()
-    dateOfBirth: Date;
+    dateOfBirth?: Date;
 
     @ApiPropertyOptional({
       description: 'Số căn cước công dân',
         example: '2184781927498',
     })
     @IsOptional()
-    citizenId: string;
+    citizenId?: string;
 
     @ApiPropertyOptional({
         description: 'Email',
@@ -43,7 +43,7 @@ export class UserDto extends BaseRequest {
     })
     @IsOptional()
     @IsString()
-    email: string;
+    email?: string;
 
     @ApiPropertyOptional({
         description: 'Số điện thoại',
@@ -51,7 +51,7 @@ export class UserDto extends BaseRequest {
     })
     @IsOptional()
     @IsString()
-    phone: string;
+    phone?: string;
 
     @ApiPropertyOptional({
         description: 'Địa chỉ',
@@ -59,7 +59,7 @@ export class UserDto extends BaseRequest {
     })
     @IsOptional()
     @IsString()
-    address: string;
+    address?: string;
 
     @ApiPropertyOptional({
         description: 'Trạng thái người dùng',
@@ -67,7 +67,7 @@ export class UserDto extends BaseRequest {
     })
     @IsOptional()
     @IsString()
-    status: string;
+    status?: string;
 
     @ApiPropertyOptional({
         description: 'Id vai trò người dùng',
@@ -75,7 +75,7 @@ export class UserDto extends BaseRequest {
     })
     @IsOptional()
     @IsString()
-    roleId: string;
+    roleId?: string;
 
     @ApiPropertyOptional({
         description: 'Mã vai trò người dùng',
@@ -83,7 +83,7 @@ export class UserDto extends BaseRequest {
     })
     @IsOptional()
     @IsString()
-    roleCode: string;
+    roleCode?: string;
 
     @ApiPropertyOptional({
         description: 'Chức vụ',
@@ -91,7 +91,7 @@ export class UserDto extends BaseRequest {
     })
     @IsOptional()
     @IsString()
-    position: string;
+    position?: string;
 
     @ApiPropertyOptional({
         description: 'Phòng ban',
@@ -99,7 +99,7 @@ export class UserDto extends BaseRequest {
     })
     @IsOptional()
     @IsString()
-    department: string;
+    department?: string;
 
     @ApiPropertyOptional({
         description: 'Ảnh đại diện',
@@ -107,5 +107,5 @@ export class UserDto extends BaseRequest {
     })
     @IsOptional()
     @IsString()
-    image: string;
+    image?: string;
 }

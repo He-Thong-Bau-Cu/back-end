@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { InjectModel } from '@nestjs/mongoose';
@@ -16,6 +16,8 @@ import { MinioService } from '../minio/minio.service';
 import { isValidateCitizenId, isValidEmail, isValidPhone } from 'src/common/utils/format';
 import { Elections } from 'src/database/schemas/elections.schema';
 import { ElectionsParticipants } from 'src/database/schemas/electionParticipants.schema';
+import * as ExcelJS from 'exceljs';
+import { Express } from 'express';
 
 @Injectable()
 export class UsersService {
@@ -357,6 +359,161 @@ export class UsersService {
     }
   }
 
+  async exportUsersToExcel() {
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet('Users');
+
+    worksheet.columns = [
+      { header: 'STT', key: 'index', width: 6 },
+      { header: 'Full Name', key: 'fullName', width: 30 },
+      { header: 'Email', key: 'email', width: 30 },
+      { header: 'Phone', key: 'phone', width: 18 },
+      { header: 'Citizen ID', key: 'citizenId', width: 20 },
+      { header: 'Date Of Birth', key: 'dateOfBirth', width: 18 },
+      { header: 'Address', key: 'address', width: 35 },
+      { header: 'Role Name', key: 'roleName', width: 25 },
+      { header: 'Role Code', key: 'roleCode', width: 20 },
+      { header: 'Position', key: 'position', width: 20 },
+      { header: 'Department', key: 'department', width: 20 },
+      { header: 'Status', key: 'status', width: 12 },
+      { header: 'Created At', key: 'createdAt', width: 22 },
+    ];
+
+    const users = await this.userModel
+      .find()
+      .populate('roleId', 'roleName roleCode')
+      .lean();
+
+    users.forEach((user, index) => {
+      worksheet.addRow({
+        index: index + 1,
+        fullName: user.fullName || '',
+        email: user.email || '',
+        phone: user.phone || '',
+        citizenId: user.citizenId || '',
+        dateOfBirth: user.dateOfBirth ? this.formatDate(user.dateOfBirth) : '',
+        address: user.address || '',
+        roleName: (user.roleId as any)?.roleName || '',
+        roleCode: (user.roleId as any)?.roleCode || '',
+        position: user.position || '',
+        department: user.department || '',
+        status: user.status || '',
+        createdAt: user.createdAt ? this.formatDateTime(user.createdAt) : '',
+      });
+    });
+
+    const headerRow = worksheet.getRow(1);
+    headerRow.font = { bold: true };
+    headerRow.alignment = { horizontal: 'center', vertical: 'middle' };
+
+    const arrayBuffer = await workbook.xlsx.writeBuffer();
+    const nodeBuffer = Buffer.from(new Uint8Array(arrayBuffer as ArrayBuffer));
+    return {
+      buffer: nodeBuffer,
+      fileName: `users-${Date.now()}.xlsx`,
+    };
+  }
+
+  async importUsersFromExcel(file?: Express.Multer.File) {
+    if (!file) {
+      throw new BadRequestException('Vui lòng tải lên file Excel');
+    }
+
+    const workbook = new ExcelJS.Workbook();
+    await workbook.xlsx.load(file.buffer as unknown as ExcelJS.Buffer);
+    const worksheet = workbook.worksheets[0];
+
+    if (!worksheet) {
+      throw new BadRequestException('File Excel không chứa dữ liệu');
+    }
+
+    const headerMap = this.buildHeaderMap(worksheet.getRow(1));
+    const requiredHeaders = {
+      fullName: this.getColumnIndex(headerMap, ['full name', 'họ và tên']),
+      email: this.getColumnIndex(headerMap, ['email']),
+      phone: this.getColumnIndex(headerMap, ['phone', 'số điện thoại']),
+      citizenId: this.getColumnIndex(headerMap, ['citizen id', 'cccd', 'căn cước']),
+    };
+
+    Object.entries(requiredHeaders).forEach(([key, value]) => {
+      if (!value) {
+        throw new BadRequestException(`Thiếu cột dữ liệu bắt buộc cho ${key}`);
+      }
+    });
+
+    const optionalHeaders = {
+      dateOfBirth: this.getColumnIndex(headerMap, ['date of birth', 'ngày sinh']),
+      address: this.getColumnIndex(headerMap, ['address', 'địa chỉ']),
+      roleCode: this.getColumnIndex(headerMap, ['role code', 'mã vai trò']),
+      position: this.getColumnIndex(headerMap, ['position', 'chức vụ']),
+      department: this.getColumnIndex(headerMap, ['department', 'phòng ban']),
+      status: this.getColumnIndex(headerMap, ['status', 'trạng thái']),
+    };
+
+    const roleCache = new Map<string, string>();
+    const summary = {
+      totalRows: 0,
+      success: 0,
+      failed: [] as { row: number; fullName?: string; reason: string }[],
+    };
+
+    for (let rowNumber = 2; rowNumber <= worksheet.rowCount; rowNumber++) {
+      const row = worksheet.getRow(rowNumber);
+      if (this.isRowEmpty(row)) {
+        continue;
+      }
+
+      summary.totalRows += 1;
+      const fullName = this.getCellString(row, requiredHeaders.fullName!);
+      const email = this.getCellString(row, requiredHeaders.email!);
+      const phone = this.getCellString(row, requiredHeaders.phone!);
+      const citizenId = this.getCellString(row, requiredHeaders.citizenId!);
+
+      try {
+        const dateOfBirth = this.getCellDate(row, optionalHeaders.dateOfBirth);
+        const address = this.getCellString(row, optionalHeaders.address);
+        const roleCode = this.getCellString(row, optionalHeaders.roleCode)?.toUpperCase();
+        const position = this.getCellString(row, optionalHeaders.position);
+        const department = this.getCellString(row, optionalHeaders.department);
+        const statusValue = this.getCellString(row, optionalHeaders.status);
+
+        let roleId: string | undefined;
+        if (roleCode) {
+          roleId = await this.getRoleIdByCode(roleCode, roleCache);
+        }
+
+        const payload = {
+          fullName,
+          email,
+          phone,
+          citizenId,
+          address,
+          position,
+          department,
+          status: statusValue || STATUS.ACTIVE,
+        } as UserDto;
+
+        if (dateOfBirth) {
+          payload.dateOfBirth = dateOfBirth;
+        }
+        if (roleId) {
+          payload.roleId = roleId;
+        }
+
+        await this.create(payload);
+        summary.success += 1;
+      } catch (error: any) {
+        summary.failed.push({
+          row: rowNumber,
+          fullName,
+          reason: error?.message || 'Import failed',
+        });
+      }
+    }
+
+    return summary;
+  }
+
   async generateUserName(fullName: string): Promise<string> {
     const removeVietnameseTones = (str: string) => {
       return str
@@ -407,5 +564,103 @@ export class UsersService {
       password += allChars[randomIndex];
     }
     return password;
+  }
+
+  private formatDate(date: Date) {
+    const d = new Date(date);
+    return d.toISOString().split('T')[0];
+  }
+
+  private formatDateTime(date: Date) {
+    const d = new Date(date);
+    return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().replace('T', ' ').slice(0, 19);
+  }
+
+  private buildHeaderMap(row: ExcelJS.Row) {
+    const map = new Map<string, number>();
+    row.eachCell({ includeEmpty: false }, (cell, colNumber) => {
+      const key = String((cell.value as any) || '')
+        .trim()
+        .toLowerCase();
+      if (key) {
+        map.set(key, colNumber);
+      }
+    });
+    return map;
+  }
+
+  private getColumnIndex(map: Map<string, number>, candidates: string[]) {
+    for (const candidate of candidates) {
+      if (map.has(candidate)) {
+        return map.get(candidate);
+      }
+    }
+    return undefined;
+  }
+
+  private isRowEmpty(row: ExcelJS.Row) {
+    if (row.cellCount === 0) {
+      return true;
+    }
+    for (let i = 1; i <= row.actualCellCount; i++) {
+      const cell = row.getCell(i);
+      if (cell && cell.value !== null && cell.value !== undefined && cell.value !== '') {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  private getCellString(row: ExcelJS.Row, column?: number) {
+    if (!column) {
+      return '';
+    }
+    const cell = row.getCell(column);
+    const value = cell?.value;
+    if (value === null || value === undefined) {
+      return '';
+    }
+    if (typeof value === 'object' && 'text' in value) {
+      return String((value as any).text ?? '').trim();
+    }
+    return String(value).trim();
+  }
+
+  private getCellDate(row: ExcelJS.Row, column?: number) {
+    if (!column) {
+      return undefined;
+    }
+    const cell = row.getCell(column);
+    const value = cell?.value;
+    if (!value) {
+      return undefined;
+    }
+    if (value instanceof Date) {
+      return value;
+    }
+    if (typeof value === 'number') {
+      const excelEpoch = new Date(Date.UTC(1899, 11, 30));
+      const date = new Date(excelEpoch.getTime() + value * 24 * 60 * 60 * 1000);
+      return date;
+    }
+    if (typeof value === 'string') {
+      const parsed = new Date(value);
+      if (!isNaN(parsed.getTime())) {
+        return parsed;
+      }
+    }
+    return undefined;
+  }
+
+  private async getRoleIdByCode(roleCode: string, cache: Map<string, string>) {
+    if (cache.has(roleCode)) {
+      return cache.get(roleCode);
+    }
+    const role = await this.roleModel.findOne({ roleCode }).select('_id').lean();
+    if (!role) {
+      throw new Error(`Không tìm thấy vai trò với mã ${roleCode}`);
+    }
+    cache.set(roleCode, role._id.toString());
+    return role._id.toString();
   }
 }
