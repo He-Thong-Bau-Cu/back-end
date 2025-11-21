@@ -1,10 +1,11 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, Query, HttpException, HttpStatus, Req } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, Query, HttpException, HttpStatus, Req, Put } from '@nestjs/common';
 import { ElectionParticipantsService } from './election-participants.service';
 import { CreateElectionParticipantDto } from './dto/create-election-participant.dto';
 import { ApiBearerAuth, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { BaseResponse } from 'src/common/dto/base-response.dto';
 import { MESSAGE } from 'src/common/enums/message.enum';
 import { CustomRequest } from 'src/common/middleware/auth.middleware';
+import { UpdateElectionParticipantDto } from './dto/update-election-participant.dto';
 
 @ApiBearerAuth('access-token')
 @Controller('election-participants')
@@ -118,5 +119,43 @@ export class ElectionParticipantsController {
       )
     }
   }
+
+  @Delete(':id')
+  @ApiOperation({ summary: 'Xoá người tham gia cuộc bầu cử theo ID' })
+  @ApiResponse({ status: 200, description: 'Xoá người tham gia cuộc bầu cử theo ID thành công' })
+  @ApiResponse({ status: 400, description: 'Dữ liệu không hợp lệ.' })
+  @ApiResponse({ status: 500, description: 'Lỗi server' })
+  async delete(@Param('id') id: string): Promise<BaseResponse> {
+    try {
+      const resData = await this.electionParticipantsService.delete(id);
+      return BaseResponse.success(resData, MESSAGE.ELECTION_PARTICIPANT_DELETE_SUCCESS, HttpStatus.OK);
+    } catch (error) {
+      throw new HttpException(
+        { message: error.message },
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      )
+    }
+  }
+
+  @Put(':id')
+  @ApiOperation({ summary: 'Cập nhật người tham gia cuộc bầu cử theo ID' })
+  @ApiResponse({ status: 200, description: 'Cập nhật người tham gia cuộc bầu cử theo ID thành công' })
+  @ApiResponse({ status: 400, description: 'Dữ liệu không hợp lệ.' })
+  @ApiResponse({ status: 500, description: 'Lỗi server' })
+  async update(
+    @Param('id') id: string,
+    @Body() updateElectionParticipantDto: UpdateElectionParticipantDto,
+    @Req() req: CustomRequest): Promise<BaseResponse> {
+    try {
+      const resData = await this.electionParticipantsService.update(id, updateElectionParticipantDto, req.user.sub);
+      return BaseResponse.success(resData, MESSAGE.ELECTION_PARTICIPANT_UPDATE_SUCCESS, HttpStatus.OK);
+    } catch (error) {
+      throw new HttpException(
+        { message: error.message },
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      )
+    }
+  }
+
 
 }

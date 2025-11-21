@@ -18,7 +18,7 @@ import {
 import { DelegationsService } from './delegations.service';
 import { CreateDelegationDto } from './dto/create-delegation.dto';
 import { UpdateDelegationDto } from './dto/update-delegation.dto';
-import { ApiBearerAuth, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiBody, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { BaseResponse } from 'src/common/dto/base-response.dto';
 import { MESSAGE } from 'src/common/enums/message.enum';
 import { CustomRequest } from 'src/common/middleware/auth.middleware';
@@ -31,7 +31,7 @@ import { FileInterceptor } from '@nestjs/platform-express';
 @ApiBearerAuth('access-token')
 @Controller('delegations')
 export class DelegationsController {
-  constructor(private readonly delegationsService: DelegationsService) {}
+  constructor(private readonly delegationsService: DelegationsService) { }
 
   @Get('status')
   @ApiOperation({ summary: 'Lấy danh sách ủy quyền theo trạng thái' })

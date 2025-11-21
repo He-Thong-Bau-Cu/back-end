@@ -20,7 +20,7 @@ export class AuditLogs extends BaseSchema {
   module: string;
 
   @Prop({ type: Number, default: null })
-  reference_id?: number;
+  reference_id?: string;
 
   @Prop({ type: Object, default: null })
   old_value?: Record<string, any>;

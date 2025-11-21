@@ -139,7 +139,7 @@ export class MeetingAttendeesController {
 
 
 
-  @Patch("/meetings/:meetingId/participants/:participantId/attendance")
+  @Patch("/meetings/:meetingId/participants/:participantId/attendances/:attended")
   @ApiOperation({ summary: "Cập nhật trạng thái tham gia cuộc họp" })
   @ApiResponse({ status: 200, description: "Cập nhật trạng thái tham gia cuộc họp thành công" })
   @ApiResponse({ status: 400, description: "Dữ liệu không hợp lệ" })
