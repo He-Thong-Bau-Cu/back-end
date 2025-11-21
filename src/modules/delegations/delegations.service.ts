@@ -59,7 +59,7 @@ export class DelegationsService {
     @InjectConnection()
     private readonly connection: Connection,
     private readonly notificationService: NotificationService,
-  ) { }
+  ) {}
   async getDelegatorIdAndElectionId(delegatorId: string, electionId: string) {
     try {
       //kiểm tra xem có electionId không
@@ -383,7 +383,6 @@ export class DelegationsService {
 
   async create(createDelegation: CreateDelegationDto, userId: string) {
     try {
-
       const electionExist = await this.validateElection(createDelegation);
       await this.validateDelegateInfo(createDelegation);
       await this.validateDelegator(createDelegation);
@@ -391,8 +390,6 @@ export class DelegationsService {
       await this.validateDelegationTime(createDelegation, electionExist);
       await this.validateDocument(createDelegation);
       await this.validateConfirmedBy(createDelegation);
-
-
 
       //Create delegation
       const delegation = await this.delegationModel.create({
@@ -651,11 +648,11 @@ export class DelegationsService {
           $match: {
             ...(req.electionName?.trim()
               ? {
-                'election.title': {
-                  $regex: req.electionName,
-                  $options: 'i',
-                },
-              }
+                  'election.title': {
+                    $regex: req.electionName,
+                    $options: 'i',
+                  },
+                }
               : {}),
           },
         },
@@ -1116,14 +1113,13 @@ export class DelegationsService {
 
   async getSummaryDelegateByElectionId(electionId: string, delegationsIds: string[]) {
     try {
-      console.log(electionId);
       const delegationsGrouped = await this.delegationModel.aggregate([
         {
           $match: {
             confirmedBy: null,
             status: STATUS.CONFIRMED,
             electionId: new Types.ObjectId(electionId),
-            _id: { $in: delegationsIds },
+            _id: { $in: delegationsIds.map(id => new Types.ObjectId(id)) }
           },
         },
         {
@@ -1664,8 +1660,9 @@ export class DelegationsService {
       const printer = new PdfPrinter(fonts);
 
       const currentDate = new Date();
-      const formattedDate = `${currentDate.getDate()}/${currentDate.getMonth() + 1
-        }/${currentDate.getFullYear()}`;
+      const formattedDate = `${currentDate.getDate()}/${
+        currentDate.getMonth() + 1
+      }/${currentDate.getFullYear()}`;
 
       const docDefinition: any = {
         pageSize: 'A4',
@@ -1702,59 +1699,70 @@ export class DelegationsService {
 
           // ======= FORM CONTENT ========
           {
-            text: `Tôi là: ${data.hoTen || '...........................................................'
-              }`,
+            text: `Tôi là: ${
+              data.hoTen || '...........................................................'
+            }`,
             margin: [0, 0, 0, 10],
           },
           {
-            text: `Chức vụ: ${data.chucVu || '...........................................................'
-              }`,
+            text: `Chức vụ: ${
+              data.chucVu || '...........................................................'
+            }`,
             margin: [0, 0, 0, 10],
           },
           {
-            text: `Số điện thoại: ${data.phone || '...........................................................'
-              }`,
+            text: `Số điện thoại: ${
+              data.phone || '...........................................................'
+            }`,
             margin: [0, 0, 0, 10],
           },
           {
-            text: `CMND/CCCD số: ${data.cmnd || '...........................................................'
-              }`,
+            text: `CMND/CCCD số: ${
+              data.cmnd || '...........................................................'
+            }`,
             margin: [0, 0, 0, 10],
           },
           {
-            text: `Địa chỉ: ${data.diaChiA || '...........................................................'
-              }`,
+            text: `Địa chỉ: ${
+              data.diaChiA || '...........................................................'
+            }`,
             margin: [0, 0, 0, 10],
           },
           {
-            text: `Ủy quyền cho ông/bà: ${data.uyQuyenCho || '...........................................................'
-              }`,
+            text: `Ủy quyền cho ông/bà: ${
+              data.uyQuyenCho || '...........................................................'
+            }`,
             margin: [0, 0, 0, 10],
           },
           {
-            text: `Số điện thoại: ${data.phone2 || '...........................................................'
-              }`,
+            text: `Số điện thoại: ${
+              data.phone2 || '...........................................................'
+            }`,
             margin: [0, 0, 0, 10],
           },
           {
-            text: `CMND/CCCD số: ${data.cmnd2 || '...........................................................'
-              }`,
+            text: `CMND/CCCD số: ${
+              data.cmnd2 || '...........................................................'
+            }`,
             margin: [0, 0, 0, 10],
           },
           {
-            text: `Địa chỉ tại: ${data.diaChiB || '...........................................................'
-              }`,
+            text: `Địa chỉ tại: ${
+              data.diaChiB || '...........................................................'
+            }`,
             margin: [0, 0, 0, 10],
           },
           {
-            text: `Phạm vi ủy quyền: ${data.phamViUyQuyen || '...........................................................'
-              }`,
+            text: `Phạm vi ủy quyền: ${
+              data.phamViUyQuyen || '...........................................................'
+            }`,
             margin: [0, 0, 0, 10],
           },
 
           {
-            text: `Thời hạn ủy quyền: ${data.thoiHan || '...........................................................'
-              }`,
+            text: `Thời hạn ủy quyền: ${
+              data.thoiHan || '...........................................................'
+            }`,
             margin: [0, 0, 0, 10],
           },
 
@@ -1846,9 +1854,7 @@ export class DelegationsService {
   private async validateElection(dto: CreateDelegationDto) {
     let electionExist: any;
     if (dto.delegationType == DELEGATION_TYPE.ELECTION) {
-      electionExist = await this.electionModel.findById(
-        new Types.ObjectId(dto.electionId),
-      );
+      electionExist = await this.electionModel.findById(new Types.ObjectId(dto.electionId));
       //Kiểm tra electionId có tồn tại không
       if (!electionExist) {
         throw new Error(MESSAGE.ELECTION_NOT_FOUND);
@@ -1865,7 +1871,7 @@ export class DelegationsService {
     }
 
     if (!delegateInfo && !delegateId) {
-      throw new Error("Bạn phải chọn user hoặc nhập thông tin người được ủy quyền");
+      throw new Error('Bạn phải chọn user hoặc nhập thông tin người được ủy quyền');
     }
 
     //Kiểm tra thông tin user nếu người được ủy quyền chưa có tài khoản trong hệ thống
@@ -1916,14 +1922,18 @@ export class DelegationsService {
       throw new Error(MESSAGE.DELEGATE_ALREADY_AUTHORIZED);
     }
 
-
     //Kiểm tra người được ủy quyền có đang có vai trò khác trong cuộc bầu cử này không
-    const electionParticipant: any = await this.electionParticipantsModel.findOne({
-      electionId: new Types.ObjectId(dto.electionId),
-      userId: new Types.ObjectId(dto.delegateId),
-    }).populate('roleId').exec();
+    const electionParticipant: any = await this.electionParticipantsModel
+      .findOne({
+        electionId: new Types.ObjectId(dto.electionId),
+        userId: new Types.ObjectId(dto.delegateId),
+      })
+      .populate('roleId')
+      .exec();
     if (electionParticipant) {
-      throw new Error(`Người được ủy quyền đang có vai trò khác trong cuộc bầu cử này: ${electionParticipant.roleId.roleName}`);
+      throw new Error(
+        `Người được ủy quyền đang có vai trò khác trong cuộc bầu cử này: ${electionParticipant.roleId.roleName}`,
+      );
     }
 
     //Kiểm tra người được ủy quyền có đang là quản trị viên hoặc chủ tọa của hệ thống không
@@ -1933,7 +1943,10 @@ export class DelegationsService {
     if (!delegateUser) {
       throw new Error(MESSAGE.DELEGATE_NOT_FOUND);
     }
-    if (delegateUser.roleId.toString() == adminRole?._id.toString() || delegateUser.roleId.toString() == preside?._id.toString()) {
+    if (
+      delegateUser.roleId.toString() == adminRole?._id.toString() ||
+      delegateUser.roleId.toString() == preside?._id.toString()
+    ) {
       throw new Error(MESSAGE.DELEGATE_CANNOT_ADMIN_PRESIDE);
     }
     //Kiểm tra người ủy quyền và người được ủy tuyển có trùng userId không
@@ -1946,11 +1959,13 @@ export class DelegationsService {
     if (dto.delegationType !== DELEGATION_TYPE.LONG_TERM) return;
 
     if (!dto.startDate || !dto.endDate) {
-      throw new Error("Ngày bắt đầu/kết thúc ủy quyền không được để trống đối với ủy quyền dài hạn");
+      throw new Error(
+        'Ngày bắt đầu/kết thúc ủy quyền không được để trống đối với ủy quyền dài hạn',
+      );
     }
 
     if (new Date(dto.startDate) >= new Date(dto.endDate)) {
-      throw new Error("Ngày bắt đầu ủy quyền phải trước ngày kết thúc ủy quyền");
+      throw new Error('Ngày bắt đầu ủy quyền phải trước ngày kết thúc ủy quyền');
     }
   }
 
@@ -1966,6 +1981,4 @@ export class DelegationsService {
     const exists = await this.userModel.exists({ _id: new Types.ObjectId(dto.confirmedBy) });
     if (!exists) throw new Error(MESSAGE.USER_NOT_FOUND);
   }
-
-
 }
