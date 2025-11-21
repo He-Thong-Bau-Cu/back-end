@@ -87,6 +87,7 @@ export class MeetingAttendeesService {
 
   async updateStatusAttendance(meetingId: string, participantId: string, attended: boolean, userId: string) {
     try {
+      console.log("attended", attended);
       //Check if meetingId is exist or IsNotEmpty
       const meetingExist = await this.meetingsModel.exists({ _id: meetingId });
       if (!meetingExist) {
@@ -125,6 +126,7 @@ export class MeetingAttendeesService {
       throw error;
     }
   }
+
 
   async update(meetingAttendeeId: string, updateMeetingAttendee: UpdateMeetingAttendeeDto, userId: string) {
     try {

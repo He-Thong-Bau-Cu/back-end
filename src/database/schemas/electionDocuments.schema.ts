@@ -18,10 +18,10 @@ export class ElectionDocuments extends BaseSchema {
   @Prop({ required: true })
   title: string;
 
-  @Prop()
+  @Prop({ default: null })
   type: string;
 
-  @Prop()
+  @Prop({ default: null })
   content: string;
 
   @Prop({ default: null })

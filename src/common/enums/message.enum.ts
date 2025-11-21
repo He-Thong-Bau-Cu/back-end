@@ -89,6 +89,9 @@ export enum MESSAGE {
   BALLOT_VOTE_VALUE_GREATER_THAN_ZERO = 'Giá trị phiếu bầu phải lớn hơn 0 hoặc bằng 0',
   BALLOT_SEARCH_SUCCESS = 'Tìm kiếm phiếu bầu thành công',
   BALLOT_GET_BY_VOTER_CAST_SUCCESS = 'Lấy danh sách phiếu bầu cử tri đã bỏ phiếu thành công',
+  BALLOT_SIGN_SUCCESS = 'Ký phiếu bầu thành công',
+  BALLOT_OTP_VERIFY_SUCCESS = 'Xác minh OTP phiếu bầu thành công',
+
 
 
   // Results
@@ -268,6 +271,8 @@ export enum MESSAGE {
   ELECTION_PARTICIPANT_ROLE_NOT_FOUND = 'Không tìm thấy vai trò',
   ELECTION_PARTICIPANT_ALREADY_EXIST = "Người dùng này đã tham gia cuộc bầu cử rồi",
   ELECTION_PARTICIPANT_GET_ACTIVE_BY_ELECTION = 'Lấy danh sách người tham gia đang hoạt động theo cuộc bầu cử thành công',
+  ELECTION_PARTICIPANT_DELETE_SUCCESS = 'Xóa người tham gia thành công',
+
 
 
 

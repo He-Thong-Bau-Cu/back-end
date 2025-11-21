@@ -10,6 +10,11 @@ import { VotingRights, VotingRightsSchema } from 'src/database/schemas/votingRig
 import { ElectionTypes, ElectionTypesSchema } from 'src/database/schemas/electionTypes.schema';
 import { Users, UsersSchema } from 'src/database/schemas/users.schema';
 import { NotificationModule } from '../notification/notification.module';
+import { SigningService } from '../signature/signature.service';
+import { SignatureModule } from '../signature/signature.module';
+import { MinioModule } from '../minio/minio.module';
+import { ElectionDocuments, ElectionDocumentSchema } from 'src/database/schemas/electionDocuments.schema';
+import { RedisModule } from '../redis/redis.module';
 
 @Module({
   imports: [
@@ -21,8 +26,15 @@ import { NotificationModule } from '../notification/notification.module';
       { name: VotingRights.name, schema: VotingRightsSchema },
       { name: ElectionTypes.name, schema: ElectionTypesSchema },
       { name: Users.name, schema: UsersSchema },
+      {
+        name: ElectionDocuments.name, schema: ElectionDocumentSchema
+
+      }
     ]),
     NotificationModule,
+    SignatureModule,
+    MinioModule,
+    RedisModule
   ],
   controllers: [BallotsController],
   providers: [BallotsService],

@@ -24,6 +24,9 @@ export enum FileType {
   // Delegation summary
   DELEGATION_DELEGATOR_SIGNED = 'delegation-delegator-signed',
 
+  //Voters sign ballots
+  VOTER_SIGNED_BALLOT = 'voter-signed-ballots',
+
   // Signature related files
   SIGNED_DOCUMENT = 'signed-documents',
 

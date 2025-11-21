@@ -1,12 +1,17 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, HttpStatus, HttpException, Put, Req } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, HttpStatus, HttpException, Put, Req, Res, UseInterceptors, UploadedFile } from '@nestjs/common';
 import { BallotsService } from './ballots.service';
 import { CreateBallotDto } from './dto/create-ballot.dto';
 import { UpdateBallotDto } from './dto/update-ballot.dto';
-import { ApiBearerAuth, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiBody, ApiConsumes, ApiOperation, ApiProduces, ApiResponse } from '@nestjs/swagger';
 import { BaseResponse } from 'src/common/dto/base-response.dto';
 import { MESSAGE } from 'src/common/enums/message.enum';
 import { CustomRequest } from 'src/common/middleware/auth.middleware';
 import { BaseSearchDTO } from 'src/common/dto/base-search.dto';
+import * as fs from "fs";
+import { Response } from 'express';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { VerifyOtpDto } from 'src/common/dto/verify-otp.dto';
+
 
 @ApiBearerAuth('access-token')
 @Controller('ballots')
@@ -194,5 +199,98 @@ export class BallotsController {
       )
     }
   }
+
+  @Get('pdf/:id')
+  @ApiOperation({ summary: 'Tải phiếu bầu dưới dạng PDF' })
+  @ApiResponse({ status: 200, description: 'Tải phiếu bầu dưới dạng PDF thành công' })
+  @ApiResponse({ status: 500, description: 'Lỗi server' })
+  async getBallotPDF(
+    @Param('id') id: string,
+    @Res() res: Response,
+  ): Promise<void> {
+    try {
+      const pdfBuffer = await this.ballotsService.generateBallotPDF(id);
+
+      res.set({
+        'Content-Type': 'application/pdf',
+        'Content-Disposition': `attachment; filename=ballot_${id}.pdf`,
+        'Content-Length': pdfBuffer.length,
+      });
+
+      res.send(pdfBuffer);
+    } catch (error) {
+      throw new HttpException(
+        { message: error.message },
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+
+
+
+  @Post('sign')
+  @UseInterceptors(FileInterceptor('file'))
+  @ApiConsumes('multipart/form-data')
+  @ApiOperation({ summary: 'Ký phiếu bầu' })
+  @ApiResponse({ status: 200, description: 'Ký phiếu bầu thành công' })
+  @ApiResponse({ status: 500, description: 'Lỗi server' })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        id: {
+          type: 'string',
+        },
+        file: {
+          type: 'string',
+          format: 'binary',
+        },
+        password: {
+          type: 'string',
+        },
+      },
+      required: ['id', 'file', 'password'],
+    },
+  })
+  async signBallot(
+    @UploadedFile() fileP12: Express.Multer.File,
+    @Body('id') id: string,
+    @Body('password') password: string,
+    @Req() req: CustomRequest,
+  ) {
+    try {
+      const signedFilePath = await this.ballotsService.signBallot(fileP12, id, password, req.user.sub);
+
+      return BaseResponse.success(signedFilePath, MESSAGE.BALLOT_SIGN_SUCCESS, HttpStatus.OK);
+    } catch (error) {
+      throw new HttpException(
+        { message: error.message },
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @Post('verify-otp/:id')
+  @ApiOperation({ summary: 'Xác thực OTP để ký phiếu bầu' })
+  @ApiResponse({ status: 200, description: 'Xác thực OTP thành công' })
+  @ApiResponse({ status: 500, description: 'Lỗi server' })
+  async verifyOtp(
+    @Param('id') id: string,
+    @Body() verifyOtpDto: VerifyOtpDto,
+  ) {
+    try {
+      const resData = await this.ballotsService.verifyOtp(id, verifyOtpDto);
+      return BaseResponse.success(resData, MESSAGE.BALLOT_OTP_VERIFY_SUCCESS, HttpStatus.OK);
+    } catch (error) {
+      throw new HttpException(
+        { message: error.message },
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+
+
 
 }

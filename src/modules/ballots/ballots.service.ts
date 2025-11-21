@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { CreateBallotDto } from './dto/create-ballot.dto';
 import { UpdateBallotDto } from './dto/update-ballot.dto';
 import { InjectModel } from '@nestjs/mongoose';
@@ -16,6 +16,17 @@ import { Users } from 'src/database/schemas/users.schema';
 import { BaseSearchDTO } from 'src/common/dto/base-search.dto';
 import { paginate } from 'src/common/dto/paignation';
 import { NotificationService } from '../notification/notification.service';
+import path from 'path/win32';
+import PdfPrinter from "pdfmake";
+import * as fs from "fs";
+import * as os from "os";
+import { SigningService } from '../signature/signature.service';
+import { MinioService } from '../minio/minio.service';
+import { FileType } from 'src/common/enums/file-type.enum';
+import { ElectionDocuments } from 'src/database/schemas/electionDocuments.schema';
+import signer, { plainAddPlaceholder } from 'node-signpdf';
+import { VerifyOtpDto } from 'src/common/dto/verify-otp.dto';
+import { RedisService } from '../redis/redis.service';
 
 @ApiBearerAuth('access-token')
 @Injectable()
@@ -36,7 +47,12 @@ export class BallotsService {
     private readonly electionTypesModel: Model<ElectionTypes>,
     @InjectModel(Users.name)
     private readonly usersModel: Model<Users>,
-    private readonly notificationService: NotificationService
+    @InjectModel(ElectionDocuments.name)
+    private readonly electionDocumentsModel: Model<ElectionDocuments>,
+    private readonly notificationService: NotificationService,
+    private readonly signingService: SigningService,
+    private readonly fileService: MinioService,
+    private readonly redisService: RedisService,
   ) { }
 
 
@@ -311,7 +327,7 @@ export class BallotsService {
         ...createBallot,
         electionId: new Types.ObjectId(createBallot.electionId),
         voterId: new Types.ObjectId(createBallot.voterId),
-        createdBy: new Types.ObjectId(userId) ? new Types.ObjectId(userId) : null,
+        createdBy: userId && Types.ObjectId.isValid(userId) ? new Types.ObjectId(userId) : null,
       });
       return ballot;
     } catch (error) {
@@ -334,7 +350,7 @@ export class BallotsService {
           ...updateBalllot,
           electionId: updateBalllot.electionId ? new Types.ObjectId(updateBalllot.electionId) : null,
           voterId: updateBalllot.voterId ? new Types.ObjectId(updateBalllot.voterId) : null,
-          updatedBy: new Types.ObjectId(userId) ? new Types.ObjectId(userId) : null,
+          updatedBy: userId && Types.ObjectId.isValid(userId) ? new Types.ObjectId(userId) : null,
         }, { new: true })
         .populate('electionId', 'title startDate endDate delegationStart delegationEnd status statusData decisionNumber decisionName')
         .populate({
@@ -398,7 +414,9 @@ export class BallotsService {
 
       ballotExist.status = 'Active';
       ballotExist.issuedAt = new Date();
-      ballotExist.updatedBy = new Types.ObjectId(userId);
+      if (userId && Types.ObjectId.isValid(userId)) {
+        ballotExist.updatedBy = new Types.ObjectId(userId);
+      }
 
 
       await ballotExist.save();
@@ -560,4 +578,278 @@ export class BallotsService {
       throw error;
     }
   }
+
+  async signBallot(
+    p12File: Express.Multer.File,
+    id: string,
+    password: string,
+    userId: string,
+  ) {
+    try {
+      //Kiểm tra phiếu bầu tồn tại
+      const ballot = await this.ballotsModel.findById(new Types.ObjectId(id));
+      if (!ballot) {
+        throw new Error(MESSAGE.BALLOT_NOT_FOUND);
+      }
+
+      //Tạo file pdf của phiếu bầu
+      const pdfPath = await this.generateBallotPDF(id);
+      //Tạo file kí
+      const signFile = await this.signingService.signPdfWithP12(pdfPath, p12File.buffer, password);
+      if (signFile) {
+        ballot.castAt = new Date();
+        await ballot.save();
+
+        const fileUpload = await this.fileService.uploadSignedPdf(
+          FileType.VOTER_SIGNED_BALLOT,
+          userId,
+          signFile
+        )
+        if (fileUpload) {
+          await this.electionDocumentsModel.create({
+            electionId: new Types.ObjectId(ballot.electionId),
+            preparedBy: new Types.ObjectId(ballot.voterId),
+            title: `File phiếu bầu - ${ballot._id}`,
+            type: FileType.VOTER_SIGNED_BALLOT,
+            fileUrl: fileUpload.url,
+            createdBy: userId && Types.ObjectId.isValid(userId) ? new Types.ObjectId(userId) : null,
+          });
+        }
+        return fileUpload;
+      } else {
+
+        // 1. Nếu quá 5 lần → khóa phiếu
+        if (ballot.attempts >= 5) {
+          ballot.status = STATUS.LOCKED;
+          await ballot.save();
+          throw new Error("Phiếu bầu đã bị khóa do nhập sai quá 5 lần!");
+        }
+        ballot.attempts += 1;
+        throw new Error("Ký phiếu bầu thất bại");
+      }
+
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  async generateBallotPDF(ballotId: string): Promise<Buffer> {
+    try {
+      //Kiểm tra phiếu bầu tồn tại
+      const ballot: any = await this.ballotsModel
+        .findById(new Types.ObjectId(ballotId))
+        .populate('electionId', 'title startDate endDate delegationStart delegationEnd status statusData decisionNumber decisionName')
+        .populate({
+          path: 'voterId',
+          populate: [
+            {
+              path: 'userId',
+              select: "username fullName email position",
+            }
+          ]
+        })
+        .populate({
+          path: 'allocations.entityId',
+          populate: [
+            { path: "electionTypeId", select: "typeCode typeName description status" }
+          ]
+          ,
+          select: 'title description metaData fileUrl status proposerId'
+        })
+        .lean();
+
+      if (!ballot) throw new NotFoundException(MESSAGE.BALLOT_NOT_FOUND);
+
+      const election = ballot.electionId;
+      const voter = ballot.voterId?.userId;
+      const allocations = ballot.allocations;
+
+      const votingRight = await this.votingRightsModel.findOne({
+        voterId: new Types.ObjectId(ballot.voterId._id),
+        electionId: new Types.ObjectId(ballot.electionId._id)
+      });
+      if (!votingRight) console.log("Không tìm thấy quyền bầu cử của cử tri");
+
+      // -----------------------------------------
+      const fonts = {
+        Roboto: {
+          normal: path.join(process.cwd(), 'src', 'fonts', 'Roboto-Regular.ttf'),
+          bold: path.join(process.cwd(), 'src', 'fonts', 'Roboto-Bold.ttf'),
+        }
+      };
+
+      const printer = new PdfPrinter(fonts);
+
+
+
+
+
+      const allocationTable = {
+        table: {
+          widths: ["*", "*", "auto"],
+          body: [
+            // HEADER
+            [
+              { text: "Đối tượng", bold: true, alignment: "center" },
+              { text: "Mô tả", bold: true, alignment: "center" },
+              { text: "Số phiếu bầu", bold: true, alignment: "center" },
+            ],
+
+            // ROWS
+            ...allocations.map(a => {
+              const entity = a.entityId;
+              return [
+                entity?.title ?? "---",
+                entity?.description ?? "---",
+                String(a.voteValue ?? 0)
+              ];
+            })
+          ]
+        },
+        layout: {
+          fillColor: (rowIndex) => rowIndex === 0 ? "#eeeeee" : null, // màu nền header
+          hLineWidth: () => 0.8,
+          vLineWidth: () => 0.8,
+        },
+        margin: [0, 5, 0, 15]
+      };
+
+      const docDefinition: any = {
+        pageMargins: [20, 20, 20, 20],
+        content: [
+          { text: "PHIẾU BẦU CỬ", style: "title", alignment: "center" },
+          { text: election?.title, style: "subTitle", alignment: "center" },
+          { text: "\n\n" },
+
+          // ELECTION INFO
+          { text: "Thông tin cuộc bầu cử", style: "section" },
+          {
+            table: {
+              widths: ["auto", "*"],
+              body: [
+                ["Tên cuộc bầu cử:", election?.title ?? "---"],
+                ["Thời gian bắt đầu:", election?.startDate ? new Date(election?.startDate).toLocaleString() : "---"],
+                ["Thời gian kết thúc:", election?.endDate ? new Date(election?.endDate).toLocaleString() : "---"],
+                ["Số quyết định:", election?.decisionNumber ?? "---"],
+                ["Tên quyết định:", election?.decisionName ?? "---"]
+              ]
+            },
+            layout: "noBorders",
+            margin: [0, 5, 0, 15]
+          },
+
+          // VOTER INFO
+          { text: "Thông tin cử tri", style: "section" },
+          {
+            table: {
+              widths: ["auto", "*"],
+              body: [
+                ["Họ tên:", voter?.fullName ?? "---"],
+                ["Số cổ phần:", votingRight?.shares ?? "---"],
+                ["Tổng số phiếu tương ứng: ", votingRight?.votes ?? "---"],
+                ["Email:", voter?.email ?? "---"],
+                ["Số điện thoại:", voter?.phone ?? "---"],
+                ["Chức vụ:", voter?.position ?? "---"],
+                ["Phòng ban:", voter?.department ?? "---"],
+              ]
+            },
+            layout: "noBorders",
+            margin: [0, 5, 0, 15]
+          },
+
+          // VOTE LIST
+          { text: "Chi tiết phiếu bầu", style: "section" }, allocationTable,
+        ],
+
+        styles: {
+          title: { fontSize: 22, bold: true },
+          subTitle: { fontSize: 14, color: "#555" },
+          section: { fontSize: 16, bold: true, margin: [0, 10, 0, 5] },
+        }
+      };
+
+      //Footer Sign
+      docDefinition.content.push({
+        columns: [
+          { text: '' },
+          {
+            text: `CỬ TRI`,
+            alignment: 'center',
+            margin: [0, 50, 0, 0],
+          },
+        ],
+      })
+
+      // CREATE PDF
+      const pdfDoc = printer.createPdfKitDocument(docDefinition);
+      const chunks: any[] = [];
+      return await new Promise<Buffer>((resolve, reject) => {
+        pdfDoc.on('data', (chunk) => chunks.push(chunk));
+        pdfDoc.on('end', () => resolve(Buffer.concat(chunks)));
+        pdfDoc.on('error', (error) => reject(error));
+        pdfDoc.end();
+      });
+    } catch (error) {
+      throw error;
+    }
+
+
+  }
+
+  async verifyOtp(id: string, req: VerifyOtpDto) {
+    try {
+      //Kiểm tra phiếu bầu tồn tại
+      const ballot = await this.ballotsModel.findById(new Types.ObjectId(id));
+      if (!ballot) {
+        throw new Error(MESSAGE.BALLOT_NOT_FOUND);
+      }
+
+
+
+      //Kiểm tra email tồn tại và active
+      const user = await this.usersModel.findOne({ email: req.email }).exec();
+      if (!user) {
+        throw new Error('Email không tồn tại trong hệ thống!');
+      }
+      if (user.status !== STATUS.ACTIVE) {
+        throw new Error('Tài khoản của bạn đã bị vô hiệu hóa!');
+      }
+
+      const otpKey = `otp:${req.email}`;
+      const storedOtp = await this.redisService.get(otpKey);
+
+      // Kiểm tra OTP có tồn tại không
+      if (!storedOtp) {
+        ballot.attempts += 1;
+        await ballot.save();
+        throw new Error('Mã OTP không tồn tại hoặc đã hết hạn. Vui lòng yêu cầu mã OTP mới!');
+      }
+
+      // Kiểm tra OTP có đúng không
+      if (storedOtp !== req.otp) {
+        ballot.attempts += 1;
+        await ballot.save();
+        throw new Error('Mã OTP không đúng!');
+      }
+
+      //Kiểm tra số lần nhập otp
+      if (ballot.attempts >= 5) {
+        throw new Error('Bạn đã nhập sai OTP quá 5 lần, vui lòng yêu cầu mã OTP mới!');
+      }
+
+
+      // Đánh dấu OTP đã được verify bằng cách lưu flag vào Redis
+      const verifiedKey = `otp:verified:${req.email}`;
+      await this.redisService.set(verifiedKey, 'true', 5 * 60); // Giữ flag 5 phút
+
+      // Xóa OTP sau khi verify thành công
+      await this.redisService.del(otpKey);
+
+      return { message: 'Xác thực OTP thành công!', verified: true };
+    } catch (error) {
+      throw error;
+    }
+  }
+
+
 }

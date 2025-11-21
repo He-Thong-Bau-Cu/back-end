@@ -3,7 +3,7 @@ import { CreateElectionParticipantDto } from './dto/create-election-participant.
 import { UpdateElectionParticipantDto } from './dto/update-election-participant.dto';
 import { InjectModel } from '@nestjs/mongoose';
 import { ElectionsParticipants } from 'src/database/schemas/electionParticipants.schema';
-import { Model } from 'mongoose';
+import { Model, StringExpressionOperator } from 'mongoose';
 import { Elections } from 'src/database/schemas/elections.schema';
 import { Users } from 'src/database/schemas/users.schema';
 import { Roles } from 'src/database/schemas/roles.schema';
@@ -208,8 +208,6 @@ export class ElectionParticipantsService {
     }
   }
 
-
-
   async create(electionParticipants: CreateElectionParticipantDto, userId: string) {
     try {
       //Kiểm tra electionId có tồn tại không
@@ -254,4 +252,80 @@ export class ElectionParticipantsService {
       throw error;
     }
   }
+
+  async delete(id: string) {
+    try {
+
+      const result = await this.electionParticipantsModel
+        .findByIdAndUpdate(new Types.ObjectId(id), { status: STATUS.INACTIVE, }, { new: true }).exec();
+      //Kiểm tra nếu không tìm thấy participant
+      if (!result) {
+        throw new NotFoundException(MESSAGE.ELECTION_PARTICIPANT_NOT_FOUND);
+      }
+      return result;
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  async update(id: string, updateElectionParticipantDto: UpdateElectionParticipantDto, userId: string) {
+    try {
+      const { electionId, userId: participantUserId, roleId } = updateElectionParticipantDto;
+      //Kiểm tra electionId có tồn tại không
+      if (electionId) {
+        const electionExists = await this.electionsModel.exists({
+          _id: electionId,
+        });
+        if (!electionExists) {
+          throw new NotFoundException(MESSAGE.ELECTION_NOT_FOUND);
+        }
+      }
+      //Kiểm tra userId có tồn tại không
+      if (participantUserId) {
+        const userExists = await this.usersModel.exists({ _id: participantUserId });
+        if (!userExists) {
+          throw new NotFoundException(MESSAGE.USER_NOT_FOUND);
+        }
+      }
+      //Kiểm tra roleId có tồn tại không
+      if (roleId) {
+        const roleExists = await this.rolesModel.exists({ _id: roleId });
+        if (!roleExists) {
+          throw new NotFoundException(MESSAGE.ROLE_NOT_FOUND);
+        }
+      }
+      //Kiểm tra participant có tồn tại không
+      const participantExist = await this.electionParticipantsModel.exists({ _id: id });
+      if (!participantExist) {
+        throw new NotFoundException(MESSAGE.ELECTION_PARTICIPANT_NOT_FOUND);
+      }
+      const updatedParticipant = await this.electionParticipantsModel
+        .findByIdAndUpdate(
+          new Types.ObjectId(id),
+          {
+            ...updateElectionParticipantDto,
+            updatedBy: userId ? new Types.ObjectId(userId) : null
+          },
+          { new: true },
+        )
+        .populate([
+          {
+            path: 'electionId',
+            select:
+              'title startDate endDate delegationStart delegationEnd status statusData decisionNumber decisionName',
+          },
+          { path: 'roleId' },
+          { path: 'userId', select: 'fullName username email phone position department' },
+          { path: 'createdBy', select: 'fullName username email phone position' },
+          { path: 'updatedBy', select: 'fullName username email phone position' },
+        ])
+        .exec();
+      return updatedParticipant;
+    } catch (error) {
+      throw error;
+    }
+  }
+
+
+
 }
