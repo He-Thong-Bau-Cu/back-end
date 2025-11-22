@@ -59,7 +59,7 @@ export class DelegationsService {
     @InjectConnection()
     private readonly connection: Connection,
     private readonly notificationService: NotificationService,
-  ) {}
+  ) { }
   async getDelegatorIdAndElectionId(delegatorId: string, electionId: string) {
     try {
       //kiểm tra xem có electionId không
@@ -111,7 +111,7 @@ export class DelegationsService {
       }
 
       const delegation = await this.delegationModel
-        .findOne({ electionId: new Types.ObjectId(id) })
+        .find({ electionId: new Types.ObjectId(id) })
         .populate([
           {
             path: 'electionId',
@@ -128,19 +128,19 @@ export class DelegationsService {
         .exec();
 
       // Chỉ populate documentId nếu nó tồn tại và là ObjectId hợp lệ
-      if (delegation) {
-        const docId = delegation.documentId as any;
-        if (docId && docId !== '' && Types.ObjectId.isValid(docId)) {
-          const document = await this.documentModel
-            .findById(docId)
-            .select('title file_url status')
-            .lean()
-            .exec();
-          (delegation as any).documentId = document;
-        } else {
-          (delegation as any).documentId = null;
-        }
-      }
+      // if (delegation) {
+      //   const docId = delegation.documentId as any;
+      //   if (docId && docId !== '' && Types.ObjectId.isValid(docId)) {
+      //     const document = await this.documentModel
+      //       .findById(docId)
+      //       .select('title file_url status')
+      //       .lean()
+      //       .exec();
+      //     (delegation as any).documentId = document;
+      //   } else {
+      //     (delegation as any).documentId = null;
+      //   }
+      // }
 
       return delegation;
     } catch (error) {
@@ -648,11 +648,11 @@ export class DelegationsService {
           $match: {
             ...(req.electionName?.trim()
               ? {
-                  'election.title': {
-                    $regex: req.electionName,
-                    $options: 'i',
-                  },
-                }
+                'election.title': {
+                  $regex: req.electionName,
+                  $options: 'i',
+                },
+              }
               : {}),
           },
         },
@@ -1660,9 +1660,8 @@ export class DelegationsService {
       const printer = new PdfPrinter(fonts);
 
       const currentDate = new Date();
-      const formattedDate = `${currentDate.getDate()}/${
-        currentDate.getMonth() + 1
-      }/${currentDate.getFullYear()}`;
+      const formattedDate = `${currentDate.getDate()}/${currentDate.getMonth() + 1
+        }/${currentDate.getFullYear()}`;
 
       const docDefinition: any = {
         pageSize: 'A4',
@@ -1699,70 +1698,59 @@ export class DelegationsService {
 
           // ======= FORM CONTENT ========
           {
-            text: `Tôi là: ${
-              data.hoTen || '...........................................................'
-            }`,
+            text: `Tôi là: ${data.hoTen || '...........................................................'
+              }`,
             margin: [0, 0, 0, 10],
           },
           {
-            text: `Chức vụ: ${
-              data.chucVu || '...........................................................'
-            }`,
+            text: `Chức vụ: ${data.chucVu || '...........................................................'
+              }`,
             margin: [0, 0, 0, 10],
           },
           {
-            text: `Số điện thoại: ${
-              data.phone || '...........................................................'
-            }`,
+            text: `Số điện thoại: ${data.phone || '...........................................................'
+              }`,
             margin: [0, 0, 0, 10],
           },
           {
-            text: `CMND/CCCD số: ${
-              data.cmnd || '...........................................................'
-            }`,
+            text: `CMND/CCCD số: ${data.cmnd || '...........................................................'
+              }`,
             margin: [0, 0, 0, 10],
           },
           {
-            text: `Địa chỉ: ${
-              data.diaChiA || '...........................................................'
-            }`,
+            text: `Địa chỉ: ${data.diaChiA || '...........................................................'
+              }`,
             margin: [0, 0, 0, 10],
           },
           {
-            text: `Ủy quyền cho ông/bà: ${
-              data.uyQuyenCho || '...........................................................'
-            }`,
+            text: `Ủy quyền cho ông/bà: ${data.uyQuyenCho || '...........................................................'
+              }`,
             margin: [0, 0, 0, 10],
           },
           {
-            text: `Số điện thoại: ${
-              data.phone2 || '...........................................................'
-            }`,
+            text: `Số điện thoại: ${data.phone2 || '...........................................................'
+              }`,
             margin: [0, 0, 0, 10],
           },
           {
-            text: `CMND/CCCD số: ${
-              data.cmnd2 || '...........................................................'
-            }`,
+            text: `CMND/CCCD số: ${data.cmnd2 || '...........................................................'
+              }`,
             margin: [0, 0, 0, 10],
           },
           {
-            text: `Địa chỉ tại: ${
-              data.diaChiB || '...........................................................'
-            }`,
+            text: `Địa chỉ tại: ${data.diaChiB || '...........................................................'
+              }`,
             margin: [0, 0, 0, 10],
           },
           {
-            text: `Phạm vi ủy quyền: ${
-              data.phamViUyQuyen || '...........................................................'
-            }`,
+            text: `Phạm vi ủy quyền: ${data.phamViUyQuyen || '...........................................................'
+              }`,
             margin: [0, 0, 0, 10],
           },
 
           {
-            text: `Thời hạn ủy quyền: ${
-              data.thoiHan || '...........................................................'
-            }`,
+            text: `Thời hạn ủy quyền: ${data.thoiHan || '...........................................................'
+              }`,
             margin: [0, 0, 0, 10],
           },
 
