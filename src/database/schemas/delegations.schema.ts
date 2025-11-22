@@ -51,6 +51,12 @@ export class Delegations extends BaseSchema {
 
   @Prop({ default: null })
   confirmedAt: Date;
+
+  @Prop({ default: null })
+  rejectReason: string;
+
+  @Prop({ default: null })
+  rejectReasonBySecretary: string;
 }
 
 export const DelegationsSchema = SchemaFactory.createForClass(Delegations);
