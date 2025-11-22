@@ -24,6 +24,11 @@ import { Roles, RolesDocument } from 'src/database/schemas/roles.schema';
 import { USER_ROLE } from 'src/common/enums/config.enum';
 import { Voters, VotersDocument } from 'src/database/schemas/voters.schema';
 import { Delegations, DelegationsDocument } from 'src/database/schemas/delegations.schema';
+import { ElectionEntities } from 'src/database/schemas/electionEntities.schema';
+import { Meetings } from 'src/database/schemas/meetings.schema';
+import { VotingRights } from 'src/database/schemas/votingRights.schema';
+import { BulkSaveDraftDto } from './dto/bulk-save-draft-dto';
+import { MeetingAttendees } from 'src/database/schemas/meetingAttendees.schema';
 
 @Injectable()
 export class ElectionsService {
@@ -48,6 +53,14 @@ export class ElectionsService {
     private readonly voterModel: Model<VotersDocument>,
     @InjectModel(Delegations.name)
     private readonly delegationModel: Model<DelegationsDocument>,
+    @InjectModel(ElectionEntities.name)
+    private readonly electionEntitiesModel: Model<ElectionEntities>,
+    @InjectModel(Meetings.name)
+    private readonly meetingsModel: Model<Meetings>,
+    @InjectModel(VotingRights.name)
+    private readonly votingRightsModel: Model<VotingRights>,
+    @InjectModel(MeetingAttendees.name)
+    private readonly meetingAttendeesModel: Model<MeetingAttendees>,
   ) {}
 
   async searchElections(req: SearchDTO) {
@@ -555,5 +568,451 @@ export class ElectionsService {
     }
 
     return result;
+  }
+
+  async bulkSaveDraft(dto: BulkSaveDraftDto, userId: string) {
+    try {
+      const { electionId, meetingInfo, electionEntities, electionDocuments, voters, participants, isSubmitForApproval } = dto;
+
+      // 1. Sử dụng trực tiếp typeId và thresholdId
+      const typeId = meetingInfo.type as string;
+      const thresholdId = meetingInfo.threshold as string;
+
+      // 2. Cập nhật Election
+      const electionUpdate: any = {
+        typeId: typeId ? new Types.ObjectId(typeId) : null,
+        votingMethodId: meetingInfo.method ? new Types.ObjectId(meetingInfo.method) : null,
+        thresholdId: thresholdId ? new Types.ObjectId(thresholdId) : null,
+        delegationStart: meetingInfo.authorizationStart ? new Date(meetingInfo.authorizationStart) : null,
+        delegationEnd: meetingInfo.authorizationEnd ? new Date(meetingInfo.authorizationEnd) : null,
+      };
+
+      if (isSubmitForApproval) {
+        electionUpdate.statusData = 'WAIT_APROVAL';
+      }
+
+      const updatedElection = await this.electionsModel.findByIdAndUpdate(
+        new Types.ObjectId(electionId),
+        electionUpdate,
+        { new: true }
+      );
+
+      if (!updatedElection) {
+        throw new Error(MESSAGE.ELECTION_NOT_FOUND);
+      }
+
+      // 3. Xử lý Candidates/ElectionEntities
+      if (electionEntities && Array.isArray(electionEntities)) {
+        // Lấy danh sách IDs từ request
+        const candidateIds = electionEntities
+          .filter((c: any) => c._id)
+          .map((c: any) => new Types.ObjectId(c._id));
+
+        // Xóa các entities không còn trong danh sách
+        if (candidateIds.length > 0) {
+          await this.electionEntitiesModel.deleteMany({
+            electionId: new Types.ObjectId(electionId),
+            _id: { $nin: candidateIds },
+          });
+        } else {
+          // Nếu không có candidate nào có _id, xóa tất cả entities cũ
+          await this.electionEntitiesModel.deleteMany({
+            electionId: new Types.ObjectId(electionId),
+          });
+        }
+
+        // Tạo hoặc cập nhật các candidates
+        for (const candidate of electionEntities) {
+          if (candidate._id) {
+            // Update existing
+            await this.electionEntitiesModel.findByIdAndUpdate(
+              new Types.ObjectId(candidate._id),
+              {
+                title: candidate.title,
+                description: candidate.description,
+                metaData: candidate.metaData,
+                fileUrl: candidate.fileUrl,
+                electionTypeId: new Types.ObjectId(typeId),
+                updatedBy: new Types.ObjectId(userId),
+              },
+              { new: true }
+            );
+          } else {
+            // Create new
+            await this.electionEntitiesModel.create({
+              electionId: new Types.ObjectId(electionId),
+              electionTypeId: new Types.ObjectId(typeId),
+              title: candidate.title,
+              description: candidate.description,
+              metaData: candidate.metaData,
+              fileUrl: candidate.fileUrl,
+              status: 'PENDING',
+              createdBy: new Types.ObjectId(userId),
+            });
+          }
+        }
+      } else {
+        // Nếu không có candidates trong request, xóa tất cả entities cũ
+        await this.electionEntitiesModel.deleteMany({
+          electionId: new Types.ObjectId(electionId),
+        });
+      }
+
+      // 4. Xử lý Voters và VotingRights
+      if (voters && Array.isArray(voters)) {
+        for (const voterItem of voters) {
+          let voter;
+          if (voterItem._id) {
+            // Update existing voter
+            voter = await this.voterModel.findByIdAndUpdate(
+              new Types.ObjectId(voterItem._id),
+              {
+                userId: new Types.ObjectId(voterItem.userId),
+                updatedBy: new Types.ObjectId(userId),
+              },
+              { new: true }
+            );
+          } else {
+            // Create new voter
+            voter = await this.voterModel.create({
+              electionId: new Types.ObjectId(electionId),
+              userId: new Types.ObjectId(voterItem.userId),
+              eligible: true,
+              status: 'PENDING',
+              createdBy: new Types.ObjectId(userId),
+            });
+          }
+
+          if (voter && voterItem.percentage !== undefined) {
+            // Create or update voting right
+            const existingVotingRight = await this.votingRightsModel.findOne({
+              electionId: new Types.ObjectId(electionId),
+              voterId: voter._id,
+            });
+
+            if (existingVotingRight) {
+              await this.votingRightsModel.findByIdAndUpdate(
+                existingVotingRight._id,
+                {
+                  shares: voterItem.percentage,
+                  updatedBy: new Types.ObjectId(userId),
+                }
+              );
+            } else {
+              await this.votingRightsModel.create({
+                electionId: new Types.ObjectId(electionId),
+                voterId: voter._id,
+                shares: voterItem.percentage,
+                votes: 0,
+                status: 'PENDING',
+                createdBy: new Types.ObjectId(userId),
+              });
+            }
+          }
+        }
+      }
+
+      // 5. Xử lý Participants
+      if (participants && Array.isArray(participants)) {
+        for (const participantItem of participants) {
+          if (participantItem._id) {
+            // Update existing
+            await this.electionParticipantsModel.findByIdAndUpdate(
+              new Types.ObjectId(participantItem._id),
+              {
+                userId: new Types.ObjectId(participantItem.userId),
+                roleId: new Types.ObjectId(participantItem.roleId),
+                position: participantItem.position,
+                updatedBy: new Types.ObjectId(userId),
+              },
+              { new: true }
+            );
+          } else {
+            // Create new
+            await this.electionParticipantsModel.create({
+              electionId: new Types.ObjectId(electionId),
+              userId: new Types.ObjectId(participantItem.userId),
+              roleId: new Types.ObjectId(participantItem.roleId),
+              position: participantItem.position,
+              createdBy: new Types.ObjectId(userId),
+            });
+          }
+        }
+      }
+
+      // 6. Xử lý ElectionDocuments
+      if (electionDocuments && Array.isArray(electionDocuments)) {
+        for (const docItem of electionDocuments) {
+          if (docItem._id) {
+            // Update existing
+            await this.electionDocumentsModel.findByIdAndUpdate(
+              new Types.ObjectId(docItem._id),
+              {
+                title: docItem.title,
+                content: docItem.content,
+                fileUrl: docItem.fileUrl,
+                remarks: docItem.remarks,
+                updatedBy: new Types.ObjectId(userId),
+              },
+              { new: true }
+            );
+          } else {
+            // Create new
+            await this.electionDocumentsModel.create({
+              electionId: new Types.ObjectId(electionId),
+              preparedBy: new Types.ObjectId(userId),
+              title: docItem.title,
+              content: docItem.content,
+              fileUrl: docItem.fileUrl,
+              status: 'PENDING',
+              remarks: docItem.remarks,
+              createdBy: new Types.ObjectId(userId),
+            });
+          }
+        }
+      }
+
+      // 7. Xử lý Meeting
+      let meeting;
+      const existingMeeting = await this.meetingsModel.findOne({
+        electionId: new Types.ObjectId(electionId),
+      });
+
+      if (existingMeeting) {
+        meeting = await this.meetingsModel.findByIdAndUpdate(
+          existingMeeting._id,
+          {
+            location: meetingInfo.location,
+            updatedBy: new Types.ObjectId(userId),
+          },
+          { new: true }
+        );
+      } else {
+        meeting = await this.meetingsModel.create({
+          title: `Cuộc họp ${updatedElection.decisionName || updatedElection.title}`,
+          electionId: new Types.ObjectId(electionId),
+          location: meetingInfo.location,
+          meetingDate: updatedElection.startDate,
+          status: 'PENDING',
+          createdBy: new Types.ObjectId(userId),
+        });
+      }
+
+      // 8. Xử lý MeetingAttendees cho participants có role voter
+      if (participants && Array.isArray(participants) && meeting) {
+        // Lấy role voter
+        const voterRole = await this.rolesModel.findOne({ roleCode: USER_ROLE.VOTER });
+        if (voterRole) {
+          // Lọc participants có role voter
+          const voterParticipants = participants.filter(
+            (p: any) => String(p.roleId) === String(voterRole._id)
+          );
+
+          // Xóa các meetingAttendees cũ của meeting này
+          await this.meetingAttendeesModel.deleteMany({
+            meetingId: meeting._id,
+          });
+
+          // Tạo meetingAttendees mới cho voter participants
+          for (const voterParticipant of voterParticipants) {
+            // Tìm participant record để lấy _id
+            let participantRecord;
+            if (voterParticipant._id) {
+              participantRecord = await this.electionParticipantsModel.findById(
+                new Types.ObjectId(voterParticipant._id)
+              );
+            } else {
+              // Nếu chưa có _id, tìm participant vừa tạo
+              participantRecord = await this.electionParticipantsModel.findOne({
+                electionId: new Types.ObjectId(electionId),
+                userId: new Types.ObjectId(voterParticipant.userId),
+                roleId: new Types.ObjectId(voterParticipant.roleId),
+              });
+            }
+
+            if (participantRecord) {
+              await this.meetingAttendeesModel.create({
+                meetingId: meeting._id,
+                participantId: participantRecord._id,
+                checkInTime: meeting.meetingDate || updatedElection.startDate,
+                attended: false,
+                createdBy: new Types.ObjectId(userId),
+              });
+            }
+          }
+        }
+      }
+
+      return { success: true, message: isSubmitForApproval ? 'Gửi duyệt thành công' : 'Lưu nháp thành công' };
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  async getDraftData(electionId: string) {
+    try {
+      // Kiểm tra election có tồn tại không
+      const electionExist = await this.electionsModel.exists({ _id: electionId });
+      if (!electionExist) {
+        throw new Error(MESSAGE.ELECTION_NOT_FOUND);
+      }
+
+      // 1. Lấy thông tin election với populated fields
+      const election = await this.electionsModel
+        .findById(new Types.ObjectId(electionId))
+        .populate('createdBy', 'username fullName email position')
+        .populate('updatedBy', 'username fullName email position')
+        .lean()
+        .exec();
+
+      if (!election) {
+        throw new Error(MESSAGE.ELECTION_NOT_FOUND);
+      }
+
+      // 2. Lấy meeting info từ election
+      const typeId = election.typeId ? (election.typeId instanceof Types.ObjectId ? election.typeId : new Types.ObjectId(election.typeId)) : null;
+      const methodId = election.votingMethodId ? (election.votingMethodId instanceof Types.ObjectId ? election.votingMethodId : new Types.ObjectId(election.votingMethodId)) : null;
+      const thresholdId = election.thresholdId ? (election.thresholdId instanceof Types.ObjectId ? election.thresholdId : new Types.ObjectId(election.thresholdId)) : null;
+
+      // Lấy type details
+      let typeDetails: any = null;
+      if (typeId) {
+        typeDetails = await this.electionTypeModel.findById(typeId).lean().exec();
+      }
+
+      // Lấy method details
+      let methodDetails: any = null;
+      if (methodId) {
+        methodDetails = await this.votingMethodModel.findById(methodId).lean().exec();
+      }
+
+      // Lấy threshold details
+      let thresholdDetails: any = null;
+      if (thresholdId) {
+        thresholdDetails = await this.thresholdModel.findById(thresholdId).lean().exec();
+      }
+
+      // 3. Lấy meeting
+      const meeting = await this.meetingsModel
+        .findOne({ electionId: new Types.ObjectId(electionId) })
+        .lean()
+        .exec();
+
+      // 4. Lấy election entities (candidates)
+      const electionEntities = await this.electionEntitiesModel
+        .find({ electionId: new Types.ObjectId(electionId) })
+        .populate('createdBy', 'username fullName email')
+        .lean()
+        .exec();
+
+      // 5. Lấy election documents
+      const electionDocuments = await this.electionDocumentsModel
+        .find({ electionId: new Types.ObjectId(electionId) })
+        .lean()
+        .exec();
+
+      // 6. Lấy voters với user info và voting rights (percentage)
+      const voters = await this.voterModel
+        .find({ electionId: new Types.ObjectId(electionId) })
+        .populate('userId', 'username fullName email phone position')
+        .populate('createdBy', 'username fullName email')
+        .lean()
+        .exec();
+
+      // Lấy voting rights để lấy percentage (shares)
+      const votingRights = await this.votingRightsModel
+        .find({ electionId: new Types.ObjectId(electionId) })
+        .lean()
+        .exec();
+
+      // Map voters với percentage từ votingRights
+      const votersWithPercentage = voters.map((voter) => {
+        const votingRight = votingRights.find(
+          (vr) => String(vr.voterId) === String(voter._id)
+        );
+        const voterObj: any = { ...voter };
+        // Khi populate với lean(), userId sẽ là object, cần extract _id
+        if (voter.userId) {
+          if (voter.userId && typeof voter.userId === 'object' && '_id' in voter.userId) {
+            // Đã được populate, extract _id
+            voterObj.userId = String(voter.userId._id);
+            voterObj.user = voter.userId;
+          } else {
+            // Chưa được populate hoặc là string/ObjectId, convert sang string
+            voterObj.userId = String(voter.userId);
+          }
+        }
+        voterObj.percentage = votingRight ? votingRight.shares : null;
+        return voterObj;
+      });
+
+      // 7. Lấy participants với user và role info
+      const participantsRaw = await this.electionParticipantsModel
+        .find({ electionId: new Types.ObjectId(electionId) })
+        .populate('userId', 'username fullName email phone position')
+        .populate('roleId', 'roleName roleCode description')
+        .populate('createdBy', 'username fullName email')
+        .lean()
+        .exec();
+
+      // Map participants để có cả userId/roleId (string) và user/role (object)
+      const participants = participantsRaw.map((participant) => {
+        const participantObj: any = { ...participant };
+        // Khi populate với lean(), userId và roleId sẽ là objects, cần extract _id
+        if (participant.userId) {
+          if (participant.userId && typeof participant.userId === 'object' && '_id' in participant.userId) {
+            // Đã được populate, extract _id
+            participantObj.userId = String(participant.userId._id);
+            participantObj.user = participant.userId;
+          } else {
+            // Chưa được populate hoặc là string/ObjectId, convert sang string
+            participantObj.userId = String(participant.userId);
+          }
+        }
+        if (participant.roleId) {
+          if (participant.roleId && typeof participant.roleId === 'object' && '_id' in participant.roleId) {
+            // Đã được populate, extract _id
+            participantObj.roleId = String(participant.roleId._id);
+            participantObj.role = participant.roleId;
+          } else {
+            // Chưa được populate hoặc là string/ObjectId, convert sang string
+            participantObj.roleId = String(participant.roleId);
+          }
+        }
+        return participantObj;
+      });
+
+      // 8. Tạo meetingInfo object
+      const meetingInfo = {
+        type: typeId ? String(typeId) : null,
+        typeDetails: typeDetails,
+        method: methodId ? String(methodId) : null,
+        methodDetails: methodDetails,
+        threshold: thresholdId ? String(thresholdId) : null,
+        thresholdDetails: thresholdDetails,
+        authorizationStart: election.delegationStart || null,
+        authorizationEnd: election.delegationEnd || null,
+        location: meeting?.location || null,
+      };
+
+      // 9. Tạo election object (loại bỏ typeId, votingMethodId, thresholdId vì đã có trong meetingInfo)
+      const { typeId: _, votingMethodId: __, thresholdId: ___, ...electionData } = election;
+
+      // 10. Tạo response object
+      const response = {
+        electionId: electionId,
+        meetingInfo: meetingInfo,
+        electionEntities: electionEntities,
+        electionDocuments: electionDocuments,
+        voters: votersWithPercentage,
+        participants: participants,
+        election: electionData,
+        meeting: meeting,
+      };
+
+      return response;
+    } catch (error) {
+      throw error;
+    }
   }
 }

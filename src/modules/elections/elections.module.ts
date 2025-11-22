@@ -18,6 +18,10 @@ import { ElectionsParticipants, ElectionsParticipantsSchema } from 'src/database
 import { Roles, RolesSchema } from 'src/database/schemas/roles.schema';
 import { Voters, VotersSchema } from 'src/database/schemas/voters.schema';
 import { Delegations, DelegationsSchema } from 'src/database/schemas/delegations.schema';
+import { ElectionEntities, ElectionEntitiesSchema } from 'src/database/schemas/electionEntities.schema';
+import { Meetings, MeetingsSchema } from 'src/database/schemas/meetings.schema';
+import { VotingRights, VotingRightsSchema } from 'src/database/schemas/votingRights.schema';
+import { MeetingAttendees, MeetingAttendeesSchema } from 'src/database/schemas/meetingAttendees.schema';
 
 @Module({
   imports: [
@@ -32,6 +36,10 @@ import { Delegations, DelegationsSchema } from 'src/database/schemas/delegations
       { name: Roles.name, schema: RolesSchema },
       { name: Voters.name, schema: VotersSchema },
       { name: Delegations.name, schema: DelegationsSchema },
+      { name: ElectionEntities.name, schema: ElectionEntitiesSchema },
+      { name: Meetings.name, schema: MeetingsSchema },
+      { name: VotingRights.name, schema: VotingRightsSchema },
+      { name: MeetingAttendees.name, schema: MeetingAttendeesSchema },
     ]),
   ],
   providers: [ElectionsService],
