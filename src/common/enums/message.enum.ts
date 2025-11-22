@@ -326,6 +326,7 @@ export enum MESSAGE {
 
   //statistic
   STATISTICS_GET_DASHBOARD_PRESIDENT_SUCCESS = 'Lấy thông tin thống kê cho chủ tọa thành công',
+  STATISTICS_GET_SECRETARY_SUCCESS = 'Lấy thông tin thống kê cho thư ký thành công',
   BOARD_VOTING_OVERVIEW_SUCCESS = 'Lấy dữ liệu giám sát bầu cử thành công',
   BOARD_VERIFICATION_SUCCESS = 'Lấy dữ liệu xác minh kết quả thành công',
   BOARD_VERIFICATION_APPROVED = 'Đã xác nhận kết quả bầu cử',

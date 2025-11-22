@@ -346,13 +346,28 @@ export class BallotsService {
 
 
 
+      const { allocations } = updateBalllot;
+      let formattedAllocations: any = [];
+      if (allocations && allocations.length > 0) {
+        formattedAllocations = updateBalllot.allocations?.map(a => ({
+          entityId: new Types.ObjectId(a.entityId),
+          voteValue: a.voteValue
+        }));
+      }
+
+
+
+
       const ballot = await this.ballotsModel
-        .findByIdAndUpdate(new Types.ObjectId(id), {
-          ...updateBalllot,
-          electionId: updateBalllot.electionId ? new Types.ObjectId(updateBalllot.electionId) : null,
-          voterId: updateBalllot.voterId ? new Types.ObjectId(updateBalllot.voterId) : null,
-          updatedBy: userId && Types.ObjectId.isValid(userId) ? new Types.ObjectId(userId) : null,
-        }, { new: true })
+        .findByIdAndUpdate(new Types.ObjectId(id),
+          {
+            ...updateBalllot,
+            allocations: formattedAllocations,
+            electionId: updateBalllot.electionId ? new Types.ObjectId(updateBalllot.electionId) : null,
+            voterId: updateBalllot.voterId ? new Types.ObjectId(updateBalllot.voterId) : null,
+            updatedBy: userId && Types.ObjectId.isValid(userId) ? new Types.ObjectId(userId) : null
+          },
+          { new: true })
         .populate('electionId', 'title startDate endDate delegationStart delegationEnd status statusData decisionNumber decisionName')
         .populate({
           path: 'voterId',
