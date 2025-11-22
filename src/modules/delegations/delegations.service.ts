@@ -1557,7 +1557,7 @@ export class DelegationsService {
     }
   }
 
-  async approveBySecretary(delegationId: string, status: string) {
+  async approveBySecretary(delegationId: string, status: string, rejectReason?: string) {
     try {
       const delegation = await this.delegationModel
         .findById(new Types.ObjectId(delegationId))
@@ -1568,7 +1568,13 @@ export class DelegationsService {
       if (delegation.status !== STATUS.PENDING) {
         throw new Error(MESSAGE.DELEGATION_NOT_PENDING);
       }
-      delegation.status = STATUS.CONFIRMED;
+      if(status === STATUS.REJECTED) {
+        delegation.status = STATUS.REJECTED;
+        delegation.rejectReasonBySecretary = rejectReason || '';
+      } else {
+        delegation.status = STATUS.CONFIRMED;
+        delegation.confirmedAt = new Date();
+      }
       return delegation.save();
     } catch (error) {
       throw error;

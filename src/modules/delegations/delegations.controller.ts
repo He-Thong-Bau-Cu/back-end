@@ -349,11 +349,12 @@ export class DelegationsController {
   @ApiResponse({ status: 200, description: 'Thành công' })
   @ApiResponse({ status: 500, description: 'Dữ liệu không hợp lệ' })
   @Post(`${METHOD.APPROVE}/secretary`)
-  async approveBySecretary(@Body() req: { delegationId: string; status: string }) {
+  async approveBySecretary(@Body() req: { delegationId: string; status: string, rejectReason?: string }) {
     try {
       const resData = await this.delegationsService.approveBySecretary(
         req.delegationId,
         req.status,
+        req.rejectReason,
       );
       return BaseResponse.success(resData, MESSAGE.SUCCESS, HttpStatus.OK);
     } catch (error) {
