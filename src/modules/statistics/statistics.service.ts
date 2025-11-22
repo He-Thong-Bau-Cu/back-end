@@ -233,7 +233,10 @@ export class StatisticsService {
     });
 
     //Tống số ủy quyền chờ phê duyệt
-    const totalConfirmed = await this.delegationsModel.countDocuments({ status: STATUS.CONFIRMED });
+    const totalConfirmed = await this.delegationsModel.countDocuments({
+      electionId: new Types.ObjectId(electionId),
+      status: STATUS.CONFIRMED
+    });
 
     //Tổng số cuộc bầu cử user tham gia
     const totalElectionsParticipated = await this.participantsModel.countDocuments({
