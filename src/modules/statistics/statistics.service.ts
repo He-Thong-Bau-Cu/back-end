@@ -225,4 +225,27 @@ export class StatisticsService {
     }
   }
 
+  //Thống kế cho thư kí
+  async getSecretaryDashboard(electionId: string, userId: string) {
+    //tổng số voter tham giao election
+    const totalVoters = await this.votersModel.countDocuments({
+      electionId: new Types.ObjectId(electionId)
+    });
+
+    //Tống số ủy quyền chờ phê duyệt
+    const totalConfirmed = await this.delegationsModel.countDocuments({ status: STATUS.CONFIRMED });
+
+    //Tổng số cuộc bầu cử user tham gia
+    const totalElectionsParticipated = await this.participantsModel.countDocuments({
+      userId: new Types.ObjectId(userId),
+    });
+
+    return {
+      totalVoters,
+      totalConfirmed,
+      totalElectionsParticipated,
+    };
+
+  }
+
 }
