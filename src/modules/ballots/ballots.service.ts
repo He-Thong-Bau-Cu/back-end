@@ -69,7 +69,12 @@ export class BallotsService {
 
       const ballot = await this.ballotsModel
         .findById(new Types.ObjectId(id))
-        .populate('electionId', 'title startDate endDate delegationStart delegationEnd status statusData decisionNumber decisionName')
+        .populate({
+          path: 'electionId',
+          populate: [{ path: "votingMethodId", select: "methodName methodCode description status" }],
+          select:
+            'title startDate endDate delegationStart delegationEnd status statusData decisionNumber decisionName'
+        })
         .populate({
           path: 'voterId',
           populate: [
@@ -108,7 +113,12 @@ export class BallotsService {
 
       const ballots = await this.ballotsModel
         .find({ electionId: new Types.ObjectId(electionId) })
-        .populate('electionId', 'title startDate endDate delegationStart delegationEnd status statusData decisionNumber decisionName')
+        .populate({
+          path: 'electionId',
+          populate: [{ path: "votingMethodId", select: "methodName methodCode description status" }],
+          select:
+            'title startDate endDate delegationStart delegationEnd status statusData decisionNumber decisionName'
+        })
         .populate({
           path: 'voterId',
           populate: [
@@ -190,6 +200,7 @@ export class BallotsService {
     }
   }
 
+  //lấy phiếu bầu của voter đã bình chọn
   async getByVoterAndCast(voterId: string) {
     try {
       //Check if the voter is exist
@@ -199,7 +210,12 @@ export class BallotsService {
       }
 
       const ballots = await this.ballotsModel.find({ voterId: new Types.ObjectId(voterId), status: STATUS.CAST })
-        .populate('electionId', 'title startDate endDate delegationStart delegationEnd status statusData decisionNumber decisionName')
+        .populate({
+          path: 'electionId',
+          populate: [{ path: "votingMethodId", select: "methodName methodCode description status" }],
+          select:
+            'title startDate endDate delegationStart delegationEnd status statusData decisionNumber decisionName'
+        })
         .populate({
           path: 'voterId',
           populate: [
@@ -550,7 +566,12 @@ export class BallotsService {
       // tìm ballots matching
       const ballots = await this.ballotsModel
         .find(query)
-        .populate('electionId', 'title startDate endDate delegationStart delegationEnd status statusData decisionNumber decisionName')
+        .populate({
+          path: 'electionId',
+          populate: [{ path: "votingMethodId", select: "methodName methodCode description status" }],
+          select:
+            'title startDate endDate delegationStart delegationEnd status statusData decisionNumber decisionName'
+        })
         .populate({
           path: 'voterId',
           populate: {

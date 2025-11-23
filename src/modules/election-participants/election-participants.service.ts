@@ -49,12 +49,12 @@ export class ElectionParticipantsService {
         throw new NotFoundException('Không tìm thấy role VOTER trong hệ thống');
       }
 
-      // Tạo query để tìm participants có role là VOTER
-      const query: any = { roleId: voterRole._id };
-
       // Lấy danh sách participants có role là VOTER
       const participants = await this.electionParticipantsModel
-        .find(query)
+        .find({
+          electionId: new Types.ObjectId(electionId),
+          roleId: voterRole._id,
+        })
         .populate([
           {
             path: 'electionId',
@@ -137,7 +137,10 @@ export class ElectionParticipantsService {
         throw new NotFoundException(MESSAGE.USER_NOT_FOUND);
       }
       const electionParticipants = await this.electionParticipantsModel
-        .find({ userId: new Types.ObjectId(userId) })
+        .find({
+          userId: new Types.ObjectId(userId),
+          status: STATUS.ACTIVE
+        })
         .populate([
           {
             path: 'electionId',
