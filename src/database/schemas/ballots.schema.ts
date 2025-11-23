@@ -47,8 +47,8 @@ export class Ballots extends BaseSchema {
   @Prop({ default: 0 })
   attempts: number;
 
-  @Prop({ default: null })
-  encryptedVote: string;
+  // @Prop({ default: null })
+  // encryptedVote: string;
 
   @Prop({ default: STATUS.DRAFT })
   status: string;

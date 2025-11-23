@@ -251,4 +251,57 @@ export class StatisticsService {
 
   }
 
+  //Thống kê phiếu bầu cho từng đối tượng trong cuộc bầu cử
+  async getResultsByElectionId(electionId: string) {
+    const results = await this.ballotsModel.aggregate([
+      {
+        $match: {
+          electionId: new Types.ObjectId(electionId),
+          status: STATUS.CAST
+        }
+      },
+      {
+        $unwind: "$allocations"
+      },
+      {
+        $group: {
+          _id: "$allocations.entityId",
+          totalVotes: { $sum: "$allocations.voteValue" }
+        }
+      },
+      {
+        $lookup: {
+          from: "electionentities",
+          localField: "_id",
+          foreignField: "_id",
+          as: "entityInfo"
+        }
+      },
+      { $unwind: "$entityInfo" },
+      {
+        $project: {
+          _id: 0,
+          entityId: "$_id",
+          entityTitle: "$entityInfo.title",
+          entityData: "$entityInfo.metaData",
+          totalVotes: 1
+        }
+      }
+    ]);
+
+    // Tính tổng của tất cả entity để tính %
+    const sumVotes = results.reduce((acc, item) => acc + item.totalVotes, 0);
+
+    // Thêm phần trăm
+    const finalResults = results.map(r => ({
+      ...r,
+      percentage: sumVotes === 0
+        ? 0
+        : Number(((r.totalVotes / sumVotes) * 100).toFixed(2))
+    }));
+
+    return finalResults;
+  }
+
+
 }
