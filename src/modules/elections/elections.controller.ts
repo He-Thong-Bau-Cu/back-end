@@ -21,6 +21,7 @@ import { SearchDTO } from 'src/common/dto/search.dto';
 import { UpdateElectionDto } from './dto/update-elections-dto';
 import { CustomRequest } from 'src/common/middleware/auth.middleware';
 import { ElectionDto } from './dto/election.dto';
+import { BulkSaveDraftDto } from './dto/bulk-save-draft-dto';
 
 @ApiBearerAuth('access-token')
 @ApiTags('Elections')
@@ -41,6 +42,20 @@ export class ElectionsController {
       return BaseResponse.success(resData, MESSAGE.ELECTION_SEARCH_SUCCESS, HttpStatus.OK);
     } catch (e) {
       throw new HttpException({ message: e.message }, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+  }
+
+  @Get(':id/draft-data')
+  @ApiOperation({ summary: 'Lấy dữ liệu draft của cuộc bầu cử' })
+  @ApiParam({ name: 'id', description: 'ID của cuộc bầu cử', type: String })
+  @ApiResponse({ status: 200, description: 'Lấy dữ liệu election thành công' })
+  @ApiResponse({ status: 500, description: 'Lỗi server' })
+  async getDraftData(@Param('id') id: string): Promise<BaseResponse> {
+    try {
+      const resData = await this.electionsService.getDraftData(id);
+      return BaseResponse.success(resData, 'Lấy dữ liệu election thành công', HttpStatus.OK);
+    } catch (error) {
+      throw new HttpException({ message: error.message }, HttpStatus.INTERNAL_SERVER_ERROR);
     }
   }
 
@@ -172,6 +187,22 @@ export class ElectionsController {
     try {
       const resData = await this.electionsService.getUserIsVoter();
       return BaseResponse.success(resData, MESSAGE.SUCCESS, HttpStatus.OK);
+    } catch (error) {
+      throw new HttpException({ message: error.message }, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+  }
+
+  @Post('bulk-save-draft')
+  @ApiOperation({ summary: 'Lưu nháp hoặc gửi duyệt tài liệu bầu cử (tổng hợp)' })
+  @ApiResponse({ status: 200, description: 'Thành công' })
+  @ApiResponse({ status: 500, description: 'Lỗi server' })
+  async bulkSaveDraft(
+    @Req() req: CustomRequest,
+    @Body() body: BulkSaveDraftDto,
+  ): Promise<BaseResponse> {
+    try {
+      const resData = await this.electionsService.bulkSaveDraft(body, req.user.sub);
+      return BaseResponse.success(resData, resData.message, HttpStatus.OK);
     } catch (error) {
       throw new HttpException({ message: error.message }, HttpStatus.INTERNAL_SERVER_ERROR);
     }
