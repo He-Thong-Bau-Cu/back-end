@@ -339,6 +339,7 @@ export class BallotsService {
   async update(id: string, updateBalllot: UpdateBallotDto, userId: string) {
     try {
       //Check if the ballot is exist
+      console.log(updateBalllot) 
       const ballotExist = await this.ballotsModel.exists({ _id: id });
       if (!ballotExist) {
         throw new Error(MESSAGE.BALLOT_NOT_FOUND);

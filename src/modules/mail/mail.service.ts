@@ -329,4 +329,118 @@ export class MailService {
   </div>
   `;
   }
+
+  async sendElectionApprovalEmail(
+    to: string,
+    fullName: string,
+    electionTitle: string,
+    roleName: string,
+    meetingDate?: Date,
+    location?: string,
+  ) {
+    const htmlTemplate = this.getElectionApprovalHtmlTemplate(
+      fullName,
+      electionTitle,
+      roleName,
+      meetingDate,
+      location,
+    );
+    const info = await this.transporter.sendMail({
+      from: `"Hệ thống bầu cử" <${process.env.EMAIL_USERNAME}>`,
+      to,
+      subject: `✅ Cuộc bầu cử "${electionTitle}" đã được duyệt`,
+      html: htmlTemplate,
+    });
+
+    console.log('Election approval email sent: %s', info.messageId);
+  }
+
+  private getElectionApprovalHtmlTemplate(
+    fullName: string,
+    electionTitle: string,
+    roleName: string,
+    meetingDate?: Date,
+    location?: string,
+  ): string {
+    const formattedDate = meetingDate
+      ? new Date(meetingDate).toLocaleString('vi-VN', {
+          weekday: 'long',
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit',
+        })
+      : 'Chưa được xác định';
+    const formattedLocation = location || 'Chưa được xác định';
+
+    return `
+    <div style="font-family: Arial, sans-serif; background-color: #f5f5f5; padding: 20px;">
+      <div style="max-width: 600px; margin: auto; background: #ffffff; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); overflow: hidden;">
+
+        <div style="background: linear-gradient(90deg, #10b981, #059669); color: white; padding: 25px 30px; text-align: center;">
+          <h1 style="margin: 0; font-size: 24px;">✅ Cuộc bầu cử đã được duyệt</h1>
+        </div>
+
+        <div style="padding: 30px;">
+          <p style="font-size: 16px; color: #333; margin-bottom: 20px;">
+            Xin chào <strong style="color: #059669;">${fullName}</strong>,
+          </p>
+
+          <p style="font-size: 15px; color: #555; line-height: 1.6;">
+            Chúng tôi thông báo rằng cuộc bầu cử mà bạn tham gia với vai trò <strong style="color: #059669;">${roleName}</strong> đã được duyệt và ký thành công bởi Chủ tọa.
+          </p>
+
+          <div style="background: #f0fdf4; border-left: 4px solid #10b981; padding: 20px; margin: 25px 0; border-radius: 8px;">
+            <h3 style="margin: 0 0 15px 0; color: #059669; font-size: 18px;">📋 Thông tin cuộc bầu cử</h3>
+            <table style="width: 100%; border-collapse: collapse;">
+              <tr>
+                <td style="padding: 8px 0; color: #666; font-size: 14px; width: 120px;"><strong>Tên cuộc bầu cử:</strong></td>
+                <td style="padding: 8px 0; color: #333; font-size: 14px;">${electionTitle}</td>
+              </tr>
+              <tr>
+                <td style="padding: 8px 0; color: #666; font-size: 14px;"><strong>Vai trò của bạn:</strong></td>
+                <td style="padding: 8px 0; color: #059669; font-size: 14px; font-weight: bold;">${roleName}</td>
+              </tr>
+              <tr>
+                <td style="padding: 8px 0; color: #666; font-size: 14px;"><strong>Thời gian họp:</strong></td>
+                <td style="padding: 8px 0; color: #333; font-size: 14px;">${formattedDate}</td>
+              </tr>
+              <tr>
+                <td style="padding: 8px 0; color: #666; font-size: 14px;"><strong>Địa điểm:</strong></td>
+                <td style="padding: 8px 0; color: #333; font-size: 14px;">${formattedLocation}</td>
+              </tr>
+            </table>
+          </div>
+
+          <div style="background: #eff6ff; border: 1px solid #3b82f6; padding: 15px; border-radius: 8px; margin: 20px 0;">
+            <p style="margin: 0; color: #1e40af; font-size: 14px; line-height: 1.6;">
+              <strong>📌 Lưu ý quan trọng:</strong><br/>
+              Vui lòng chuẩn bị sẵn sàng và có mặt đúng giờ tại địa điểm họp để tham gia cuộc bầu cử.
+              Nếu có bất kỳ thắc mắc nào, vui lòng liên hệ với Ban tổ chức.
+            </p>
+          </div>
+
+          <div style="text-align: center; margin: 30px 0;">
+            <a href="${process.env.FRONTEND_URL || '#'}/elections"
+               style="display: inline-block; background: #10b981; color: white; padding: 12px 30px;
+                      text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 14px;">
+              Xem chi tiết cuộc bầu cử
+            </a>
+          </div>
+
+          <p style="margin-top: 30px; font-size: 13px; color: #888; line-height: 1.6;">
+            Trân trọng,<br/>
+            <strong>Hệ thống Bầu Cử</strong><br/>
+            <span style="font-size: 12px;">Nếu có thắc mắc, vui lòng liên hệ <strong>employee.system.work@gmail.com</strong></span>
+          </p>
+        </div>
+
+        <div style="background: #f0f0f0; text-align: center; padding: 12px; font-size: 12px; color: #999;">
+          © ${new Date().getFullYear()} Hệ thống Bầu Cử. Mọi quyền được bảo lưu.
+        </div>
+      </div>
+    </div>
+    `;
+  }
 }

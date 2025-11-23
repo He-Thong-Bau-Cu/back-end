@@ -22,6 +22,11 @@ import { ElectionEntities, ElectionEntitiesSchema } from 'src/database/schemas/e
 import { Meetings, MeetingsSchema } from 'src/database/schemas/meetings.schema';
 import { VotingRights, VotingRightsSchema } from 'src/database/schemas/votingRights.schema';
 import { MeetingAttendees, MeetingAttendeesSchema } from 'src/database/schemas/meetingAttendees.schema';
+import { SystemConfig, SystemConfigSchema } from 'src/database/schemas/systemConfig.schema';
+import { SignatureModule } from '../signature/signature.module';
+import { MinioModule } from '../minio/minio.module';
+import { NotificationModule } from '../notification/notification.module';
+import { MailModule } from '../mail/mail.module';
 
 @Module({
   imports: [
@@ -40,7 +45,12 @@ import { MeetingAttendees, MeetingAttendeesSchema } from 'src/database/schemas/m
       { name: Meetings.name, schema: MeetingsSchema },
       { name: VotingRights.name, schema: VotingRightsSchema },
       { name: MeetingAttendees.name, schema: MeetingAttendeesSchema },
+      { name: SystemConfig.name, schema: SystemConfigSchema },
     ]),
+    SignatureModule,
+    MinioModule,
+    NotificationModule,
+    MailModule,
   ],
   providers: [ElectionsService],
   controllers: [ElectionsController],

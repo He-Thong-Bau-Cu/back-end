@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { paginate } from 'src/common/dto/paignation';
@@ -15,7 +15,10 @@ import { CreateElectionDto } from './dto/create-elections-dto';
 import { UpdateElectionDto } from './dto/update-elections-dto';
 import { SearchElectionsDto } from './dto/search-dto';
 import { SearchDTO } from 'src/common/dto/search.dto';
-import removeVietnameseTones, { isValidateTimeline } from 'src/common/utils/format';
+import removeVietnameseTones, {
+  isValidateTimeline,
+  formatDateDMYVN,
+} from 'src/common/utils/format';
 import {
   ElectionsParticipants,
   ElectionsParticipantsDocument,
@@ -29,6 +32,14 @@ import { Meetings } from 'src/database/schemas/meetings.schema';
 import { VotingRights } from 'src/database/schemas/votingRights.schema';
 import { BulkSaveDraftDto } from './dto/bulk-save-draft-dto';
 import { MeetingAttendees } from 'src/database/schemas/meetingAttendees.schema';
+import { SigningService } from '../signature/signature.service';
+import { MinioService } from '../minio/minio.service';
+import { FileType } from 'src/common/enums/file-type.enum';
+import { SystemConfig, SystemConfigDocument } from 'src/database/schemas/systemConfig.schema';
+import PdfPrinter from 'pdfmake';
+import * as path from 'path';
+import { NotificationService } from '../notification/notification.service';
+import { MailService } from '../mail/mail.service';
 
 @Injectable()
 export class ElectionsService {
@@ -61,6 +72,12 @@ export class ElectionsService {
     private readonly votingRightsModel: Model<VotingRights>,
     @InjectModel(MeetingAttendees.name)
     private readonly meetingAttendeesModel: Model<MeetingAttendees>,
+    @InjectModel(SystemConfig.name)
+    private readonly systemConfigModel: Model<SystemConfigDocument>,
+    private readonly signatureService: SigningService,
+    private readonly fileService: MinioService,
+    private readonly notificationService: NotificationService,
+    private readonly mailService: MailService,
   ) {}
 
   async searchElections(req: SearchDTO) {
@@ -412,69 +429,102 @@ export class ElectionsService {
   // }
 
   async getElectionOrganizerByTime(startTime: Date, endTime: Date) {
-  try {
-    // 1. Lấy các election trong khoảng thời gian
-    const elections = await this.electionsModel
-      .find({
-        startDate: { $lt: endTime },
-        endDate: { $gt: startTime },
-      })
-      .exec();
+    try {
+      // 1. Lấy các election trong khoảng thời gian
+      const elections = await this.electionsModel
+        .find({
+          startDate: { $lt: endTime },
+          endDate: { $gt: startTime },
+        })
+        .exec();
 
-    const electionIds = elections.map(e => e._id);
+      const electionIds = elections.map((e) => e._id);
 
-    // 2. Lấy tất cả participant trong các election này
-    const electionParticipants = await this.electionParticipantsModel
-      .find({
-        electionId: { $in: electionIds },
-      })
-      .populate('userId')
-      .exec();
+      // 2. Lấy tất cả participant trong các election này
+      const electionParticipants = await this.electionParticipantsModel
+        .find({
+          electionId: { $in: electionIds },
+        })
+        .populate('userId')
+        .exec();
 
-    // 3. Lấy danh sách user bận
-    const busyUserIds = electionParticipants.map(item => item.userId._id);
+      // 3. Lấy danh sách user bận
+      const busyUserIds = electionParticipants.map((item) => item.userId._id);
 
-    // 4. Lấy role ADMIN và PRESIDE
-    const roles = await this.rolesModel
-      .find({
-        $or: [{ roleCode: USER_ROLE.ADMIN }, { roleCode: USER_ROLE.PRESIDE }],
-      })
-      .exec();
-    const roleIds = roles.map(role => role._id);
+      // 4. Lấy role ADMIN và PRESIDE
+      const roles = await this.rolesModel
+        .find({
+          $or: [{ roleCode: USER_ROLE.ADMIN }, { roleCode: USER_ROLE.PRESIDE }],
+        })
+        .exec();
+      const roleIds = roles.map((role) => role._id);
 
-    // 5. Lấy user có sẵn
-    let availableUsers = await this.userModel
-      .find({
-        _id: { $nin: busyUserIds },
-        roleId: { $nin: roleIds },
-      })
-      .exec();
+      // 5. Lấy user có sẵn
+      let availableUsers = await this.userModel
+        .find({
+          _id: { $nin: busyUserIds },
+          roleId: { $nin: roleIds },
+        })
+        .exec();
 
       const roleFilter = await this.rolesModel.findOne({ roleCode: USER_ROLE.VOTER }).exec();
       if (!roleFilter) {
         throw new Error('Không tìm thấy role VOTER');
       }
 
-    // 6. Lọc thêm user không có trong voters và không phải participant role VOTER
-    const voterUsers = await this.voterModel.find({}).exec();
-    const voterUserIds = voterUsers.map(v => String(v.userId));
+      // 6. Lọc thêm user không có trong voters và không phải participant role VOTER
+      const voterUsers = await this.voterModel.find({}).exec();
+      const voterUserIds = voterUsers.map((v) => String(v.userId));
 
-    const voterParticipants = await this.electionParticipantsModel
-      .find({ roleId: roleFilter._id }) // nếu roleId là ObjectId của role VOTER, sửa tương ứng
-      .exec();
-    const voterParticipantIds = voterParticipants.map(p => String(p.userId));
+      const voterParticipants = await this.electionParticipantsModel
+        .find({ roleId: roleFilter._id }) // nếu roleId là ObjectId của role VOTER, sửa tương ứng
+        .exec();
+      const voterParticipantIds = voterParticipants.map((p) => String(p.userId));
 
-    availableUsers = availableUsers.filter(u =>
-      !voterUserIds.includes(String(u._id)) &&
-      !voterParticipantIds.includes(String(u._id))
-    );
+      availableUsers = availableUsers.filter(
+        (u) =>
+          !voterUserIds.includes(String(u._id)) && !voterParticipantIds.includes(String(u._id)),
+      );
 
-    return availableUsers;
-  } catch (error) {
-    throw error;
+      return availableUsers;
+    } catch (error) {
+      throw error;
+    }
   }
-}
 
+  async rejectElection(electionId: string, rejectReason: string) {
+    try {
+      // 1. Kiểm tra election có tồn tại không
+      const election = await this.electionsModel.findById(new Types.ObjectId(electionId)).exec();
+
+      if (!election) {
+        throw new NotFoundException(MESSAGE.ELECTION_NOT_FOUND);
+      }
+
+      // 2. Kiểm tra statusData phải là WAIT_APPROVAL
+      if (election.statusData !== STATUS.WAIT_APPROVAL) {
+        throw new BadRequestException('Chỉ có thể từ chối khi trạng thái là chờ duyệt chủ tọa!');
+      }
+
+      // 3. Cập nhật statusData thành REJECTED và lưu lý do từ chối
+      election.statusData = STATUS.REJECTED;
+      election.rejectReason = rejectReason;
+      await election.save();
+
+      // 4. Gửi thông báo cho người tạo election (nếu có)
+      if (election.updatedBy) {
+        // Có thể thêm notification service ở đây nếu cần
+        await this.notificationService.notifyUser(
+          String(election.updatedBy),
+          `Cuộc bầu cử "${election.title}" đã bị từ chối. Lý do: ${rejectReason}`,
+        );
+      }
+
+      return election;
+    } catch (error) {
+      throw error;
+    }
+  }
 
   async approveAndSign(
     p12File: Express.Multer.File,
@@ -483,6 +533,571 @@ export class ElectionsService {
     userId: string,
   ) {
     try {
+      // 1. Kiểm tra election có tồn tại không
+      const election = await this.electionsModel
+        .findById(new Types.ObjectId(electionId))
+        .populate('typeId')
+        .populate('votingMethodId')
+        .populate('thresholdId')
+        .populate('createdBy', 'username fullName email position')
+        .exec();
+
+      if (!election) {
+        throw new NotFoundException(MESSAGE.ELECTION_NOT_FOUND);
+      }
+
+      // 2. Kiểm tra statusData phải là WAIT_APROVAL
+      if (election.statusData !== STATUS.WAIT_APPROVAL) {
+        throw new BadRequestException('Chỉ có thể ký duyệt khi trạng thái là chờ duyệt chủ tọa!');
+      }
+
+      // 3. Lấy tên công ty từ SystemConfig
+      const companyConfig = await this.systemConfigModel
+        .findOne({ configKey: 'COMPANY_NAME' })
+        .exec();
+      const companyName =
+        companyConfig?.configValue?.name ||
+        companyConfig?.configValue ||
+        'CÔNG TY CỔ PHẦN PHÁT TRIỂN AVG';
+
+      // 4. Lấy thông tin meeting
+      const meeting = await this.meetingsModel
+        .findOne({ electionId: new Types.ObjectId(electionId) })
+        .exec();
+
+      // 5. Lấy danh sách participants để tạo chương trình họp
+      const participants = await this.electionParticipantsModel
+        .find({ electionId: new Types.ObjectId(electionId) })
+        .populate('userId', 'fullName position')
+        .populate('roleId', 'roleName roleCode')
+        .exec();
+
+      // 6. Tạo PDF quyết định và chương trình họp
+      const pdfFile = await this.generateElectionDecisionPdf(
+        election,
+        meeting,
+        participants,
+        companyName,
+      );
+
+      // 7. Ký PDF
+      const signFile = await this.signatureService.signPdfWithP12(
+        pdfFile,
+        p12File.buffer,
+        password,
+      );
+
+      if (!signFile) {
+        throw new NotFoundException('Ký file không thành công!');
+      }
+
+      // 8. Upload file đã ký
+      const fileUpload = await this.fileService.uploadSignedPdf(
+        FileType.SIGNED_DOCUMENT,
+        userId,
+        signFile,
+      );
+
+      // 9. Lưu document vào database
+      const electionParticipant = await this.electionParticipantsModel
+        .findOne({
+          electionId: new Types.ObjectId(electionId),
+          userId: new Types.ObjectId(userId),
+        })
+        .exec();
+
+      let electionDocumentId: Types.ObjectId | null = null;
+      if (fileUpload) {
+        // Xóa document cũ nếu có
+        const existingDocument = await this.electionDocumentsModel.findOne({
+          electionId: new Types.ObjectId(electionId),
+          type: FileType.SIGNED_DOCUMENT,
+        });
+        if (existingDocument) {
+          await this.electionDocumentsModel.deleteOne({ _id: existingDocument._id }).exec();
+        }
+
+        // Tạo document mới
+        const electionDocument = new this.electionDocumentsModel({
+          electionId: new Types.ObjectId(electionId),
+          preparedBy: electionParticipant?._id || null,
+          title: 'Quyết định triệu tập và Chương trình họp Đại hội đồng cổ đông',
+          type: FileType.SIGNED_DOCUMENT,
+          fileUrl: fileUpload.key,
+          status: STATUS.ACTIVE,
+          createdBy: new Types.ObjectId(userId),
+          createdAt: new Date(),
+        });
+        const savedDocument = await electionDocument.save();
+        electionDocumentId = savedDocument._id as Types.ObjectId;
+      }
+
+      // 10. Cập nhật status election
+      await this.electionsModel.updateOne(
+        { _id: new Types.ObjectId(electionId) },
+        { $set: { statusData: STATUS.APPROVED_SIGNED } },
+      );
+
+      // 11. Cập nhật status electionParticipants thành ACTIVE
+      await this.electionParticipantsModel.updateMany(
+        { electionId: new Types.ObjectId(electionId) },
+        { $set: { status: STATUS.ACTIVE } },
+      );
+
+      // 12. Cập nhật status voters thành ACTIVE
+      await this.voterModel.updateMany(
+        { electionId: new Types.ObjectId(electionId) },
+        { $set: { status: STATUS.ACTIVE } },
+      );
+
+      // 13. Cập nhật status votingRights thành ACTIVE
+      await this.votingRightsModel.updateMany(
+        { electionId: new Types.ObjectId(electionId) },
+        { $set: { status: STATUS.ACTIVE } },
+      );
+
+      // 14. Cập nhật status electionEntities thành ACTIVE
+      await this.electionEntitiesModel.updateMany(
+        { electionId: new Types.ObjectId(electionId) },
+        { $set: { status: STATUS.ACTIVE } },
+      );
+
+      // 15. Cập nhật status electionDocuments thành ACTIVE (trừ document vừa tạo)
+      if (electionDocumentId) {
+        await this.electionDocumentsModel.updateMany(
+          {
+            electionId: new Types.ObjectId(electionId),
+            _id: { $ne: electionDocumentId },
+          },
+          { $set: { status: STATUS.ACTIVE } },
+        );
+      } else {
+        await this.electionDocumentsModel.updateMany(
+          { electionId: new Types.ObjectId(electionId) },
+          { $set: { status: STATUS.ACTIVE } },
+        );
+      }
+
+      if (election.updatedBy) {
+        await this.notificationService.notifyUser(
+          String(election.updatedBy),
+          `Cuộc bầu cử "${election.title}" đã được duyệt và ký thành công!`,
+        );
+      }
+
+      // 16. Gửi email thông báo cho tất cả participants
+      try {
+        const participantsWithDetails = await this.electionParticipantsModel
+          .find({ electionId: new Types.ObjectId(electionId) })
+          .populate('userId', 'email fullName')
+          .populate('roleId', 'roleName')
+          .exec();
+
+        const meetingDate = election.startDate || null;
+        const meetingLocation = meeting?.location || null;
+
+        for (const participant of participantsWithDetails) {
+          const user = participant.userId as any;
+          const role = participant.roleId as any;
+
+          if (user && user.email && role) {
+            await this.mailService.sendElectionApprovalEmail(
+              user.email,
+              user.fullName || 'Thành viên',
+              election.title,
+              role.roleName || 'Thành viên',
+              meetingDate || undefined,
+              meetingLocation || undefined,
+            );
+          }
+        }
+      } catch (emailError) {
+        // Log lỗi nhưng không throw để không ảnh hưởng đến quá trình duyệt
+        console.error('Error sending approval emails:', emailError);
+      }
+
+      return fileUpload;
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  async generateElectionDecisionPdf(
+    election: any,
+    meeting: any,
+    participants: any[],
+    companyName: string,
+  ): Promise<Buffer> {
+    try {
+      const fonts = {
+        Roboto: {
+          normal: path.join(process.cwd(), 'src', 'fonts', 'Roboto-Regular.ttf'),
+          bold: path.join(process.cwd(), 'src', 'fonts', 'Roboto-Bold.ttf'),
+        },
+      };
+      const printer = new PdfPrinter(fonts);
+
+      const currentDate = new Date();
+      const formattedDate = formatDateDMYVN(currentDate);
+      const dateParts = formattedDate.split('/');
+      const day = dateParts[0];
+      const month = dateParts[1];
+      const year = dateParts[2];
+      const monthNames = [
+        'tháng 01',
+        'tháng 02',
+        'tháng 03',
+        'tháng 04',
+        'tháng 05',
+        'tháng 06',
+        'tháng 07',
+        'tháng 08',
+        'tháng 09',
+        'tháng 10',
+        'tháng 11',
+        'tháng 12',
+      ];
+      const monthName = monthNames[parseInt(month) - 1];
+
+      // Tạo số quyết định
+      const decisionNumber = election.decisionNumber || `Số: ${currentDate.getFullYear()}/QĐ-HĐQT`;
+
+      // Format ngày họp
+      const meetingDate = election.startDate ? new Date(election.startDate) : currentDate;
+      const meetingDateFormatted = formatDateDMYVN(meetingDate);
+      const meetingDateParts = meetingDateFormatted.split('/');
+      const meetingDay = meetingDateParts[0];
+      const meetingMonth = meetingDateParts[1];
+      const meetingYear = meetingDateParts[2];
+      const meetingMonthName = monthNames[parseInt(meetingMonth) - 1];
+
+      // Format giờ họp
+      const meetingTime = meetingDate.toLocaleTimeString('vi-VN', {
+        hour: '2-digit',
+        minute: '2-digit',
+      });
+      const meetingHour = meetingTime.split(':')[0];
+      const meetingMinute = meetingTime.split(':')[1];
+
+      // Lấy thứ trong tuần
+      const dayNames = ['Chủ nhật', 'Thứ Hai', 'Thứ Ba', 'Thứ Tư', 'Thứ Năm', 'Thứ Sáu', 'Thứ Bảy'];
+      const dayOfWeek = dayNames[meetingDate.getDay()];
+
+      // Địa điểm
+      const location = meeting?.location || election.location || 'Trụ sở Công ty';
+
+      // Tạo chương trình họp từ timeline hoặc mặc định
+      const timeline = election.timeline || {};
+      const programItems: any[] = [];
+
+      // Chương trình mặc định dựa trên template
+      programItems.push({
+        time: '7h30 - 8h30',
+        content:
+          'Đón tiếp đại biểu, cổ đông\nKiểm tra tư cách cổ đông, lập danh sách các cổ đông có mặt',
+        presider: 'Ban tổ chức và Ban kiểm tra tư cách cổ đông',
+      });
+      programItems.push({
+        time: '8h30 - 8h40',
+        content: 'Ổn định tổ chức chuẩn bị Đại hội\nGiới thiệu đại biểu, cổ đông',
+        presider: 'Ban tổ chức',
+      });
+      programItems.push({
+        time: '8h40 - 8h50',
+        content: 'Báo cáo kết quả kiểm tra tư cách cổ đông tham dự Đại hội',
+        presider: 'Ban kiểm tra tư cách cổ đông',
+      });
+      programItems.push({
+        time: '8h50 - 8h55',
+        content: 'Giới thiệu Chủ tọa Đại hội. Chủ tọa Đại hội chỉ định Đoàn Chủ tịch, Đoàn thư ký',
+        presider: 'Ban tổ chức',
+      });
+      programItems.push({
+        time: '8h55 - 9h25',
+        content:
+          'Thông qua danh sách Ban kiểm phiếu; Chương trình đại hội; Quy chế tổ chức Đại hội đồng cổ đông bất thường năm 2023; Quy chế bầu cử bổ sung Thành viên Hội đồng quản trị',
+        presider: 'Đoàn chủ tịch',
+      });
+      programItems.push({
+        time: '9h25 - 9h35',
+        content: 'HĐQT báo cáo Tờ trình thay đổi ngành nghề đăng ký kinh doanh',
+        presider: 'Đoàn chủ tịch',
+      });
+      programItems.push({
+        time: '9h35 - 9h40',
+        content: 'HĐQT báo cáo Tờ trình miễn nhiệm thành viên HĐQT',
+        presider: 'Đoàn chủ tịch',
+      });
+      programItems.push({
+        time: '9h40 - 9h45',
+        content: 'HĐQT báo cáo Tờ trình bầu bổ sung thành viên HĐQT',
+        presider: 'Đoàn chủ tịch',
+      });
+      programItems.push({
+        time: '9h45 - 10h15',
+        content: 'Thảo luận và biểu quyết thông qua tờ trình tại Đại hội',
+        presider: 'Đoàn chủ tịch',
+      });
+      programItems.push({
+        time: '10h15 - 10h25',
+        content: 'Nghỉ giải lao',
+        presider: '',
+      });
+      programItems.push({
+        time: '10h25 - 10h35',
+        content: 'Công bố kết quả kiểm phiếu biểu quyết các tờ trình',
+        presider: 'Đoàn chủ tịch',
+      });
+      programItems.push({
+        time: '10h35 - 10h45',
+        content: 'Đại hội tiến hành bầu cử thành viên HĐQT',
+        presider: 'Đoàn chủ tịch',
+      });
+      programItems.push({
+        time: '10h45 - 10h50',
+        content: 'Công bố kết quả bầu cử',
+        presider: 'Ban Kiểm phiếu',
+      });
+      programItems.push({
+        time: '10h50 - 11h00',
+        content: 'Thông qua Biên bản và Nghị quyết Đại hội',
+        presider: 'Đoàn chủ tịch',
+      });
+      programItems.push({
+        time: '11h00',
+        content: 'Tuyên bố bế mạc Đại hội',
+        presider: 'Thư ký Đại hội và Đoàn chủ tịch',
+      });
+
+      const docDefinition: any = {
+        pageSize: 'A4',
+        pageOrientation: 'portrait',
+        pageMargins: [40, 60, 40, 60],
+        content: [
+          // Header hai cột
+          {
+            columns: [
+              {
+                stack: [
+                  {
+                    text: companyName.toUpperCase(),
+                    bold: true,
+                    fontSize: 12,
+                    margin: [0, 5, 0, 0],
+                    alignment: 'center',
+                  },
+                  { text: decisionNumber, fontSize: 10, margin: [0, 5, 0, 0], alignment: 'center' },
+                ],
+                width: '50%',
+              },
+              {
+                stack: [
+                  {
+                    text: 'CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM',
+                    bold: true,
+                    fontSize: 12,
+                    alignment: 'center',
+                    margin: [0, 5, 0, 0],
+                  },
+                  {
+                    text: 'ĐỘC LẬP - TỰ DO - HẠNH PHÚC',
+                    bold: true,
+                    fontSize: 12,
+                    alignment: 'center',
+                    margin: [0, 5, 0, 0],
+                  },
+                ],
+                width: '50%',
+              },
+            ],
+            columnGap: 10,
+            margin: [0, 0, 0, 20],
+          },
+          {
+            text: `Hà Nội, ngày ${day} ${monthName} năm ${year}`,
+            alignment: 'right',
+            margin: [0, 0, 0, 20],
+          },
+          // Tiêu đề QUYẾT ĐỊNH
+          {
+            text: 'QUYẾT ĐỊNH',
+            bold: true,
+            fontSize: 16,
+            alignment: 'center',
+            margin: [0, 0, 0, 10],
+          },
+          {
+            text: 'Về việc triệu tập Đại hội đồng cổ đông bất thường năm 2023',
+            alignment: 'center',
+            margin: [0, 0, 0, 10],
+          },
+          {
+            text: 'HỘI ĐỒNG QUẢN TRỊ',
+            bold: true,
+            alignment: 'center',
+            margin: [0, 0, 0, 20],
+          },
+          {
+            text: companyName.toUpperCase(),
+            bold: true,
+            alignment: 'center',
+            margin: [0, 0, 0, 30],
+          },
+          // Căn cứ
+          {
+            text: 'Căn cứ Luật Doanh nghiệp số 59/2020/QH14;',
+            margin: [0, 0, 0, 5],
+          },
+          {
+            text: `Căn cứ Điều lệ ${companyName} được ban hành theo Quyết định số 727/QĐ-HĐQT ngày 10/5/2023;`,
+            margin: [0, 0, 0, 5],
+          },
+          {
+            text: 'Căn cứ Quy chế nội bộ về quản trị được ban hành theo Quyết định số 729/QĐ-HĐQT ngày 10/5/2023;',
+            margin: [0, 0, 0, 5],
+          },
+          {
+            text: `Căn cứ Nghị quyết số 1497/NQ-HĐQT ngày 10/10/2023 của Hội đồng quản trị Công ty về việc triệu tập Đại hội đồng cổ đông bất thường năm 2023;`,
+            margin: [0, 0, 0, 5],
+          },
+          {
+            text: 'Căn cứ danh sách cổ đông được Tổng công ty Lưu ký và Bù trừ chứng khoán Việt Nam chốt ngày 31/10/2023.',
+            margin: [0, 0, 0, 20],
+          },
+          // QUYẾT ĐỊNH
+          {
+            text: 'QUYẾT ĐỊNH:',
+            bold: true,
+            margin: [0, 0, 0, 10],
+          },
+          {
+            text: 'Điều 1. Triệu tập Đại hội đồng cổ đông bất thường 2023 của Công ty Cổ phần Phát triển Điện lực Việt Nam, chi tiết như sau:',
+            margin: [0, 0, 0, 10],
+          },
+          {
+            ol: [
+              `Thời gian: ${meetingHour} giờ ${meetingMinute} phút, ngày ${meetingDay} ${meetingMonthName} năm ${meetingYear} (${dayOfWeek});`,
+              `Địa điểm: ${location};`,
+              'Hình thức tổ chức Đại hội: Đại hội trực tiếp',
+              'Nội dung Đại hội: Được đính kèm theo Quyết định này;',
+              'Thành phần và thời điểm chốt danh sách cổ đông: Tất cả các cổ đông sở hữu cổ phần của Công ty Cổ phần Phát triển Điện lực Việt Nam có tên trong danh sách do Tổng công ty Lưu ký và Bù trừ chứng khoán Việt Nam chốt ngày 31/10/2023 hoặc những người được ủy quyền hợp lệ.',
+            ],
+            margin: [20, 0, 0, 10],
+          },
+          {
+            text: 'Điều 2. Các thành viên HĐQT, Tổng giám đốc Công ty, các đơn vị có liên quan và các cổ đông của Công ty cổ phần Phát triển Điện lực Việt Nam chịu trách nhiệm thi hành Quyết định này./.',
+            margin: [0, 0, 0, 30],
+          },
+          // Nơi nhận
+          {
+            text: 'Nơi nhận:',
+            bold: true,
+            margin: [0, 0, 0, 5],
+          },
+          {
+            text: '- Như điều 2;',
+            margin: [0, 0, 0, 5],
+          },
+          {
+            text: '- PTH (đăng Web Cty);',
+            margin: [0, 0, 0, 5],
+          },
+          {
+            text: '- Lưu: VT, VPHDQT.',
+            margin: [0, 0, 0, 30],
+          },
+          // Chữ ký
+          {
+            columns: [
+              { text: '' },
+              {
+                stack: [
+                  {
+                    text: 'TM. HỘI ĐỒNG QUẢN TRỊ',
+                    bold: true,
+                    alignment: 'center',
+                    margin: [0, 0, 0, 5],
+                  },
+                  {
+                    text: 'CHỦ TỊCH',
+                    bold: true,
+                    alignment: 'center',
+                    margin: [0, 50, 0, 0],
+                  },
+                ],
+                width: 'auto',
+              },
+            ],
+            margin: [0, 0, 0, 30],
+          },
+          // Trang mới - Chương trình họp
+          { text: '', pageBreak: 'before' },
+          {
+            text: 'CHƯƠNG TRÌNH HỌP ĐẠI HỘI CỔ ĐÔNG BẤT THƯỜNG NĂM 2023',
+            bold: true,
+            fontSize: 14,
+            alignment: 'center',
+            margin: [0, 0, 0, 5],
+          },
+          {
+            text: companyName.toUpperCase(),
+            bold: true,
+            fontSize: 12,
+            alignment: 'center',
+            margin: [0, 0, 0, 20],
+          },
+          // Bảng chương trình
+          {
+            table: {
+              headerRows: 1,
+              widths: ['auto', '*', 'auto'],
+              body: [
+                [
+                  { text: 'Thời gian', style: 'tableHeader', bold: true, alignment: 'center' },
+                  { text: 'Nội dung', style: 'tableHeader', bold: true, alignment: 'center' },
+                  { text: 'Chủ trì', style: 'tableHeader', bold: true, alignment: 'center' },
+                ],
+                ...programItems.map((item) => [
+                  { text: item.time, alignment: 'center' },
+                  { text: item.content },
+                  { text: item.presider },
+                ]),
+              ],
+            },
+            layout: {
+              hLineWidth: () => 1,
+              vLineWidth: () => 1,
+              hLineColor: () => 'black',
+              vLineColor: () => 'black',
+              paddingLeft: () => 4,
+              paddingRight: () => 4,
+              paddingTop: () => 2,
+              paddingBottom: () => 2,
+            },
+            margin: [0, 0, 0, 20],
+          },
+        ],
+        styles: {
+          tableHeader: {
+            bold: true,
+            fontSize: 11,
+            color: 'black',
+          },
+        },
+        defaultStyle: {
+          font: 'Roboto',
+          fontSize: 11,
+        },
+      };
+
+      const pdfDoc = printer.createPdfKitDocument(docDefinition);
+      const chunks: any[] = [];
+      return await new Promise<Buffer>((resolve, reject) => {
+        pdfDoc.on('data', (chunk) => chunks.push(chunk));
+        pdfDoc.on('end', () => resolve(Buffer.concat(chunks)));
+        pdfDoc.on('error', (err) => reject(err));
+        pdfDoc.end();
+      });
     } catch (error) {
       throw error;
     }
@@ -572,7 +1187,15 @@ export class ElectionsService {
 
   async bulkSaveDraft(dto: BulkSaveDraftDto, userId: string) {
     try {
-      const { electionId, meetingInfo, electionEntities, electionDocuments, voters, participants, isSubmitForApproval } = dto;
+      const {
+        electionId,
+        meetingInfo,
+        electionEntities,
+        electionDocuments,
+        voters,
+        participants,
+        isSubmitForApproval,
+      } = dto;
 
       // 1. Sử dụng trực tiếp typeId và thresholdId
       const typeId = meetingInfo.type as string;
@@ -583,18 +1206,21 @@ export class ElectionsService {
         typeId: typeId ? new Types.ObjectId(typeId) : null,
         votingMethodId: meetingInfo.method ? new Types.ObjectId(meetingInfo.method) : null,
         thresholdId: thresholdId ? new Types.ObjectId(thresholdId) : null,
-        delegationStart: meetingInfo.authorizationStart ? new Date(meetingInfo.authorizationStart) : null,
+        delegationStart: meetingInfo.authorizationStart
+          ? new Date(meetingInfo.authorizationStart)
+          : null,
         delegationEnd: meetingInfo.authorizationEnd ? new Date(meetingInfo.authorizationEnd) : null,
       };
 
       if (isSubmitForApproval) {
-        electionUpdate.statusData = 'WAIT_APROVAL';
+        electionUpdate.statusData = STATUS.WAIT_APPROVAL;
+        electionUpdate.updatedBy = new Types.ObjectId(userId);
       }
 
       const updatedElection = await this.electionsModel.findByIdAndUpdate(
         new Types.ObjectId(electionId),
         electionUpdate,
-        { new: true }
+        { new: true },
       );
 
       if (!updatedElection) {
@@ -635,7 +1261,7 @@ export class ElectionsService {
                 electionTypeId: new Types.ObjectId(typeId),
                 updatedBy: new Types.ObjectId(userId),
               },
-              { new: true }
+              { new: true },
             );
           } else {
             // Create new
@@ -670,7 +1296,7 @@ export class ElectionsService {
                 userId: new Types.ObjectId(voterItem.userId),
                 updatedBy: new Types.ObjectId(userId),
               },
-              { new: true }
+              { new: true },
             );
           } else {
             // Create new voter
@@ -691,13 +1317,10 @@ export class ElectionsService {
             });
 
             if (existingVotingRight) {
-              await this.votingRightsModel.findByIdAndUpdate(
-                existingVotingRight._id,
-                {
-                  shares: voterItem.percentage,
-                  updatedBy: new Types.ObjectId(userId),
-                }
-              );
+              await this.votingRightsModel.findByIdAndUpdate(existingVotingRight._id, {
+                shares: voterItem.percentage,
+                updatedBy: new Types.ObjectId(userId),
+              });
             } else {
               await this.votingRightsModel.create({
                 electionId: new Types.ObjectId(electionId),
@@ -725,7 +1348,7 @@ export class ElectionsService {
                 position: participantItem.position,
                 updatedBy: new Types.ObjectId(userId),
               },
-              { new: true }
+              { new: true },
             );
           } else {
             // Create new
@@ -754,7 +1377,7 @@ export class ElectionsService {
                 remarks: docItem.remarks,
                 updatedBy: new Types.ObjectId(userId),
               },
-              { new: true }
+              { new: true },
             );
           } else {
             // Create new
@@ -785,7 +1408,7 @@ export class ElectionsService {
             location: meetingInfo.location,
             updatedBy: new Types.ObjectId(userId),
           },
-          { new: true }
+          { new: true },
         );
       } else {
         meeting = await this.meetingsModel.create({
@@ -805,7 +1428,7 @@ export class ElectionsService {
         if (voterRole) {
           // Lọc participants có role voter
           const voterParticipants = participants.filter(
-            (p: any) => String(p.roleId) === String(voterRole._id)
+            (p: any) => String(p.roleId) === String(voterRole._id),
           );
 
           // Xóa các meetingAttendees cũ của meeting này
@@ -819,7 +1442,7 @@ export class ElectionsService {
             let participantRecord;
             if (voterParticipant._id) {
               participantRecord = await this.electionParticipantsModel.findById(
-                new Types.ObjectId(voterParticipant._id)
+                new Types.ObjectId(voterParticipant._id),
               );
             } else {
               // Nếu chưa có _id, tìm participant vừa tạo
@@ -843,7 +1466,10 @@ export class ElectionsService {
         }
       }
 
-      return { success: true, message: isSubmitForApproval ? 'Gửi duyệt thành công' : 'Lưu nháp thành công' };
+      return {
+        success: true,
+        message: isSubmitForApproval ? 'Gửi duyệt thành công' : 'Lưu nháp thành công',
+      };
     } catch (error) {
       throw error;
     }
@@ -870,9 +1496,21 @@ export class ElectionsService {
       }
 
       // 2. Lấy meeting info từ election
-      const typeId = election.typeId ? (election.typeId instanceof Types.ObjectId ? election.typeId : new Types.ObjectId(election.typeId)) : null;
-      const methodId = election.votingMethodId ? (election.votingMethodId instanceof Types.ObjectId ? election.votingMethodId : new Types.ObjectId(election.votingMethodId)) : null;
-      const thresholdId = election.thresholdId ? (election.thresholdId instanceof Types.ObjectId ? election.thresholdId : new Types.ObjectId(election.thresholdId)) : null;
+      const typeId = election.typeId
+        ? election.typeId instanceof Types.ObjectId
+          ? election.typeId
+          : new Types.ObjectId(election.typeId)
+        : null;
+      const methodId = election.votingMethodId
+        ? election.votingMethodId instanceof Types.ObjectId
+          ? election.votingMethodId
+          : new Types.ObjectId(election.votingMethodId)
+        : null;
+      const thresholdId = election.thresholdId
+        ? election.thresholdId instanceof Types.ObjectId
+          ? election.thresholdId
+          : new Types.ObjectId(election.thresholdId)
+        : null;
 
       // Lấy type details
       let typeDetails: any = null;
@@ -927,9 +1565,7 @@ export class ElectionsService {
 
       // Map voters với percentage từ votingRights
       const votersWithPercentage = voters.map((voter) => {
-        const votingRight = votingRights.find(
-          (vr) => String(vr.voterId) === String(voter._id)
-        );
+        const votingRight = votingRights.find((vr) => String(vr.voterId) === String(voter._id));
         const voterObj: any = { ...voter };
         // Khi populate với lean(), userId sẽ là object, cần extract _id
         if (voter.userId) {
@@ -960,7 +1596,11 @@ export class ElectionsService {
         const participantObj: any = { ...participant };
         // Khi populate với lean(), userId và roleId sẽ là objects, cần extract _id
         if (participant.userId) {
-          if (participant.userId && typeof participant.userId === 'object' && '_id' in participant.userId) {
+          if (
+            participant.userId &&
+            typeof participant.userId === 'object' &&
+            '_id' in participant.userId
+          ) {
             // Đã được populate, extract _id
             participantObj.userId = String(participant.userId._id);
             participantObj.user = participant.userId;
@@ -970,7 +1610,11 @@ export class ElectionsService {
           }
         }
         if (participant.roleId) {
-          if (participant.roleId && typeof participant.roleId === 'object' && '_id' in participant.roleId) {
+          if (
+            participant.roleId &&
+            typeof participant.roleId === 'object' &&
+            '_id' in participant.roleId
+          ) {
             // Đã được populate, extract _id
             participantObj.roleId = String(participant.roleId._id);
             participantObj.role = participant.roleId;

@@ -9,6 +9,8 @@ import {
   Post,
   Put,
   Req,
+  UploadedFile,
+  UseInterceptors,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiBearerAuth } from '@nestjs/swagger';
 import { BaseResponse } from 'src/common/dto/base-response.dto';
@@ -22,6 +24,7 @@ import { UpdateElectionDto } from './dto/update-elections-dto';
 import { CustomRequest } from 'src/common/middleware/auth.middleware';
 import { ElectionDto } from './dto/election.dto';
 import { BulkSaveDraftDto } from './dto/bulk-save-draft-dto';
+import { FileInterceptor } from '@nestjs/platform-express';
 
 @ApiBearerAuth('access-token')
 @ApiTags('Elections')
@@ -203,6 +206,60 @@ export class ElectionsController {
     try {
       const resData = await this.electionsService.bulkSaveDraft(body, req.user.sub);
       return BaseResponse.success(resData, resData.message, HttpStatus.OK);
+    } catch (error) {
+      throw new HttpException({ message: error.message }, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+  }
+
+  @Post(`${METHOD.APPROVE}`)
+  @UseInterceptors(FileInterceptor('file'))
+  @ApiOperation({ summary: 'Duyệt và ký quyết định cuộc bầu cử' })
+  @ApiResponse({ status: 200, description: 'Duyệt và ký thành công' })
+  @ApiResponse({ status: 500, description: 'Lỗi server' })
+  async approveElection(
+    @UploadedFile() fileP12: Express.Multer.File,
+    @Body('electionId') electionId: string,
+    @Body('password') password: string,
+    @Req() req: CustomRequest,
+  ) {
+    try {
+      const resData = await this.electionsService.approveAndSign(
+        fileP12,
+        electionId,
+        password,
+        req.user.sub,
+      );
+      return BaseResponse.success(
+        resData,
+        'Duyệt và ký thành công cuộc họp!',
+        HttpStatus.OK,
+      );
+    } catch (error) {
+      throw new HttpException({ message: error.message }, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+  }
+
+  @Post(`${METHOD.REJECT}`)
+  @ApiOperation({ summary: 'Từ chối cuộc bầu cử' })
+  @ApiResponse({ status: 200, description: 'Từ chối thành công' })
+  @ApiResponse({ status: 500, description: 'Lỗi server' })
+  async rejectElection(
+    @Body('electionId') electionId: string,
+    @Body('rejectReason') rejectReason: string,
+  ) {
+    try {
+      if (!rejectReason || !rejectReason.trim()) {
+        throw new HttpException(
+          { message: 'Vui lòng nhập lý do từ chối!' },
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+      const resData = await this.electionsService.rejectElection(electionId, rejectReason);
+      return BaseResponse.success(
+        resData,
+        'Từ chối cuộc bầu cử thành công!',
+        HttpStatus.OK,
+      );
     } catch (error) {
       throw new HttpException({ message: error.message }, HttpStatus.INTERNAL_SERVER_ERROR);
     }
