@@ -752,10 +752,7 @@ export class DelegationsService {
     try {
       const pipeline: any[] = [
         {
-          $match: {
-            electionId: new Types.ObjectId(electionId),
-            status: STATUS.CONFIRMED
-          },
+          $match: { electionId: new Types.ObjectId(electionId) },
         },
         {
           $lookup: {
