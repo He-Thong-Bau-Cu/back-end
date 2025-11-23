@@ -300,6 +300,12 @@ export class DelegationsService {
         throw new Error(MESSAGE.DELEGATION_NOT_FOUND);
       }
 
+      //Lấy tài liệu ủy quyền
+      const electionDocument = await this.documentModel.findOne({
+        preparedBy: new Types.ObjectId(id),
+        type: FileType.DELEGATION_DELEGATOR_SIGNED,
+      }).exec();
+
       const delegation = await this.delegationModel
         .findById(new Types.ObjectId(id))
         .populate(
@@ -329,7 +335,10 @@ export class DelegationsService {
         }
       }
 
-      return delegation;
+      return {
+        ...delegation,
+        file: electionDocument ? electionDocument.fileUrl : null
+      };
     } catch (error) {
       throw error;
     }
@@ -1568,7 +1577,7 @@ export class DelegationsService {
       if (delegation.status !== STATUS.PENDING) {
         throw new Error(MESSAGE.DELEGATION_NOT_PENDING);
       }
-      if(status === STATUS.REJECTED) {
+      if (status === STATUS.REJECTED) {
         delegation.status = STATUS.REJECTED;
         delegation.rejectReasonBySecretary = rejectReason || '';
       } else {
