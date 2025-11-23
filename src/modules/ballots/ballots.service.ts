@@ -289,9 +289,9 @@ export class BallotsService {
           throw new Error("This election allows only one choice.");
         }
 
-        if (createBallot.allocations[0].voteValue !== 1) {
-          throw new Error("You can only cast exactly 1 vote.");
-        }
+        // if (createBallot.allocations[0].voteValue !== 1) {
+        //   throw new Error("You can only cast exactly 1 vote.");
+        // }
       }
 
       if (electionType?.typeCode === "CUMULATIVE") {
@@ -305,9 +305,9 @@ export class BallotsService {
               throw new Error(`Entity with ID ${allocation.entityId} does not exist.`);
             }
           }
-          if (allocation.voteValue < 0) {
-            throw new Error(MESSAGE.BALLOT_VOTE_VALUE_GREATER_THAN_ZERO);
-          }
+          // if (allocation.voteValue < 0) {
+          //   throw new Error(MESSAGE.BALLOT_VOTE_VALUE_GREATER_THAN_ZERO);
+          // }
         }
       }
 
@@ -355,7 +355,7 @@ export class BallotsService {
   async update(id: string, updateBalllot: UpdateBallotDto, userId: string) {
     try {
       //Check if the ballot is exist
-      console.log(updateBalllot) 
+      console.log(updateBalllot)
       const ballotExist = await this.ballotsModel.exists({ _id: id });
       if (!ballotExist) {
         throw new Error(MESSAGE.BALLOT_NOT_FOUND);
@@ -409,6 +409,7 @@ export class BallotsService {
       throw error;
     }
   }
+
   async updateStatus(id: string, userId: string) {
     try {
       //Check if the ballot is exist

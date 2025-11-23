@@ -27,7 +27,6 @@ export class NotificationService {
     if (!electionId || !data) {
       throw new Error('ElectionId and data are required');
     }
-
     this.notificationGateway.dataToElectionId(electionId, data);
   }
 
