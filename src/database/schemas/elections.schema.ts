@@ -56,6 +56,9 @@ export class Elections extends BaseSchema {
 
   @Prop({ required: true })
   decisionName: string;
+
+  @Prop({ default: null })
+  rejectReason: string;
 }
 
 export const ElectionsSchema = SchemaFactory.createForClass(Elections);
