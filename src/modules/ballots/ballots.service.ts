@@ -719,10 +719,6 @@ export class BallotsService {
 
       const printer = new PdfPrinter(fonts);
 
-
-
-
-
       const allocationTable = {
         table: {
           widths: ["*", "*", "auto"],

@@ -98,6 +98,17 @@ export enum MESSAGE {
 
   // Results
   RESULT_NOT_FOUND = 'Không tìm thấy kết quả',
+  RESULT_GET_CUMULATIVE_BY_ELECTION_SUCCESS = 'Lấy thông tin kết quả bầu cử hình thức Cumulative theo cuộc bầu cử thành công',
+  RESULT_GET_YES_NO_BY_ELECTION_SUCCESS = 'Lấy thông tin kết quả bầu cử hình thức Yes/No/Abstain theo cuộc bầu cử thành công',
+  RESULT_SIGN_SUCCESS = 'Ký kết quả bầu cử thành công',
+  RESULT_GET_BY_ID_SUCCESS = 'Lấy kết quả theo ID thành công',
+  RESULT_GET_BY_VOTER_SUCCESS = 'Lấy danh sách kết quả theo cử tri thành công',
+  RESULT_GET_BY_ELECTION_SUCCESS = 'Lấy danh sách kết quả của cuộc bầu cử thành công',
+
+  RESULT_CREATE_SUCCESS = 'Tạo kết quả thành công',
+  RESULT_UPDATE_SUCCESS = 'Cập nhật kết quả thành công',
+  RESULT_SEARCH_SUCCESS = 'Tìm kiếm kết quả thành công',
+  RESULT_DELETE_SUCCESS = 'Xóa kết quả thành công',
   ENTITY_NOT_FOUND = 'Không tìm thấy entity',
 
   // Election Entities
@@ -253,13 +264,7 @@ export enum MESSAGE {
 
 
   // Success Messages - Results
-  RESULT_GET_BY_VOTER_SUCCESS = 'Lấy danh sách kết quả theo cử tri thành công',
-  RESULT_GET_BY_ELECTION_SUCCESS = 'Lấy danh sách kết quả của cuộc bầu cử thành công',
-  RESULT_GET_BY_ID_SUCCESS = 'Lấy kết quả theo ID thành công',
-  RESULT_CREATE_SUCCESS = 'Tạo kết quả thành công',
-  RESULT_UPDATE_SUCCESS = 'Cập nhật kết quả thành công',
-  RESULT_SEARCH_SUCCESS = 'Tìm kiếm kết quả thành công',
-  RESULT_DELETE_SUCCESS = 'Xóa kết quả thành công',
+
 
 
 

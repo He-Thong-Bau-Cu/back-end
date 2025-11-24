@@ -13,6 +13,7 @@ import { MESSAGE } from 'src/common/enums/message.enum';
 import { CLIENT_RENEG_LIMIT } from 'tls';
 import { Delegations } from 'src/database/schemas/delegations.schema';
 import { MeetingAttendees } from 'src/database/schemas/meetingAttendees.schema';
+import { VotingMethods } from 'src/database/schemas/votingMethods.schema';
 
 @Injectable()
 export class StatisticsService {
@@ -33,6 +34,8 @@ export class StatisticsService {
     private readonly delegationsModel: Model<Delegations>,
     @InjectModel(MeetingAttendees.name)
     private readonly meetingAttendeeModel: Model<MeetingAttendees>,
+    @InjectModel(VotingMethods.name)
+    private readonly votingMethodsModel: Model<VotingMethods>,
   ) { }
 
   async getDashboardPreside() {
@@ -251,8 +254,17 @@ export class StatisticsService {
 
   }
 
-  //Thống kê phiếu bầu cho từng đối tượng trong cuộc bầu cử
-  async getResultsByElectionId(electionId: string) {
+  //Thống kê phiếu bầu cho từng đối tượng trong cuộc bầu cử với votingMethods = CUMULATIVE
+  async getCumulativeEntityResults(electionId: string) {
+    //kiểm tra electionId có tồn tại không
+    const election = await this.electionsModel.findById(new Types.ObjectId(electionId));
+    if (!election) {
+      throw new Error(MESSAGE.ELECTION_NOT_FOUND);
+    }
+    const votingMehtod = await this.votingMethodsModel.findById(election.votingMethodId);
+    if (!votingMehtod || votingMehtod.methodCode !== 'CUMULATIVE') {
+      throw new Error("Api này chỉ áp dụng cho phương thức bầu cử CUMULATIVE.");
+    }
     const results = await this.ballotsModel.aggregate([
       {
         $match: {
@@ -301,6 +313,64 @@ export class StatisticsService {
     }));
 
     return finalResults;
+  }
+
+  //Thống kê phiếu bầu cho từng đối tượng trong cuộc bầu cử với votingMethods = YES_NO_ABSTAIN
+  async getYesNoEntityResults(electionId: string) {
+    //kiểm tra electionId có tồn tại không
+    const election = await this.electionsModel.findById(new Types.ObjectId(electionId));
+    if (!election) {
+      throw new Error(MESSAGE.ELECTION_NOT_FOUND);
+    }
+    const votingMehtod = await this.votingMethodsModel.findById(election.votingMethodId);
+    if (!votingMehtod || votingMehtod.methodCode !== 'YES_NO_ABSTAIN') {
+      throw new Error("Api này chỉ áp dụng cho phương thức bầu cử YES_NO_ABSTAIN.");
+    }
+    const results = await this.ballotsModel.aggregate([
+      {
+        $match: {
+          electionId: new Types.ObjectId(electionId),
+          status: STATUS.CAST
+        }
+      },
+      {
+        $unwind: "$allocations"
+      },
+      {
+        $group: {
+          _id: "$allocations.voteValue",
+          total: { $sum: 1 }
+        }
+      }
+    ]);
+
+    // Chuẩn hóa kết quả
+    let agree = 0;
+    let disagree = 0;
+    let abstain = 0;
+
+    for (const r of results) {
+      if (r._id == 1) agree = r.total;
+      else if (r._id == 0) disagree = r.total;
+      else abstain = r.total;  // -1 hoặc null
+    }
+
+    const totalVotes = agree + disagree + abstain;
+
+    return {
+      agree: {
+        votes: agree,
+        percentage: totalVotes ? Number(((agree / totalVotes) * 100).toFixed(2)) : 0
+      },
+      disagree: {
+        votes: disagree,
+        percentage: totalVotes ? Number(((disagree / totalVotes) * 100).toFixed(2)) : 0
+      },
+      abstain: {
+        votes: abstain,
+        percentage: totalVotes ? Number(((abstain / totalVotes) * 100).toFixed(2)) : 0
+      }
+    };
   }
 
 
