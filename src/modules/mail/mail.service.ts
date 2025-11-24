@@ -100,6 +100,31 @@ export class MailService {
     console.log('Email sent: %s', info.messageId);
   }
 
+  //hàm gửi mail kết quả cuộc bầu cử đã được duyệt
+  async sendMailResult(to: string, fullName: string, electionTitle: string, pdfPath: Buffer) {
+    await this.transporter.sendMail({
+      from: `"Hệ thống bầu cử" <${process.env.EMAIL_USERNAME}>`,
+      to,
+      subject: `Kết quả bầu cử: ${electionTitle}`,
+      html: `
+        <p>Chào anh/chị, ${fullName}</p>
+        <p>Chúng tôi thông báo rằng kết quả cuộc bầu cử <b>${electionTitle}</b> đã được ký số và công bố.</p>
+        <p>Vui lòng xem tệp PDF đính kèm để biết chi tiết kết quả.</p>
+        <br/>
+        <p style="font-size:13px;color:#6b7280;">Nếu có thắc mắc, vui lòng liên hệ <b>employee.system.work@gmail.com</b></p>
+        <br/>
+        <p>Trân trọng.</p>
+      `,
+      attachments: [
+        {
+          filename: 'ket-qua-bau-cu.pdf',
+          content: pdfPath,
+          contentType: 'application/pdf',
+        },
+      ],
+    });
+  }
+
   getHtmlTemplateDelegate(fullName: string, username: string, password: string) {
     return `
     <div style="font-family: Arial, sans-serif; padding: 20px; color: #333;">
@@ -364,13 +389,13 @@ export class MailService {
   ): string {
     const formattedDate = meetingDate
       ? new Date(meetingDate).toLocaleString('vi-VN', {
-          weekday: 'long',
-          year: 'numeric',
-          month: 'long',
-          day: 'numeric',
-          hour: '2-digit',
-          minute: '2-digit',
-        })
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+      })
       : 'Chưa được xác định';
     const formattedLocation = location || 'Chưa được xác định';
 
