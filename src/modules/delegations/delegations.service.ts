@@ -32,6 +32,10 @@ import { UserDto } from 'src/common/dto/user.dto';
 import { VotingRights, VotingRightsDocument } from 'src/database/schemas/votingRights.schema';
 import { VotingRightsController } from '../voting-rights/voting-rights.controller';
 import { NotificationService } from '../notification/notification.service';
+import { DelegateCardsService } from '../delegate-cards/delegate-cards.service';
+import { MeetingAttendees, MeetingAttendeesDocument } from 'src/database/schemas/meetingAttendees.schema';
+import { Meetings, MeetingsDocument } from 'src/database/schemas/meetings.schema';
+import { DelegateCard, DelegateCardDocument } from 'src/database/schemas/delegateCard.schema';
 import e from 'express';
 
 @Injectable()
@@ -59,6 +63,13 @@ export class DelegationsService {
     @InjectConnection()
     private readonly connection: Connection,
     private readonly notificationService: NotificationService,
+    private readonly delegateCardsService: DelegateCardsService,
+    @InjectModel(MeetingAttendees.name)
+    private readonly meetingAttendeesModel: Model<MeetingAttendeesDocument>,
+    @InjectModel(Meetings.name)
+    private readonly meetingsModel: Model<MeetingsDocument>,
+    @InjectModel(DelegateCard.name)
+    private readonly delegateCardModel: Model<DelegateCardDocument>,
   ) { }
   async getDelegatorIdAndElectionId(delegatorId: string, electionId: string) {
     try {
@@ -439,28 +450,69 @@ export class DelegationsService {
       if (!delegationExist) {
         throw new Error(MESSAGE.DELEGATION_NOT_FOUND);
       }
+
+      // Chỉ update những field có dữ liệu
+      const updateData: any = {
+        updatedBy: new Types.ObjectId(userId),
+      };
+
+      // Chỉ thêm field vào updateData nếu có giá trị
+      if (updateDelegation.delegationType !== undefined && updateDelegation.delegationType !== null) {
+        updateData.delegationType = updateDelegation.delegationType;
+      }
+
+      if (updateDelegation.electionId !== undefined && updateDelegation.electionId !== null && updateDelegation.electionId !== '') {
+        updateData.electionId = new Types.ObjectId(updateDelegation.electionId);
+      }
+
+      if (updateDelegation.delegatorId !== undefined && updateDelegation.delegatorId !== null && updateDelegation.delegatorId !== '') {
+        updateData.delegatorId = new Types.ObjectId(updateDelegation.delegatorId);
+      }
+
+      if (updateDelegation.delegateId !== undefined && updateDelegation.delegateId !== null && updateDelegation.delegateId !== '') {
+        updateData.delegateId = new Types.ObjectId(updateDelegation.delegateId);
+      }
+
+      if (updateDelegation.delegateInfo !== undefined && updateDelegation.delegateInfo !== null) {
+        updateData.delegateInfo = updateDelegation.delegateInfo;
+      }
+
+      if (updateDelegation.startDate !== undefined && updateDelegation.startDate !== null) {
+        updateData.startDate = updateDelegation.startDate;
+      }
+
+      if (updateDelegation.endDate !== undefined && updateDelegation.endDate !== null) {
+        updateData.endDate = updateDelegation.endDate;
+      }
+
+      if (updateDelegation.documentId !== undefined && updateDelegation.documentId !== null && updateDelegation.documentId !== '') {
+        updateData.documentId = new Types.ObjectId(updateDelegation.documentId);
+      }
+
+      if (updateDelegation.delegateReason !== undefined && updateDelegation.delegateReason !== null && updateDelegation.delegateReason !== '') {
+        updateData.delegateReason = updateDelegation.delegateReason;
+      }
+
+      if (updateDelegation.signature !== undefined && updateDelegation.signature !== null) {
+        updateData.signature = updateDelegation.signature;
+      }
+
+      if (updateDelegation.status !== undefined && updateDelegation.status !== null && updateDelegation.status !== '') {
+        updateData.status = updateDelegation.status;
+      }
+
+      if (updateDelegation.confirmedBy !== undefined && updateDelegation.confirmedBy !== null && updateDelegation.confirmedBy !== '') {
+        updateData.confirmedBy = new Types.ObjectId(updateDelegation.confirmedBy);
+      }
+
+      if (updateDelegation.confirmedAt !== undefined && updateDelegation.confirmedAt !== null) {
+        updateData.confirmedAt = updateDelegation.confirmedAt;
+      }
+
       const delegation = await this.delegationModel
         .findByIdAndUpdate(
           new Types.ObjectId(id),
-          {
-            ...updateDelegation,
-            electionId: updateDelegation.electionId
-              ? new Types.ObjectId(updateDelegation.electionId)
-              : null,
-            delegatorId: updateDelegation.delegatorId
-              ? new Types.ObjectId(updateDelegation.delegatorId)
-              : null,
-            delegateId: updateDelegation.delegateId
-              ? new Types.ObjectId(updateDelegation.delegateId)
-              : null,
-            documentId: updateDelegation.documentId
-              ? new Types.ObjectId(updateDelegation.documentId)
-              : null,
-            confirmedBy: updateDelegation.confirmedBy
-              ? new Types.ObjectId(updateDelegation.confirmedBy)
-              : null,
-            updatedBy: new Types.ObjectId(userId) || null,
-          },
+          updateData,
           { new: true },
         )
         .exec();
@@ -1272,6 +1324,12 @@ export class DelegationsService {
           if (!role) {
             throw new NotFoundException('Không tìm thấy role Voter trong hệ thống!');
           }
+
+          // Lấy meetingId từ electionId
+          const meeting = await this.meetingsModel
+            .findOne({ electionId: new Types.ObjectId(electionId) })
+            .exec();
+
           for (const delegationItem of delegation) {
             await this.delegationModel.updateOne(
               { _id: delegationItem._id },
@@ -1315,6 +1373,55 @@ export class DelegationsService {
                 status: STATUS.ACTIVE,
               });
               await electionParticipantVoter.save();
+
+              // Tạo thẻ đại biểu cho delegate
+              try {
+                await this.delegateCardsService.create(
+                  {
+                    electionId: electionId,
+                    voterId: (voter._id as Types.ObjectId).toString(),
+                    delegationId: (delegationItem._id as Types.ObjectId).toString(),
+                    status: STATUS.ACTIVE,
+                  },
+                  userId
+                );
+              } catch (error) {
+                console.error('Error creating delegate card for delegate:', error);
+              }
+
+              // Cập nhật meetingAttendee: xóa delegator, thêm delegate
+              if (meeting) {
+                try {
+                  // Tìm participantId của delegator
+                  const delegatorParticipant = await this.electionParticipantsModel
+                    .findOne({
+                      electionId: new Types.ObjectId(electionId),
+                      userId: delegationItem.delegatorId,
+                    })
+                    .exec();
+
+                  // Tìm và xóa meetingAttendee của delegator
+                  if (delegatorParticipant) {
+                    await this.meetingAttendeesModel.deleteMany({
+                      meetingId: meeting._id,
+                      participantId: delegatorParticipant._id,
+                    }).exec();
+                  }
+
+                  // Thêm meetingAttendee cho delegate
+                  const newMeetingAttendee = new this.meetingAttendeesModel({
+                    meetingId: meeting._id,
+                    participantId: electionParticipantVoter._id,
+                    checkInTime: new Date(),
+                    attended: false,
+                    createdBy: new Types.ObjectId(userId),
+                    updatedBy: new Types.ObjectId(userId),
+                  });
+                  await newMeetingAttendee.save();
+                } catch (error) {
+                  console.error('Error updating meetingAttendee:', error);
+                }
+              }
             } else {
               let userDto = {
                 fullName: delegationItem.delegateInfo?.fullName,
@@ -1346,6 +1453,55 @@ export class DelegationsService {
                 { _id: delegationItem._id },
                 { $set: { delegateId: user._id, delegateInfo: null } },
               );
+
+              // Tạo thẻ đại biểu cho delegate
+              try {
+                await this.delegateCardsService.create(
+                  {
+                    electionId: electionId,
+                    voterId: (voter._id as Types.ObjectId).toString(),
+                    delegationId: (delegationItem._id as Types.ObjectId).toString(),
+                    status: STATUS.ACTIVE,
+                  },
+                  userId
+                );
+              } catch (error) {
+                console.error('Error creating delegate card for delegate:', error);
+              }
+
+              // Cập nhật meetingAttendee: xóa delegator, thêm delegate
+              if (meeting) {
+                try {
+                  // Tìm participantId của delegator
+                  const delegatorParticipant = await this.electionParticipantsModel
+                    .findOne({
+                      electionId: new Types.ObjectId(electionId),
+                      userId: delegationItem.delegatorId,
+                    })
+                    .exec();
+
+                  // Tìm và xóa meetingAttendee của delegator
+                  if (delegatorParticipant) {
+                    await this.meetingAttendeesModel.deleteMany({
+                      meetingId: meeting._id,
+                      participantId: delegatorParticipant._id,
+                    }).exec();
+                  }
+
+                  // Thêm meetingAttendee cho delegate
+                  const newMeetingAttendee = new this.meetingAttendeesModel({
+                    meetingId: meeting._id,
+                    participantId: electionParticipantVoter._id,
+                    checkInTime: new Date(),
+                    attended: false,
+                    createdBy: new Types.ObjectId(userId),
+                    updatedBy: new Types.ObjectId(userId),
+                  });
+                  await newMeetingAttendee.save();
+                } catch (error) {
+                  console.error('Error updating meetingAttendee:', error);
+                }
+              }
             }
 
             const electionParticipant = await this.electionParticipantsModel
@@ -1358,6 +1514,46 @@ export class DelegationsService {
               electionParticipant.status = STATUS.INACTIVE;
               await electionParticipant.save();
             }
+
+            // Tìm và set inactive thẻ đại biểu của delegator
+            try {
+              const delegatorVoter = await this.voterModel
+                .findOne({
+                  electionId: new Types.ObjectId(electionId),
+                  userId: delegationItem.delegatorId,
+                })
+                .exec();
+
+              if (delegatorVoter) {
+                const delegatorDelegateCard = await this.delegateCardsService.getByVoterId(
+                  (delegatorVoter._id as Types.ObjectId).toString()
+                );
+
+                if (delegatorDelegateCard && Array.isArray(delegatorDelegateCard) && delegatorDelegateCard.length > 0) {
+                  // Tìm thẻ đại biểu của delegator trong cuộc bầu cử này
+                  const cardToUpdate = delegatorDelegateCard.find(
+                    (card: any) => card.electionId?._id?.toString() === electionId
+                  );
+
+                  if (cardToUpdate) {
+                    // Cập nhật trạng thái thành inactive
+                    await this.delegateCardModel.updateOne(
+                      { _id: new Types.ObjectId((cardToUpdate._id as Types.ObjectId).toString()) },
+                      {
+                        $set: {
+                          status: STATUS.INACTIVE,
+                          updatedBy: new Types.ObjectId(userId),
+                          updatedAt: new Date()
+                        }
+                      }
+                    ).exec();
+                  }
+                }
+              }
+            } catch (error) {
+              console.error('Error updating delegator delegate card status:', error);
+            }
+
             await this.notificationService.notifyUser(
               delegationItem.delegatorId.toString(),
               'Tài liệu ủy quyền của bạn đã được kí duyệt !!!',
