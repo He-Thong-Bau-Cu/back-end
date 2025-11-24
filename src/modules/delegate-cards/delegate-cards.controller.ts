@@ -137,5 +137,41 @@ export class DelegateCardsController {
     }
   }
 
+  @Post('auto-create/:electionId')
+  @ApiOperation({ summary: "Tự động tạo thẻ đại biểu cho user nếu đủ điều kiện" })
+  @ApiResponse({ status: 200, description: "Kiểm tra và tạo thẻ đại biểu thành công" })
+  @ApiResponse({ status: 400, description: "Dữ liệu không hợp lệ" })
+  @ApiResponse({ status: 500, description: "Lỗi server" })
+  async autoCreate(
+    @Param('electionId') electionId: string,
+    @Req() req: CustomRequest
+  ): Promise<BaseResponse> {
+    try {
+      const resData = await this.delegateCardsService.autoCreateDelegateCardForUser(
+        req.user.sub,
+        electionId
+      );
+
+      if (resData.created) {
+        return BaseResponse.success(
+          resData.delegateCard,
+          resData.message || 'Thẻ đại biểu đã được tạo thành công.',
+          HttpStatus.CREATED
+        );
+      } else {
+        return BaseResponse.success(
+          resData,
+          resData.reason || 'Không thể tạo thẻ đại biểu.',
+          HttpStatus.OK
+        );
+      }
+    } catch (e) {
+      throw new HttpException(
+        { message: e.message },
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
 
 }

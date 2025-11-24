@@ -311,11 +311,6 @@ export class DelegationsService {
         throw new Error(MESSAGE.DELEGATION_NOT_FOUND);
       }
 
-      //Lấy tài liệu ủy quyền
-      const electionDocument = await this.documentModel.findOne({
-        preparedBy: new Types.ObjectId(id),
-        type: FileType.DELEGATION_DELEGATOR_SIGNED,
-      }).exec();
 
       const delegation = await this.delegationModel
         .findById(new Types.ObjectId(id))
@@ -326,30 +321,13 @@ export class DelegationsService {
         .populate('delegatorId', 'username fullName email position')
         .populate('delegateId', 'username fullName email position')
         .populate('confirmedBy', 'username fullName email position')
-        .populate('documentId', 'title file_url status')
+        .populate('documentId')
         .populate('createdBy', 'username fullName email position')
         .populate('updatedBy', 'username fullName email position')
+        .lean()
         .exec();
 
-      // Chỉ populate documentId nếu nó tồn tại và là ObjectId hợp lệ
-      if (delegation) {
-        const docId = delegation.documentId as any;
-        if (docId && docId !== '' && Types.ObjectId.isValid(docId)) {
-          const document = await this.documentModel
-            .findById(docId)
-            .select('title file_url status')
-            .lean()
-            .exec();
-          (delegation as any).documentId = document;
-        } else {
-          (delegation as any).documentId = null;
-        }
-      }
-
-      return {
-        ...delegation,
-        file: electionDocument ? electionDocument.fileUrl : null
-      };
+      return delegation;
     } catch (error) {
       throw error;
     }
