@@ -858,6 +858,7 @@ export class DelegationsService {
               $push: {
                 id: '$_id',
                 delegateReason: '$delegateReason',
+                status: '$status',
                 timeDelegation: {
                   $floor: {
                     $divide: [{ $subtract: ['$endDate', '$startDate'] }, 1000 * 60 * 60 * 24],
