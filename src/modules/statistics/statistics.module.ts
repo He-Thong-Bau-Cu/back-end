@@ -10,6 +10,7 @@ import { Ballots, BallotsSchema } from 'src/database/schemas/ballots.schema';
 import { SystemLog, SystemLogSchema } from 'src/database/schemas/systemLog.schema';
 import { Delegations, DelegationsSchema } from 'src/database/schemas/delegations.schema';
 import { MeetingAttendees, MeetingAttendeesSchema } from 'src/database/schemas/meetingAttendees.schema';
+import { VotingMethods, VotingMethodsSchema } from 'src/database/schemas/votingMethods.schema';
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { MeetingAttendees, MeetingAttendeesSchema } from 'src/database/schemas/m
       { name: SystemLog.name, schema: SystemLogSchema },
       { name: Delegations.name, schema: DelegationsSchema },
       { name: MeetingAttendees.name, schema: MeetingAttendeesSchema },
+      { name: VotingMethods.name, schema: VotingMethodsSchema },
     ]),
   ],
   controllers: [StatisticsController],

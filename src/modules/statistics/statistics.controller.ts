@@ -75,15 +75,15 @@ export class StatisticsController {
     }
   }
 
-  @Get('entity/elections/:electionId')
-  @ApiOperation({ summary: 'Lấy thông tin thống kê cho từng đối tượng được chọn trong bầu cử' })
-  @ApiResponse({ status: 200, description: 'Lấy thông tin thống kê cho từng đối tượng được chọn trong bầu cử thành công' })
+  @Get('entity/cumulative-elections/:electionId')
+  @ApiOperation({ summary: 'Lấy thông tin thống kê cho từng đối tượng được chọn trong bầu cử hình thức Cumulative' })
+  @ApiResponse({ status: 200, description: 'Lấy thông tin thống kê cho từng đối tượng được chọn trong bầu cử hình thức Cumulative thành công' })
   @ApiResponse({ status: 500, description: 'Lỗi server' })
   async getStatisticsEntity(
     @Param('electionId') electionId: string,
   ): Promise<BaseResponse> {
     try {
-      const resData = await this.statisticsService.getResultsByElectionId(electionId);
+      const resData = await this.statisticsService.getCumulativeEntityResults(electionId);
       return BaseResponse.success(resData, MESSAGE.STATISTICS_GET_ENTITY_SUCCESS, HttpStatus.OK);
     } catch (error) {
       throw new HttpException(
@@ -92,4 +92,24 @@ export class StatisticsController {
       );
     }
   }
+
+  @Get('entity/yes-no-elections/:electionId')
+  @ApiOperation({ summary: 'Lấy thông tin thống kê cho từng đối tượng được chọn trong bầu cử hình thức Yes/No/Abstain' })
+  @ApiResponse({ status: 200, description: 'Lấy thông tin thống kê cho từng đối tượng được chọn trong bầu cử hình thức Yes/No/Abstain thành công' })
+  @ApiResponse({ status: 500, description: 'Lỗi server' })
+  async getYesNoStatisticsEntity(
+    @Param('electionId') electionId: string,
+  ): Promise<BaseResponse> {
+    try {
+      const resData = await this.statisticsService.getYesNoEntityResults(electionId);
+      return BaseResponse.success(resData, MESSAGE.STATISTICS_GET_ENTITY_SUCCESS, HttpStatus.OK);
+    } catch (error) {
+      throw new HttpException(
+        { message: error.message },
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+
 }
