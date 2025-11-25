@@ -8,6 +8,7 @@ import { Elections } from './elections.schema';
 import { Users } from './users.schema';
 import { ElectionEntities } from './electionEntities.schema';
 import { LargeNumberLike } from 'crypto';
+import { STATUS } from 'src/common/enums/status.enum';
 
 export type ResultsDocument = Results & Document;
 
@@ -25,7 +26,8 @@ export class Results extends BaseSchema {
   @Prop({ required: true })
   isFinal: boolean;
 
-
+  @Prop({ default: STATUS.PENDING })
+  status: string;
 }
 
 export const ResultsSchema = SchemaFactory.createForClass(Results);

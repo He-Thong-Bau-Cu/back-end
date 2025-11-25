@@ -10,6 +10,9 @@ import { MESSAGE } from 'src/common/enums/message.enum';
 import { paginate } from 'src/common/dto/paignation';
 import { Elections } from 'src/database/schemas/elections.schema';
 import { NotificationGateway } from '../notification/notification.gateway';
+import { Ballots } from 'src/database/schemas/ballots.schema';
+import { STATUS } from 'src/common/enums/status.enum';
+import { Voters } from 'src/database/schemas/voters.schema';
 
 @Injectable()
 export class MeetingAttendeesService {
@@ -23,6 +26,10 @@ export class MeetingAttendeesService {
     @InjectModel(Elections.name)
     private readonly electionsModel: Model<Elections>,
     private readonly notificationGateway: NotificationGateway,
+    @InjectModel(Ballots.name)
+    private readonly ballotsModel: Model<Ballots>,
+    @InjectModel(Voters.name)
+    private readonly voterModels: Model<Voters>,
   ) { }
 
   async findAll() {
@@ -205,6 +212,73 @@ export class MeetingAttendeesService {
     }
   }
 
+  async updateAttendedTrue(meetingId: string, participantId: string, userId: string) {
+    try {
+      //Check if meetingId is exist or IsNotEmpty
+      const meetingExist = await this.meetingsModel.findById(new Types.ObjectId(meetingId));
+      if (!meetingExist) {
+        throw new Error(MESSAGE.MEETING_NOT_FOUND);
+      }
+      //Check if participantId is exist or IsNotEmpty
+      const participantExist = await this.electionParticipantsModel.findById(new Types.ObjectId(participantId));
+      if (!participantExist) {
+        throw new Error(MESSAGE.ELECTION_PARTICIPANT_NOT_FOUND);
+      }
+      console.log("meeting: ", meetingExist);
+      console.log("participantExist: ", participantExist);
+
+      //Tìm voter tương ứng với participantId và electionId
+      const voter = await this.voterModels.findOne({
+        electionId: participantExist.electionId,
+        userId: participantExist.userId
+      });
+      if (!voter) {
+        throw new Error("Không tìm thấy cử tri tương ứng với người tham dự cuộc họp để tạo phiếu bầu");
+      }
+
+
+      const meetingAttendee = await this.meetingAttendeesModel.findOneAndUpdate(
+        {
+          meetingId: new Types.ObjectId(meetingId),
+          participantId: new Types.ObjectId(participantId)
+        },
+        {
+
+          attended: true,
+          checkInTime: new Date(),
+          updatedBy: userId ? new Types.ObjectId(userId) : null,
+        },
+        { new: true })
+        .populate('meetingId')
+        .populate({
+          path: 'participantId',
+          populate: [
+            { path: 'electionId' },
+            { path: 'userId', select: 'fullName username email phone position department' }
+          ]
+        })
+        .exec();
+      //Check if meetingAttendee is exist or IsNotEmpty
+      if (meetingAttendee) {
+        const ballot = await this.ballotsModel.create({
+          electionId: participantExist.electionId,
+          voterId: voter._id,
+          status: STATUS.PENDING,
+          issuedAt: new Date(),
+          createdBy: userId ? new Types.ObjectId(userId) : null,
+        });
+        if (!ballot) {
+          throw new Error("Không thể tạo phiếu bầu");
+        }
+
+      } else {
+        throw new Error(MESSAGE.MEETING_ATTENDEE_NOT_FOUND);
+      }
+      return meetingAttendee;
+    } catch (error) {
+      throw error;
+    }
+  }
 
   async update(meetingAttendeeId: string, updateMeetingAttendee: UpdateMeetingAttendeeDto, userId: string) {
     try {

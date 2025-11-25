@@ -163,6 +163,7 @@ export class ResultsService {
           entityId: results[0]._id,
           votesCount: results[0].totalVotes,
           isFinal: true,
+          status: STATUS.SIGNED,
           createdBy: new Types.ObjectId(userId),
         });
 

@@ -47,7 +47,7 @@ export class BoardControlService {
     private readonly meetingsModel: Model<MeetingsDocument>,
     @InjectModel(MeetingAttendees.name)
     private readonly meetingAttendeesModel: Model<MeetingAttendeesDocument>,
-  ) {}
+  ) { }
 
   private ensureObjectId(id: string): Types.ObjectId {
     if (!Types.ObjectId.isValid(id)) {
@@ -100,7 +100,7 @@ export class BoardControlService {
         status: STATUS.PENDING,
         description: reportData.description || null,
         summary: reportData.summary || null,
-        fileUrl: reportData.fileUrl || null,
+        documentId: reportData.documentId ? new Types.ObjectId(reportData.documentId) : null,
         severity: reportData.severity || STATUS.ACTIVE,
       });
     } else {
@@ -108,7 +108,7 @@ export class BoardControlService {
       if (report.status === STATUS.PENDING) {
         report.description = reportData.description || report.description;
         report.summary = reportData.summary || report.summary;
-        report.fileUrl = reportData.fileUrl || report.fileUrl;
+        report.documentId = new Types.ObjectId(reportData.documentId) || new Types.ObjectId(report.documentId);
         report.severity = reportData.severity || report.severity;
         await report.save();
       }
@@ -124,14 +124,14 @@ export class BoardControlService {
     }
     const options: Intl.DateTimeFormatOptions = withTime
       ? {
-          hour: '2-digit',
-          minute: '2-digit',
-          second: '2-digit',
-          day: '2-digit',
-          month: '2-digit',
-          year: 'numeric',
-          hour12: false,
-        }
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour12: false,
+      }
       : { day: '2-digit', month: '2-digit', year: 'numeric' };
     return new Intl.DateTimeFormat('vi-VN', options).format(date);
   }
@@ -219,9 +219,9 @@ export class BoardControlService {
     // Đếm số người đã check-in (attended = true) từ MeetingAttendees
     const totalCheckin = meetingIds.length > 0
       ? await this.meetingAttendeesModel.countDocuments({
-          meetingId: { $in: meetingIds },
-          attended: true,
-        })
+        meetingId: { $in: meetingIds },
+        attended: true,
+      })
       : 0;
 
     const [totalVoters, castBallots, invalidBallots, results] = await Promise.all([
@@ -270,7 +270,7 @@ export class BoardControlService {
         const summaryData = JSON.parse(verificationReport.summary);
         checksumBefore = summaryData.checksumBefore || defaultChecksum;
         checksumAfter = summaryData.checksumAfter || defaultChecksum;
-        isConfirmed = !!verificationReport.signedBy;
+        isConfirmed = !!verificationReport.reviewedBy;
       } catch {
         // Nếu không parse được, dùng giá trị mặc định
       }
@@ -320,7 +320,7 @@ export class BoardControlService {
         type: populatedReport.type,
         description: populatedReport.description,
         summary: populatedReport.summary,
-        fileUrl: populatedReport.fileUrl,
+        documentId: populatedReport.documentId,
         status: populatedReport.status,
         severity: populatedReport.severity,
         createdAt: populatedReport.createdAt,
@@ -329,7 +329,6 @@ export class BoardControlService {
         createdBy: populatedReport.createdBy,
         updatedBy: populatedReport.updatedBy,
         reviewedBy: populatedReport.reviewedBy,
-        signedBy: populatedReport.signedBy,
         electionId: populatedReport.electionId,
       } : null,
     };
@@ -346,7 +345,6 @@ export class BoardControlService {
     const checksumBefore = this.buildChecksum(`${electionId}:${Date.now()}:before`);
     const checksumAfter = this.buildChecksum(`${electionId}:${Date.now()}:after`);
 
-    verificationReport.signedBy = userIdObjectId;
     verificationReport.reviewedBy = userIdObjectId;
     verificationReport.reviewedAt = new Date();
     verificationReport.summary = JSON.stringify({
@@ -392,7 +390,7 @@ export class BoardControlService {
       if (auditReport.status === STATUS.PENDING && reportData) {
         auditReport.description = reportData.description || auditReport.description;
         auditReport.summary = reportData.summary || auditReport.summary;
-        auditReport.fileUrl = reportData.fileUrl || auditReport.fileUrl;
+        auditReport.documentId = new Types.ObjectId(reportData.documentId || auditReport.documentId);
         auditReport.severity = reportData.severity || auditReport.severity;
         await auditReport.save();
       }
@@ -469,15 +467,15 @@ export class BoardControlService {
       id: populatedReport?._id ? `AUD-${populatedReport._id.toString().slice(-6).toUpperCase()}` : `AUD-${electionId.slice(-6).toUpperCase()}`,
       createdDate: populatedReport?.createdAt ? this.formatDate(populatedReport.createdAt, false) : this.formatDate(new Date(), false),
       reportPeriod: `${this.formatDate(election.startDate)} - ${this.formatDate(election.endDate)}`,
-      status: populatedReport?.signedBy ? 'Đã ký số' : populatedReport?.status === STATUS.PENDING ? 'Chờ ký duyệt' : populatedReport?.status || 'Chờ ký duyệt',
+      status: populatedReport?.reviewedBy ? 'Đã ký số' : populatedReport?.status === STATUS.PENDING ? 'Chờ ký duyệt' : populatedReport?.status || 'Chờ ký duyệt',
     };
 
     // Lấy thông tin người ký từ report
     let signerName = 'Ban Kiểm soát';
     let signerRole = 'Trưởng ban kiểm soát';
 
-    if (populatedReport?.signedBy && typeof populatedReport.signedBy === 'object') {
-      signerName = (populatedReport.signedBy as any)?.fullName || signerName;
+    if (populatedReport?.reviewedBy && typeof populatedReport.reviewedBy === 'object') {
+      signerName = (populatedReport.reviewedBy as any)?.fullName || signerName;
       // Có thể lấy role từ ElectionsParticipants nếu cần
     }
 
@@ -488,7 +486,7 @@ export class BoardControlService {
       signature: {
         signerName,
         signerRole,
-        isConfirmed: !!populatedReport?.signedBy,
+        isConfirmed: !!populatedReport?.reviewedBy,
       },
       // Thêm các trường từ report
       report: populatedReport ? {
@@ -496,7 +494,7 @@ export class BoardControlService {
         type: populatedReport.type,
         description: populatedReport.description,
         summary: populatedReport.summary,
-        fileUrl: populatedReport.fileUrl,
+        documentId: populatedReport.documentId,
         status: populatedReport.status,
         severity: populatedReport.severity,
         createdAt: populatedReport.createdAt,
@@ -505,7 +503,6 @@ export class BoardControlService {
         createdBy: populatedReport.createdBy,
         updatedBy: populatedReport.updatedBy,
         reviewedBy: populatedReport.reviewedBy,
-        signedBy: populatedReport.signedBy,
         electionId: populatedReport.electionId,
       } : null,
     };
@@ -519,7 +516,6 @@ export class BoardControlService {
     const electionObjectId = this.ensureObjectId(electionId);
     const auditReport = await this.getOrCreateReport(electionObjectId, 'AUDIT');
 
-    auditReport.signedBy = userIdObjectId;
     auditReport.reviewedBy = userIdObjectId;
     auditReport.reviewedAt = new Date();
 
