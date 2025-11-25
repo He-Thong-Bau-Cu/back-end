@@ -7,6 +7,7 @@ import { Thresholds } from './thresholds.schema';
 import { Elections } from './elections.schema';
 import { Users } from './users.schema';
 import { SEVERITY, STATUS } from 'src/common/enums/status.enum';
+import { ElectionDocuments } from './electionDocuments.schema';
 
 export type ReportsDocument = Reports & Document;
 
@@ -21,14 +22,14 @@ export class Reports extends BaseSchema {
   @Prop({ type: Types.ObjectId, ref: Users.name, default: null })
   reviewedBy: Types.ObjectId;
 
-  @Prop({ type: Types.ObjectId, ref: Users.name, default: null })
-  signedBy: Types.ObjectId;
+  // @Prop({ type: Types.ObjectId, ref: Users.name, default: null })
+  // signedBy: Types.ObjectId;
 
   @Prop({ default: null })
   description: string;
 
-  @Prop({ default: null })
-  fileUrl: string;
+  @Prop({ type: Types.ObjectId, ref: ElectionDocuments.name, default: null })
+  documentId: Types.ObjectId;
 
   @Prop({ default: STATUS.ACTIVE })
   status: string;
@@ -39,7 +40,7 @@ export class Reports extends BaseSchema {
   @Prop({ default: null })
   summary: string;
 
-  @Prop({ default: new Date() })
+  @Prop({ default: null })
   reviewedAt: Date;
 }
 

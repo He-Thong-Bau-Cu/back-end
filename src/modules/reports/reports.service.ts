@@ -30,7 +30,7 @@ export class ReportsService {
         ...createReport,
         electionId: new Types.ObjectId(createReport.electionId),
         reviewedBy: createReport.reviewedBy ? new Types.ObjectId(createReport.reviewedBy) : null,
-        signedBy: createReport.signedBy ? new Types.ObjectId(createReport.signedBy) : null,
+        documentId: createReport.documentId ? new Types.ObjectId(createReport.documentId) : null,
         createdBy: userId ? new Types.ObjectId(userId) : null,
       });
       return report;
@@ -58,7 +58,7 @@ export class ReportsService {
         .findById(new Types.ObjectId(id))
         .populate('electionId')
         .populate('reviewedBy', 'username fullName email position')
-        .populate('signedBy', 'username fullName email position')
+        .populate('documentId', 'title type content fileUrl status')
         .populate('createdBy', 'username fullName email position')
         .populate('updatedBy', 'username fullName email position')
         .exec();
@@ -85,7 +85,7 @@ export class ReportsService {
         .find({ electionId: new Types.ObjectId(electionId) })
         .populate('electionId')
         .populate('reviewedBy', 'username fullName email position')
-        .populate('signedBy', 'username fullName email position')
+        .populate('documentId', 'title type content fileUrl status')
         .populate('createdBy', 'username fullName email position')
         .populate('updatedBy', 'username fullName email position')
         .exec();
@@ -113,12 +113,12 @@ export class ReportsService {
           ...updateReport,
           electionId: updateReport.electionId ? new Types.ObjectId(updateReport.electionId) : null,
           reviewedBy: updateReport.reviewedBy ? new Types.ObjectId(updateReport.reviewedBy) : null,
-          signedBy: updateReport.signedBy ? new Types.ObjectId(updateReport.signedBy) : null,
+          documentId: updateReport.documentId ? new Types.ObjectId(updateReport.documentId) : null,
           updatedBy: userId ? new Types.ObjectId(userId) : null,
         }, { new: true })
         .populate('electionId')
         .populate('reviewedBy', 'username fullName email position')
-        .populate('signedBy', 'username fullName email position')
+        .populate('documentId', 'title type content fileUrl status')
         .populate('createdBy', 'username fullName email position')
         .populate('updatedBy', 'username fullName email position')
         .exec();

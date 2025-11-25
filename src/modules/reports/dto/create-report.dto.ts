@@ -32,13 +32,13 @@ export class CreateReportDto {
   @IsString()
   reviewedBy: string;
 
-  @ApiProperty({
-    description: 'Người ký số báo cáo ',
-    example: '6903a0eda315db370563b13b',
-  })
-  @IsString()
-  @IsNotEmpty()
-  signedBy: string;
+  // @ApiProperty({
+  //   description: 'Người ký số báo cáo ',
+  //   example: '6903a0eda315db370563b13b',
+  // })
+  // @IsString()
+  // @IsNotEmpty()
+  // signedBy: string;
 
   @ApiPropertyOptional({
     description: 'Mô tả chi tiết nội dung báo cáo',
@@ -54,7 +54,7 @@ export class CreateReportDto {
   })
   @IsString()
   @IsOptional()
-  fileUrl: string;
+  documentId: string;
 
   @ApiPropertyOptional({
     description: 'Trạng thái báo cáo',

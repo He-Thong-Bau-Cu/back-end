@@ -180,4 +180,24 @@ export class MeetingAttendeesController {
     }
   }
 
+  @Patch('meetings/:meetingId/participants/:participantId/checkin')
+  @ApiOperation({ summary: "Cập nhật trạng thái đã tham dự cuộc họp" })
+  @ApiResponse({ status: 200, description: "Cập nhật trạng thái đã tham dự cuộc họp thành công" })
+  @ApiResponse({ status: 400, description: "Dữ liệu không hợp lệ" })
+  @ApiResponse({ status: 500, description: "Lỗi server" })
+  async updateAttendedTrue(
+    @Param('meetingId') meetingId: string,
+    @Param('participantId') participantId: string,
+    @Req() req: CustomRequest) {
+    try {
+      const resData = await this.meetingAttendeesService.updateAttendedTrue(meetingId, participantId, req.user.sub);
+      return BaseResponse.success(resData, MESSAGE.MEETING_ATTENDEE_UPDATE_ATTENDED_TRUE_SUCCESS, HttpStatus.OK);
+    } catch (error) {
+      throw new HttpException(
+        { message: error.message },
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
 }

@@ -156,6 +156,7 @@ export enum MESSAGE {
   MEETING_ATTENDEE_GET_ALL_SUCCESS = 'Lấy danh sách người tham gia trong cuộc họp thành công',
   MEETING_ATTENDEE_GET_NOT_ATTENDED_BY_ELECTION_ID_SUCCESS = "Lấy danh sách người vắng mặt trong cuộc họp theo cuộc bầu cử thành công",
   MEETING_ATTENDEE_GET_ATTENDED_BY_ELECTION_ID_SUCCESS = "Lấy danh sách người đã tham dự cuộc họp theo cuộc bầu cử thành công",
+  MEETING_ATTENDEE_UPDATE_ATTENDED_TRUE_SUCCESS = "Cập nhật trạng thái đã tham dự thành công",
 
 
   // Delegations
