@@ -1213,7 +1213,6 @@ export class DelegationsService {
         },
         { $sort: { 'election.startDate': 1 } },
       ]);
-      console.log(delegationsGrouped);
 
       return delegationsGrouped;
     } catch (error) {
@@ -1294,7 +1293,10 @@ export class DelegationsService {
       );
       if (signFile) {
         const delegation = await this.delegationModel
-          .find({ electionId: new Types.ObjectId(electionId) })
+          .find({
+            _id: { $in: delegationIds },
+            electionId: new Types.ObjectId(electionId)
+           })
           .exec();
 
         if (delegation.length > 0) {
