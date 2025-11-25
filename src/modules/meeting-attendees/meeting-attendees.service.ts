@@ -9,6 +9,7 @@ import { ElectionsParticipants } from 'src/database/schemas/electionParticipants
 import { MESSAGE } from 'src/common/enums/message.enum';
 import { paginate } from 'src/common/dto/paignation';
 import { Elections } from 'src/database/schemas/elections.schema';
+import { NotificationGateway } from '../notification/notification.gateway';
 import { Ballots } from 'src/database/schemas/ballots.schema';
 import { STATUS } from 'src/common/enums/status.enum';
 import { Voters } from 'src/database/schemas/voters.schema';
@@ -24,6 +25,7 @@ export class MeetingAttendeesService {
     private readonly electionParticipantsModel: Model<ElectionsParticipants>,
     @InjectModel(Elections.name)
     private readonly electionsModel: Model<Elections>,
+    private readonly notificationGateway: NotificationGateway,
     @InjectModel(Ballots.name)
     private readonly ballotsModel: Model<Ballots>,
     @InjectModel(Voters.name)
@@ -86,7 +88,51 @@ export class MeetingAttendeesService {
         createdBy: userId ? new Types.ObjectId(userId) : null,
       });
 
-      return meetingAttendee;
+      // Populate để có đầy đủ thông tin
+      const populatedAttendee = await this.meetingAttendeesModel
+        .findById(meetingAttendee._id)
+        .populate('meetingId')
+        .populate({
+          path: 'participantId',
+          populate: [
+            { path: 'electionId' },
+            { path: 'userId', select: 'fullName username email phone position department' }
+          ]
+        })
+        .exec();
+
+      // Emit socket để cập nhật thống kê realtime
+      try {
+        const meeting = await this.meetingsModel.findById(createMeetingAttendee.meetingId).lean();
+        if (meeting && meeting.electionId) {
+          const electionId = meeting.electionId.toString();
+          // Lấy thống kê mới nhất
+          const totalAttendees = await this.meetingAttendeesModel.countDocuments({
+            meetingId: new Types.ObjectId(createMeetingAttendee.meetingId),
+          });
+          const attendedCount = await this.meetingAttendeesModel.countDocuments({
+            meetingId: new Types.ObjectId(createMeetingAttendee.meetingId),
+            attended: true,
+          });
+
+          // Emit socket để cập nhật thống kê
+          this.notificationGateway.dataToElectionId(electionId, {
+            type: 'checkin-update',
+            meetingId: createMeetingAttendee.meetingId,
+            stats: {
+              total: totalAttendees,
+              attended: attendedCount,
+              notAttended: totalAttendees - attendedCount,
+            },
+            attendee: populatedAttendee,
+          });
+        }
+      } catch (socketError) {
+        console.error('Error emitting socket:', socketError);
+        // Không throw error vì đây chỉ là thông báo realtime
+      }
+
+      return populatedAttendee || meetingAttendee;
     } catch (error) {
       throw error;
     }
@@ -128,6 +174,38 @@ export class MeetingAttendeesService {
       if (!meetingAttendee) {
         throw new Error(MESSAGE.MEETING_ATTENDEE_NOT_FOUND);
       }
+
+      // Emit socket để cập nhật thống kê realtime
+      try {
+        const meeting = await this.meetingsModel.findById(meetingId).lean();
+        if (meeting && meeting.electionId) {
+          const electionId = meeting.electionId.toString();
+          // Lấy thống kê mới nhất
+          const totalAttendees = await this.meetingAttendeesModel.countDocuments({
+            meetingId: new Types.ObjectId(meetingId),
+          });
+          const attendedCount = await this.meetingAttendeesModel.countDocuments({
+            meetingId: new Types.ObjectId(meetingId),
+            attended: true,
+          });
+
+          // Emit socket để cập nhật thống kê
+          this.notificationGateway.dataToElectionId(electionId, {
+            type: 'checkin-update',
+            meetingId: meetingId,
+            stats: {
+              total: totalAttendees,
+              attended: attendedCount,
+              notAttended: totalAttendees - attendedCount,
+            },
+            attendee: meetingAttendee,
+          });
+        }
+      } catch (socketError) {
+        console.error('Error emitting socket:', socketError);
+        // Không throw error vì đây chỉ là thông báo realtime
+      }
+
       return meetingAttendee;
     } catch (error) {
       throw error;
@@ -246,25 +324,44 @@ export class MeetingAttendeesService {
 
       const meetingAttendees = await this.meetingAttendeesModel
         .find({ meetingId: new Types.ObjectId(meetingId) })
-        .populate('meetingId')
+        .populate({
+          path: 'meetingId',
+          select: 'title meetingDate location status electionId',
+          populate: {
+            path: 'electionId',
+            select: 'title decisionName decisionNumber'
+          }
+        })
         .populate({
           path: 'participantId',
           populate: [
-            { path: 'electionId' },
-            { path: 'userId', select: 'fullName username email phone position department' },
-            { path: 'roleId', select: 'roleName roleCode description status' },
-            { path: 'createdBy', select: 'username fullName position department' },
-            { path: 'updatedBy', select: 'username fullName position department' }
+            {
+              path: 'electionId',
+              select: 'title decisionName decisionNumber startDate endDate'
+            },
+            {
+              path: 'userId',
+              select: 'fullName username email phone position department'
+            },
+            {
+              path: 'roleId',
+              select: 'roleName roleCode description status'
+            },
+            {
+              path: 'createdBy',
+              select: 'username fullName position department'
+            },
+            {
+              path: 'updatedBy',
+              select: 'username fullName position department'
+            }
           ]
         })
+        .sort({ createdAt: -1 }) // Sắp xếp theo thời gian tạo mới nhất
         .exec();
 
-      //Check if meetingAttendees is exist or IsNotEmpty
-      if (!meetingAttendees) {
-        throw new Error(MESSAGE.MEETING_ATTENDEE_NOT_FOUND);
-      }
-
-      return meetingAttendees;
+      // Trả về mảng rỗng nếu không có dữ liệu thay vì throw error
+      return meetingAttendees || [];
     } catch (error) {
       throw error;
     }

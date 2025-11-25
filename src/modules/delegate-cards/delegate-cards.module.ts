@@ -39,5 +39,6 @@ import { MinioModule } from '../minio/minio.module';
   ],
   controllers: [DelegateCardsController],
   providers: [DelegateCardsService],
+  exports: [DelegateCardsService],
 })
 export class DelegateCardsModule { }

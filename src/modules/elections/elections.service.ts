@@ -722,6 +722,56 @@ export class ElectionsService {
     }
   }
 
+  async previewElectionDecisionPdf(electionId: string) {
+    try {
+      // 1. Kiểm tra election có tồn tại không
+      const election = await this.electionsModel
+        .findById(new Types.ObjectId(electionId))
+        .populate('typeId')
+        .populate('votingMethodId')
+        .populate('thresholdId')
+        .populate('createdBy', 'username fullName email position')
+        .exec();
+
+      if (!election) {
+        throw new NotFoundException(MESSAGE.ELECTION_NOT_FOUND);
+      }
+
+      // 2. Lấy tên công ty từ SystemConfig
+      const companyConfig = await this.systemConfigModel
+        .findOne({ configKey: 'COMPANY_NAME' })
+        .exec();
+      const companyName =
+        companyConfig?.configValue?.name ||
+        companyConfig?.configValue ||
+        'CÔNG TY CỔ PHẦN PHÁT TRIỂN AVG';
+
+      // 3. Lấy thông tin meeting
+      const meeting = await this.meetingsModel
+        .findOne({ electionId: new Types.ObjectId(electionId) })
+        .exec();
+
+      // 4. Lấy danh sách participants để tạo chương trình họp
+      const participants = await this.electionParticipantsModel
+        .find({ electionId: new Types.ObjectId(electionId) })
+        .populate('userId', 'fullName position')
+        .populate('roleId', 'roleName roleCode')
+        .exec();
+
+      // 5. Tạo PDF quyết định và chương trình họp
+      const pdfFile = await this.generateElectionDecisionPdf(
+        election,
+        meeting,
+        participants,
+        companyName,
+      );
+
+      return pdfFile;
+    } catch (error) {
+      throw error;
+    }
+  }
+
   async generateElectionDecisionPdf(
     election: any,
     meeting: any,
@@ -1197,6 +1247,22 @@ export class ElectionsService {
         isSubmitForApproval,
       } = dto;
 
+      // Validation khi gửi duyệt: kiểm tra các trường bắt buộc
+      if (isSubmitForApproval) {
+        if (!electionEntities || !Array.isArray(electionEntities) || electionEntities.length === 0) {
+          throw new Error('Vui lòng thêm ít nhất một ứng viên/bầu chọn trước khi gửi duyệt');
+        }
+        if (!electionDocuments || !Array.isArray(electionDocuments) || electionDocuments.length === 0) {
+          throw new Error('Vui lòng thêm ít nhất một tài liệu trước khi gửi duyệt');
+        }
+        if (!voters || !Array.isArray(voters) || voters.length === 0) {
+          throw new Error('Vui lòng thêm ít nhất một cử tri trước khi gửi duyệt');
+        }
+        if (!participants || !Array.isArray(participants) || participants.length === 0) {
+          throw new Error('Vui lòng thêm ít nhất một thành viên tổ chức trước khi gửi duyệt');
+        }
+      }
+
       // 1. Sử dụng trực tiếp typeId và thresholdId
       const typeId = meetingInfo.type as string;
       const thresholdId = meetingInfo.threshold as string;
@@ -1286,6 +1352,27 @@ export class ElectionsService {
 
       // 4. Xử lý Voters và VotingRights
       if (voters && Array.isArray(voters)) {
+        // Lấy role VOTER từ database (chỉ lấy 1 lần)
+        const voterRole = await this.rolesModel.findOne({ roleCode: USER_ROLE.VOTER });
+
+        // Lấy danh sách userIds từ list voters mới
+        const voterUserIds = voters.map((v: any) => new Types.ObjectId(v.userId));
+
+        // Xóa các election participants có role VOTER nhưng userId không còn trong list mới
+        if (voterRole && voterUserIds.length > 0) {
+          await this.electionParticipantsModel.deleteMany({
+            electionId: new Types.ObjectId(electionId),
+            roleId: voterRole._id,
+            userId: { $nin: voterUserIds },
+          });
+        } else if (voterRole) {
+          // Nếu không có voters trong request, xóa tất cả election participants có role VOTER
+          await this.electionParticipantsModel.deleteMany({
+            electionId: new Types.ObjectId(electionId),
+            roleId: voterRole._id,
+          });
+        }
+
         for (const voterItem of voters) {
           let voter;
           if (voterItem._id) {
@@ -1307,6 +1394,38 @@ export class ElectionsService {
               status: 'PENDING',
               createdBy: new Types.ObjectId(userId),
             });
+          }
+
+          // Tự động tạo/cập nhật election participant cho voter
+          if (voter && voterRole) {
+            const existingParticipant = await this.electionParticipantsModel.findOne({
+              electionId: new Types.ObjectId(electionId),
+              userId: new Types.ObjectId(voterItem.userId),
+              roleId: voterRole._id,
+            });
+
+            if (existingParticipant) {
+              // Update existing participant
+              await this.electionParticipantsModel.findByIdAndUpdate(
+                existingParticipant._id,
+                {
+                  position: (await this.userModel.findById(new Types.ObjectId(voterItem.userId)))?.position || 'Voter',
+                  updatedBy: new Types.ObjectId(userId),
+                },
+                { new: true },
+              );
+            } else {
+              // Create new participant
+              const userInfo = await this.userModel.findById(new Types.ObjectId(voterItem.userId));
+              await this.electionParticipantsModel.create({
+                electionId: new Types.ObjectId(electionId),
+                userId: new Types.ObjectId(voterItem.userId),
+                roleId: voterRole._id,
+                position: userInfo?.position || 'Voter',
+                status: STATUS.ACTIVE,
+                createdBy: new Types.ObjectId(userId),
+              });
+            }
           }
 
           if (voter && voterItem.percentage !== undefined) {
@@ -1332,6 +1451,15 @@ export class ElectionsService {
               });
             }
           }
+        }
+      } else {
+        // Nếu không có voters trong request, xóa tất cả election participants có role VOTER
+        const voterRole = await this.rolesModel.findOne({ roleCode: USER_ROLE.VOTER });
+        if (voterRole) {
+          await this.electionParticipantsModel.deleteMany({
+            electionId: new Types.ObjectId(electionId),
+            roleId: voterRole._id,
+          });
         }
       }
 
@@ -1421,42 +1549,34 @@ export class ElectionsService {
         });
       }
 
-      // 8. Xử lý MeetingAttendees cho participants có role voter
-      if (participants && Array.isArray(participants) && meeting) {
+      // 8. Xử lý MeetingAttendees cho participants có role voter (chỉ từ danh sách voters)
+      if (meeting) {
         // Lấy role voter
         const voterRole = await this.rolesModel.findOne({ roleCode: USER_ROLE.VOTER });
         if (voterRole) {
-          // Lọc participants có role voter
-          const voterParticipants = participants.filter(
-            (p: any) => String(p.roleId) === String(voterRole._id),
-          );
+          // Lấy danh sách election participants có role VOTER từ database (dựa trên voters đã được tạo/cập nhật)
+          const voterParticipants = await this.electionParticipantsModel.find({
+            electionId: new Types.ObjectId(electionId),
+            roleId: voterRole._id,
+          }).exec();
 
-          // Xóa các meetingAttendees cũ của meeting này
+          // Xóa tất cả meetingAttendees cũ của meeting này (logic ghi đè)
           await this.meetingAttendeesModel.deleteMany({
             meetingId: meeting._id,
           });
 
-          // Tạo meetingAttendees mới cho voter participants
+          // Tạo meetingAttendees mới cho các participants có role VOTER
           for (const voterParticipant of voterParticipants) {
-            // Tìm participant record để lấy _id
-            let participantRecord;
-            if (voterParticipant._id) {
-              participantRecord = await this.electionParticipantsModel.findById(
-                new Types.ObjectId(voterParticipant._id),
-              );
-            } else {
-              // Nếu chưa có _id, tìm participant vừa tạo
-              participantRecord = await this.electionParticipantsModel.findOne({
-                electionId: new Types.ObjectId(electionId),
-                userId: new Types.ObjectId(voterParticipant.userId),
-                roleId: new Types.ObjectId(voterParticipant.roleId),
-              });
-            }
+            // Kiểm tra xem đã có meetingAttendee chưa (tránh duplicate)
+            const existingAttendee = await this.meetingAttendeesModel.findOne({
+              meetingId: meeting._id,
+              participantId: voterParticipant._id,
+            });
 
-            if (participantRecord) {
+            if (!existingAttendee) {
               await this.meetingAttendeesModel.create({
                 meetingId: meeting._id,
-                participantId: participantRecord._id,
+                participantId: voterParticipant._id,
                 checkInTime: meeting.meetingDate || updatedElection.startDate,
                 attended: false,
                 createdBy: new Types.ObjectId(userId),

@@ -41,7 +41,16 @@ export class NotificationGateway implements OnGatewayConnection, OnGatewayDiscon
   }
 
   dataToElectionId(electionId: string, data: any) {
+    // Join room theo electionId để nhận cập nhật
     this.server.to(electionId).emit('transferData', data);
+    // Cũng emit broadcast để đảm bảo tất cả client đều nhận được
+    this.server.emit('transferData', data);
     console.log('Emitting to electionId:', electionId, 'data:', data);
+  }
+
+  // Helper method để client join room theo electionId
+  joinElectionRoom(client: Socket, electionId: string) {
+    client.join(electionId);
+    console.log('Client joined election room:', electionId);
   }
 }

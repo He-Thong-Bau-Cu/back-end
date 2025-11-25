@@ -9,11 +9,13 @@ import {
   Post,
   Put,
   Req,
+  Res,
   UploadedFile,
   UseInterceptors,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiBearerAuth } from '@nestjs/swagger';
 import { BaseResponse } from 'src/common/dto/base-response.dto';
+import { Response } from 'express';
 import { MESSAGE } from 'src/common/enums/message.enum';
 import { ElectionsService } from './elections.service';
 import { METHOD } from 'src/common/enums/method.enum';
@@ -260,6 +262,21 @@ export class ElectionsController {
         'Từ chối cuộc bầu cử thành công!',
         HttpStatus.OK,
       );
+    } catch (error) {
+      throw new HttpException({ message: error.message }, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+  }
+
+  @Get('preview-pdf/:electionId')
+  @ApiOperation({ summary: 'Xem preview PDF quyết định cuộc bầu cử' })
+  @ApiResponse({ status: 200, description: 'Trả về PDF file' })
+  @ApiResponse({ status: 500, description: 'Lỗi server' })
+  async previewPdf(@Param('electionId') electionId: string, @Res() res: Response): Promise<void> {
+    try {
+      const pdfBuffer = await this.electionsService.previewElectionDecisionPdf(electionId);
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `inline; filename="preview-${electionId}.pdf"`);
+      res.send(pdfBuffer);
     } catch (error) {
       throw new HttpException({ message: error.message }, HttpStatus.INTERNAL_SERVER_ERROR);
     }

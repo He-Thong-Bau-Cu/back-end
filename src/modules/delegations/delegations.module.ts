@@ -14,6 +14,10 @@ import { ElectionsParticipants, ElectionsParticipantsSchema } from 'src/database
 import { Roles, RolesSchema } from 'src/database/schemas/roles.schema';
 import { VotingRights, VotingRightsSchema } from 'src/database/schemas/votingRights.schema';
 import { NotificationModule } from '../notification/notification.module';
+import { DelegateCardsModule } from '../delegate-cards/delegate-cards.module';
+import { MeetingAttendees, MeetingAttendeesSchema } from 'src/database/schemas/meetingAttendees.schema';
+import { Meetings, MeetingsSchema } from 'src/database/schemas/meetings.schema';
+import { DelegateCard, DelegateCardSchema } from 'src/database/schemas/delegateCard.schema';
 
 @Module({
   imports: [
@@ -26,11 +30,15 @@ import { NotificationModule } from '../notification/notification.module';
       { name: ElectionsParticipants.name, schema: ElectionsParticipantsSchema },
       { name: Roles.name, schema: RolesSchema },
       { name: VotingRights.name, schema: VotingRightsSchema },
+      { name: MeetingAttendees.name, schema: MeetingAttendeesSchema },
+      { name: Meetings.name, schema: MeetingsSchema },
+      { name: DelegateCard.name, schema: DelegateCardSchema },
     ]),
     UsersModule,
     SignatureModule,
     MinioModule,
-    NotificationModule
+    NotificationModule,
+    DelegateCardsModule
   ],
   controllers: [DelegationsController],
   providers: [DelegationsService],
