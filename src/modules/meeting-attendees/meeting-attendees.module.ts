@@ -7,6 +7,7 @@ import { MeetingAttendees, MeetingAttendeesSchema } from 'src/database/schemas/m
 import { Meetings, MeetingsSchema } from 'src/database/schemas/meetings.schema';
 import { ElectionsParticipants, ElectionsParticipantsSchema } from 'src/database/schemas/electionParticipants.schema';
 import { Elections, ElectionsSchema } from 'src/database/schemas/elections.schema';
+import { NotificationModule } from '../notification/notification.module';
 
 @Module({
   imports: [
@@ -15,7 +16,8 @@ import { Elections, ElectionsSchema } from 'src/database/schemas/elections.schem
       { name: Meetings.name, schema: MeetingsSchema },
       { name: ElectionsParticipants.name, schema: ElectionsParticipantsSchema },
       { name: Elections.name, schema: ElectionsSchema },
-    ])
+    ]),
+    NotificationModule,
   ],
   controllers: [MeetingAttendeesController],
   providers: [MeetingAttendeesService],
