@@ -185,6 +185,8 @@ export class BallotsService {
         throw new Error(MESSAGE.BALLOT_NOT_FOUND);
       }
 
+      await this.notificationService.getBallotsVoter(voterId, ballots);
+
       return ballots;
     } catch (error) {
       throw error;
@@ -506,10 +508,7 @@ export class BallotsService {
       };
       await this.notificationService.transferDataRealTime(electionId, data);
 
-      return {
-        total: ballots,
-        ballotStatus,
-      };
+      return data;
     } catch (error) {
       throw error;
     }
