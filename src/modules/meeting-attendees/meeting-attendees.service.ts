@@ -183,6 +183,30 @@ export class MeetingAttendeesService {
         throw new Error(MESSAGE.MEETING_ATTENDEE_NOT_FOUND || "Không tìm thấy bản ghi tham gia cuộc họp");
       }
 
+      const voter = await this.voterModels.findOne({
+        electionId: electionParticipant.electionId,
+        userId: electionParticipant.userId
+      });
+      if (!voter) {
+        throw new Error("Không tìm thấy cử tri tương ứng với người tham dự cuộc họp để tạo phiếu bầu");
+      }
+
+      if (meetingAttendee) {
+        const ballot = await this.ballotsModel.create({
+          electionId: electionParticipant.electionId,
+          voterId: voter._id,
+          status: STATUS.PENDING,
+          issuedAt: new Date(),
+          createdBy: userId ? new Types.ObjectId(userId) : null,
+        });
+        if (!ballot) {
+          throw new Error("Không thể tạo phiếu bầu");
+        }
+
+      } else {
+        throw new Error(MESSAGE.MEETING_ATTENDEE_NOT_FOUND);
+      }
+
       // Emit socket để cập nhật thống kê realtime
       try {
         const electionIdStr = electionId.toString();

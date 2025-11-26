@@ -204,7 +204,6 @@ export class BoardControlService {
       .findById(verificationReport._id)
       .populate('electionId', 'title decisionNumber decisionName status statusData startDate endDate delegationStart delegationEnd')
       .populate('reviewedBy', 'username fullName email position')
-      .populate('signedBy', 'username fullName email position')
       .populate('createdBy', 'username fullName email position')
       .populate('updatedBy', 'username fullName email position')
       .lean();
@@ -458,7 +457,6 @@ export class BoardControlService {
       .findById(auditReport._id)
       .populate('electionId', 'title decisionNumber decisionName status statusData startDate endDate delegationStart delegationEnd')
       .populate('reviewedBy', 'username fullName email position')
-      .populate('signedBy', 'username fullName email position')
       .populate('createdBy', 'username fullName email position')
       .populate('updatedBy', 'username fullName email position')
       .lean();

@@ -3,7 +3,7 @@ import { DelegationsService } from './delegations.service';
 import { getModelToken } from '@nestjs/mongoose';
 import { Delegations } from 'src/database/schemas/delegations.schema';
 import { Elections } from 'src/database/schemas/elections.schema';
-import { User } from 'src/database/schemas/users.schema';
+import { Users } from 'src/database/schemas/users.schema';
 import { ElectionDocuments } from 'src/database/schemas/electionDocuments.schema';
 import { Types } from 'mongoose';
 

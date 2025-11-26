@@ -297,6 +297,22 @@ export class DelegateCardsService {
     }
   }
 
+  async checkDelegateCardExists(electionId: string, voterId: string, delegationId?: string): Promise<boolean> {
+    try {
+      const existsQuery: any = {
+        electionId: new Types.ObjectId(electionId),
+        voterId: new Types.ObjectId(voterId),
+      };
+      if (delegationId) {
+        existsQuery.delegationId = new Types.ObjectId(delegationId);
+      }
+      const delegateCardExists = await this.delegateCardModel.exists(existsQuery);
+      return !!delegateCardExists;
+    } catch (error) {
+      throw error;
+    }
+  }
+
   async getDelegateCardsActive() {
     try {
       const now = new Date();

@@ -334,4 +334,19 @@ export class ElectionsController {
       throw new HttpException({ message: error.message }, HttpStatus.INTERNAL_SERVER_ERROR);
     }
   }
+
+  @Get(':electionId/current-stage')
+  @ApiOperation({ summary: 'Lấy giai đoạn hiện tại của cuộc bầu cử' })
+  @ApiParam({ name: 'electionId', description: 'ID của cuộc bầu cử', type: String })
+  @ApiResponse({ status: 200, description: 'Lấy thông tin giai đoạn hiện tại thành công' })
+  @ApiResponse({ status: 404, description: 'Không tìm thấy cuộc bầu cử' })
+  @ApiResponse({ status: 500, description: 'Lỗi server' })
+  async getCurrentStage(@Param('electionId') electionId: string): Promise<BaseResponse> {
+    try {
+      const resData = await this.electionsService.getCurrentStage(electionId);
+      return BaseResponse.success(resData, 'Lấy thông tin giai đoạn hiện tại thành công', HttpStatus.OK);
+    } catch (error) {
+      throw new HttpException({ message: error.message }, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+  }
 }
