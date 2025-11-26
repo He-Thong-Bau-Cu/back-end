@@ -52,7 +52,7 @@ export class BallotsService {
     private readonly signingService: SigningService,
     private readonly fileService: MinioService,
     private readonly redisService: RedisService,
-  ) {}
+  ) { }
 
   async getById(id: string) {
     try {
@@ -644,6 +644,7 @@ export class BallotsService {
       const signFile = await this.signingService.signPdfWithP12(pdfPath, p12File.buffer, password);
       if (signFile) {
         ballot.castAt = new Date();
+        ballot.status = STATUS.CAST;
         await ballot.save();
 
         const fileUpload = await this.fileService.uploadSignedPdf(
@@ -658,6 +659,7 @@ export class BallotsService {
             title: `File phiếu bầu - ${ballot._id}`,
             type: FileType.VOTER_SIGNED_BALLOT,
             fileUrl: fileUpload.url,
+            status: STATUS.SIGNED,
             createdBy: userId && Types.ObjectId.isValid(userId) ? new Types.ObjectId(userId) : null,
           });
         }

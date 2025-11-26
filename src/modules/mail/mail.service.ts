@@ -125,6 +125,51 @@ export class MailService {
     });
   }
 
+  // Hàm gửi mail thông báo người ký báo cáo
+  async sendMailSignedReport(
+    to: string,
+    signerName: string,
+    signerPosition: string,
+    reportDescription: string,
+    electionTitle: string,
+    signedAt: Date,
+    pathFile: Buffer
+  ) {
+    await this.transporter.sendMail({
+      from: `"Hệ thống bầu cử" <${process.env.EMAIL_USERNAME}>`,
+      to,
+      subject: `Báo cáo đã được ký`,
+      html: `
+      <p>Chào anh/chị, ${signerName}</p>
+      <p><b>${reportDescription}</b> thuộc cuộc bầu cử <b>${electionTitle}</b> đã được ký số thành công.</p>
+
+      <p><b>Thông tin chữ ký:</b></p>
+      <ul>
+        <li><b>Người ký:</b> ${signerName}</li>
+        <li><b>Chức vụ:</b> ${signerPosition}</li>
+        <li><b>Thời gian ký:</b> ${signedAt.toLocaleString('vi-VN')}</li>
+      </ul>
+
+      <p>Vui lòng xem tệp PDF đính kèm để xem báo cáo đã ký.</p>
+      <br/>
+
+      <p style="font-size:13px;color:#6b7280;">
+        Nếu có thắc mắc, vui lòng liên hệ <b>employee.system.work@gmail.com</b>
+      </p>
+      <br/>
+      <p>Trân trọng.</p>
+    `,
+      attachments: [
+        {
+          filename: `bao-cao-da-ky.pdf`,
+          content: pathFile,
+          contentType: 'application/pdf',
+        },
+      ],
+    });
+  }
+
+
   getHtmlTemplateDelegate(fullName: string, username: string, password: string) {
     return `
     <div style="font-family: Arial, sans-serif; padding: 20px; color: #333;">

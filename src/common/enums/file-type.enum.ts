@@ -34,6 +34,9 @@ export enum FileType {
   // Signature related files
   SIGNED_DOCUMENT = 'signed-documents',
 
+  //Signature reports
+  SIGNED_REPORT = 'signed-reports',
+
   // General
   TEMP = 'temp',
   UPLOAD = 'uploads',

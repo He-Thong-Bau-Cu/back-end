@@ -1296,7 +1296,7 @@ export class DelegationsService {
           .find({
             _id: { $in: delegationIds },
             electionId: new Types.ObjectId(electionId)
-           })
+          })
           .exec();
 
         if (delegation.length > 0) {
@@ -2065,6 +2065,9 @@ export class DelegationsService {
       ) {
         throw new Error(MESSAGE.DELEGATE_INFO_INCOMPLETE);
       }
+      await this.validateCitizenId(delegateInfo.citizenId);
+      await this.validatePhone(delegateInfo.phone);
+      await this.validateEmail(delegateInfo.email);
     }
   }
   private async validateDelegator(dto: CreateDelegationDto) {
@@ -2160,5 +2163,17 @@ export class DelegationsService {
 
     const exists = await this.userModel.exists({ _id: new Types.ObjectId(dto.confirmedBy) });
     if (!exists) throw new Error(MESSAGE.USER_NOT_FOUND);
+  }
+  private async validateCitizenId(citizenId: string) {
+    const exists = await this.userModel.exists({ citizenId: citizenId });
+    if (exists) throw new Error("CMND/CCCD đã tồn tại trong hệ thống");
+  }
+  private async validatePhone(phone: string) {
+    const exists = await this.userModel.exists({ phone: phone });
+    if (exists) throw new Error("Số điện thoại đã tồn tại trong hệ thống");
+  }
+  private async validateEmail(email: string) {
+    const exists = await this.userModel.exists({ email: email });
+    if (exists) throw new Error("Email đã tồn tại trong hệ thống");
   }
 }

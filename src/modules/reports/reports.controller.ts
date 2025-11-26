@@ -1,11 +1,14 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, HttpException, HttpStatus, Put, Req } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, HttpException, HttpStatus, Put, Req, Res, UseInterceptors, UploadedFile } from '@nestjs/common';
 import { ReportsService } from './reports.service';
 import { CreateReportDto } from './dto/create-report.dto';
 import { UpdateReportDto } from './dto/update-report.dto';
-import { ApiBearerAuth, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiBody, ApiConsumes, ApiOperation, ApiParam, ApiProduces, ApiResponse } from '@nestjs/swagger';
 import { BaseResponse } from 'src/common/dto/base-response.dto';
 import { MESSAGE } from 'src/common/enums/message.enum';
 import { CustomRequest } from 'src/common/middleware/auth.middleware';
+import { Response } from 'express';
+import { FileInterceptor } from '@nestjs/platform-express';
+
 
 @ApiBearerAuth('access-token')
 @Controller('reports')
@@ -97,4 +100,69 @@ export class ReportsController {
       );
     }
   }
+
+  @Get('pdf/:id')
+  @ApiProduces('application/pdf')
+  @ApiParam({ name: 'id', description: 'ID của báo cáo' })
+  @ApiOperation({ summary: 'Tải PDF báo cáo theo ID' })
+  @ApiResponse({ status: 200, description: 'Tải PDF báo cáo' })
+  @ApiResponse({ status: 404, description: 'Không tìm thấy báo cáo' })
+  @ApiResponse({ status: 500, description: 'Lỗi server' })
+  async getReportPdf(@Param('id') id: string, @Res() res: Response): Promise<void> {
+    try {
+      const pdfBuffer = await this.reportsService.generateReportPDF(id);
+      if (!pdfBuffer) throw new Error('PDF không tồn tại');
+
+      res.set({
+        'Content-Type': 'application/pdf',
+        'Content-Disposition': `attachment; filename="report_${id}.pdf"`,
+        'Content-Length': pdfBuffer.length,
+      });
+
+      res.send(pdfBuffer);
+    } catch (error) {
+      res.status(404).json({ message: error.message });
+    }
+  }
+
+  @Post('sign/:id')
+  @UseInterceptors(FileInterceptor('file'))
+  @ApiConsumes('multipart/form-data')
+  @ApiOperation({ summary: 'Ký số báo cáo' })
+  @ApiResponse({ status: 200, description: 'Ký số báo cáo thành công' })
+  @ApiResponse({ status: 500, description: 'Lỗi server' })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        file: {
+          type: 'string',
+          format: 'binary',
+        },
+        password: {
+          type: 'string',
+        }
+      },
+      required: ['file', 'password'],
+    },
+  })
+  async signReport(
+    @Param('id') id: string,
+    @Req() req: CustomRequest,
+    @UploadedFile() fileP12: Express.Multer.File,
+    @Body('password') password: string,
+  ) {
+    try {
+      const signFile = await this.reportsService.signReport(fileP12, password, id, req.user.sub);
+      return BaseResponse.success(signFile, MESSAGE.REPORT_SIGN_SUCCESS, HttpStatus.OK);
+    } catch (error) {
+      throw new HttpException(
+        { message: error.message },
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      )
+
+    }
+  }
+
+
 }

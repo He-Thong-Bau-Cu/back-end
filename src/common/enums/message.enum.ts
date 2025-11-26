@@ -22,6 +22,7 @@ export enum MESSAGE {
   ELECTION_DOCUMENT_UPDATE_SUCCESS = 'Cập nhật tài liệu theo electionId thành công',
   ELECTION_DOCUMENT_GET_BY_CREATED_BY_SUCCESS = 'Lấy danh sách tài liệu theo người tạo thành công',
   ELECTION_DOCUMENT_GET_BY_ID_SUCCESS = 'Lấy thông tin tài liệu kỳ bầu cử theo ID thành công',
+  FILE_UPLOAD_FAILED = 'Tải lên file không thành công',
 
 
   // User
@@ -196,6 +197,9 @@ export enum MESSAGE {
   REPORT_GET_BY_ID_SUCCESS = 'Lấy báo cáo theo ID thành công',
   REPORT_CREATE_SUCCESS = 'Tạo báo cáo thành công',
   REPORT_UPDATE_SUCCESS = 'Cập nhật báo cáo thành công',
+  REPORT_SIGN_SUCCESS = 'Ký báo cáo thành công',
+  REPORT_DELETE_SUCCESS = 'Xóa báo cáo thành công',
+
 
   // Data management / Backups
   BACKUP_SEARCH_SUCCESS = 'Lấy danh sách dữ liệu sao lưu thành công',

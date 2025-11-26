@@ -132,3 +132,10 @@ export enum SEVERITY {
   MEDIUM = 'MEDIUM',
   HIGH = 'HIGH',
 }
+
+export enum REPORT_TYPE {
+  NORMAL = 'NORMAL',
+  ABNORMAL = 'ABNORMAL',
+  FINAL = 'FINAL',
+  OTHER = 'OTHER',
+}
