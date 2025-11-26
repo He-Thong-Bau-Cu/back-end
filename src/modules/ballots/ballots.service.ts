@@ -160,7 +160,7 @@ export class BallotsService {
             { path: 'thresholdId', select: 'thresholdName thresholdCode value description status' },
           ],
           select:
-            'title startDate endDate delegationStart delegationEnd status statusData decisionNumber decisionName',
+            'title startDate endDate delegationStart delegationEnd status statusData decisionNumber decisionName timeline stages',
         })
         .populate({
           path: 'voterId',
