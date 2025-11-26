@@ -32,6 +32,14 @@ export class NotificationService {
     this.notificationGateway.dataToElectionId(electionId, data);
   }
 
+  async getBallotsVoter(voterId: string, data: any) {
+    if (!voterId || !data) {
+      throw new Error('VoterId and data are required');
+    }
+    this.notificationGateway.sendToVoter(voterId, data);
+  }
+
+
   async getUserNotifications(userId: string) {
     return this.notificationModel
       .find({ userId: new Types.ObjectId(userId) })
