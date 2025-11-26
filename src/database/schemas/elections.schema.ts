@@ -37,6 +37,15 @@ export class Elections extends BaseSchema {
     closingAt?: Date;
   }
 
+  @Prop({ type: Object, default: null })
+  stages: {
+    checkin?: string; // 'STARTED' | 'COMPLETED'
+    report?: string;
+    voting?: string;
+    result?: string;
+    closing?: string;
+  }
+
 
 
   @Prop({ default: null })

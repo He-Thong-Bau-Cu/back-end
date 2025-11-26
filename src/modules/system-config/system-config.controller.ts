@@ -49,6 +49,18 @@ export class SystemConfigController {
     }
   }
 
+  @Get('key/:key')
+  @ApiOperation({ summary: 'Lấy cấu hình hệ thống theo key' })
+  @ApiResponse({ status: 200, description: MESSAGE.SYSTEM_CONFIG_GET_BY_ID_SUCCESS })
+  async findByKey(@Param('key') key: string) {
+    try {
+      const resData = await this.systemConfigService.findByKey(key);
+      return BaseResponse.success(resData, MESSAGE.SYSTEM_CONFIG_GET_BY_ID_SUCCESS, HttpStatus.OK);
+    } catch (error) {
+      throw new HttpException({ message: error.message }, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+  }
+
   @Get(':id')
   @ApiOperation({ summary: 'Lấy chi tiết cấu hình hệ thống' })
   @ApiResponse({ status: 200, description: MESSAGE.SYSTEM_CONFIG_GET_BY_ID_SUCCESS })

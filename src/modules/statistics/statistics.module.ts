@@ -11,6 +11,8 @@ import { SystemLog, SystemLogSchema } from 'src/database/schemas/systemLog.schem
 import { Delegations, DelegationsSchema } from 'src/database/schemas/delegations.schema';
 import { MeetingAttendees, MeetingAttendeesSchema } from 'src/database/schemas/meetingAttendees.schema';
 import { VotingMethods, VotingMethodsSchema } from 'src/database/schemas/votingMethods.schema';
+import { Meetings, MeetingsSchema } from 'src/database/schemas/meetings.schema';
+import { AuditLogs, AuditLogsSchema } from 'src/database/schemas/auditLogs.schema';
 
 @Module({
   imports: [
@@ -24,6 +26,8 @@ import { VotingMethods, VotingMethodsSchema } from 'src/database/schemas/votingM
       { name: Delegations.name, schema: DelegationsSchema },
       { name: MeetingAttendees.name, schema: MeetingAttendeesSchema },
       { name: VotingMethods.name, schema: VotingMethodsSchema },
+      { name: Meetings.name, schema: MeetingsSchema },
+      { name: AuditLogs.name, schema: AuditLogsSchema },
     ]),
   ],
   controllers: [StatisticsController],

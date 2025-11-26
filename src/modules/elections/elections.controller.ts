@@ -281,4 +281,57 @@ export class ElectionsController {
       throw new HttpException({ message: error.message }, HttpStatus.INTERNAL_SERVER_ERROR);
     }
   }
+
+  @Post(':electionId/end-voting-stage')
+  @ApiOperation({ summary: 'Kết thúc giai đoạn bỏ phiếu' })
+  @ApiResponse({ status: 200, description: 'Giai đoạn bỏ phiếu đã được kết thúc thành công.' })
+  @ApiResponse({ status: 404, description: 'Không tìm thấy cuộc bầu cử.' })
+  @ApiResponse({ status: 500, description: 'Lỗi server' })
+  async endVotingStage(
+    @Param('electionId') electionId: string,
+    @Req() req: CustomRequest
+  ): Promise<BaseResponse> {
+    try {
+      const resData = await this.electionsService.endVotingStage(electionId, req.user.sub);
+      return BaseResponse.success(resData, 'Kết thúc giai đoạn bỏ phiếu thành công', HttpStatus.OK);
+    } catch (error) {
+      throw new HttpException({ message: error.message }, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+  }
+
+  @Post(':electionId/stages/:stage/start')
+  @ApiOperation({ summary: 'Bắt đầu một giai đoạn' })
+  @ApiResponse({ status: 200, description: 'Giai đoạn đã được bắt đầu thành công.' })
+  @ApiResponse({ status: 404, description: 'Không tìm thấy cuộc bầu cử.' })
+  @ApiResponse({ status: 500, description: 'Lỗi server' })
+  async startStage(
+    @Param('electionId') electionId: string,
+    @Param('stage') stage: string,
+    @Req() req: CustomRequest
+  ): Promise<BaseResponse> {
+    try {
+      const resData = await this.electionsService.startStage(electionId, stage, req.user.sub);
+      return BaseResponse.success(resData, 'Bắt đầu giai đoạn thành công', HttpStatus.OK);
+    } catch (error) {
+      throw new HttpException({ message: error.message }, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+  }
+
+  @Post(':electionId/stages/:stage/end')
+  @ApiOperation({ summary: 'Kết thúc một giai đoạn' })
+  @ApiResponse({ status: 200, description: 'Giai đoạn đã được kết thúc thành công.' })
+  @ApiResponse({ status: 404, description: 'Không tìm thấy cuộc bầu cử.' })
+  @ApiResponse({ status: 500, description: 'Lỗi server' })
+  async endStage(
+    @Param('electionId') electionId: string,
+    @Param('stage') stage: string,
+    @Req() req: CustomRequest
+  ): Promise<BaseResponse> {
+    try {
+      const resData = await this.electionsService.endStage(electionId, stage, req.user.sub);
+      return BaseResponse.success(resData, 'Kết thúc giai đoạn thành công', HttpStatus.OK);
+    } catch (error) {
+      throw new HttpException({ message: error.message }, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+  }
 }

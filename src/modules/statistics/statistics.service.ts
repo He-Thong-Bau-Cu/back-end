@@ -14,6 +14,8 @@ import { CLIENT_RENEG_LIMIT } from 'tls';
 import { Delegations } from 'src/database/schemas/delegations.schema';
 import { MeetingAttendees } from 'src/database/schemas/meetingAttendees.schema';
 import { VotingMethods } from 'src/database/schemas/votingMethods.schema';
+import { Meetings } from 'src/database/schemas/meetings.schema';
+import { AuditLogs } from 'src/database/schemas/auditLogs.schema';
 
 @Injectable()
 export class StatisticsService {
@@ -36,6 +38,10 @@ export class StatisticsService {
     private readonly meetingAttendeeModel: Model<MeetingAttendees>,
     @InjectModel(VotingMethods.name)
     private readonly votingMethodsModel: Model<VotingMethods>,
+    @InjectModel(Meetings.name)
+    private readonly meetingsModel: Model<Meetings>,
+    @InjectModel(AuditLogs.name)
+    private readonly auditLogsModel: Model<AuditLogs>,
   ) { }
 
   async getDashboardPreside() {
@@ -370,8 +376,193 @@ export class StatisticsService {
         votes: abstain,
         percentage: totalVotes ? Number(((abstain / totalVotes) * 100).toFixed(2)) : 0
       }
-    };
+      };
   }
 
+  // Dashboard cho trưởng ban tổ chức
+  async getOrganizerDashboard() {
+    try {
+      const now = new Date();
+
+      // 1. Đếm sự kiện sắp diễn ra (startDate > now và status = ACTIVE)
+      const upcomingEventsCount = await this.electionsModel.countDocuments({
+        startDate: { $gt: now },
+        status: STATUS.ACTIVE,
+      });
+
+      // 2. Đếm sự kiện đang hoạt động (startDate <= now <= endDate và status = ACTIVE, statusData = ONGOING hoặc SCHEDULED)
+      const activeEventsCount = await this.electionsModel.countDocuments({
+        startDate: { $lte: now },
+        endDate: { $gte: now },
+        status: STATUS.ACTIVE,
+        $or: [
+          { statusData: 'ONGOING' },
+          { statusData: 'SCHEDULED' },
+        ],
+      });
+
+      // 3. Tổng số đại biểu/cử tri (tổng số voters trong tất cả elections)
+      const totalAttendees = await this.votersModel.countDocuments();
+
+      // 4. Vấn đề cần xử lý (có thể là elections có statusData = WAIT_APPROVAL hoặc có vấn đề)
+      const issuesCount = await this.electionsModel.countDocuments({
+        statusData: STATUS.WAIT_APPROVAL,
+      });
+
+      // 5. Lấy sự kiện đang diễn ra (để hiển thị progress)
+      const activeElection = await this.electionsModel
+        .findOne({
+          startDate: { $lte: now },
+          endDate: { $gte: now },
+          status: STATUS.ACTIVE,
+          $or: [
+            { statusData: 'ONGOING' },
+            { statusData: 'SCHEDULED' },
+          ],
+        })
+        .sort({ startDate: -1 })
+        .lean();
+
+      let eventProgress: {
+        title: string;
+        checkinPercent: number;
+        votePercent: number;
+        checkinText: string;
+        voteText: string;
+      } | null = null;
+
+      if (activeElection) {
+        // Lấy meeting của election này
+        const meeting = await this.meetingsModel
+          .findOne({ electionId: activeElection._id })
+          .lean();
+
+        if (meeting) {
+          // Đếm attendees
+          const totalAttendeesForElection = await this.meetingAttendeeModel.countDocuments({
+            meetingId: meeting._id,
+          });
+
+          const checkedInCount = await this.meetingAttendeeModel.countDocuments({
+            meetingId: meeting._id,
+            attended: true,
+          });
+
+          // Đếm ballots đã cast
+          const votedCount = await this.ballotsModel.countDocuments({
+            electionId: activeElection._id,
+            status: STATUS.CAST,
+          });
+
+          const checkinPercent = totalAttendeesForElection > 0
+            ? Math.round((checkedInCount / totalAttendeesForElection) * 100)
+            : 0;
+
+          const votePercent = totalAttendeesForElection > 0
+            ? Math.round((votedCount / totalAttendeesForElection) * 100)
+            : 0;
+
+          eventProgress = {
+            title: activeElection.title,
+            checkinPercent,
+            votePercent,
+            checkinText: `${checkedInCount} / ${totalAttendeesForElection} đã check-in`,
+            voteText: `${votedCount} / ${totalAttendeesForElection} đã bỏ phiếu`,
+          };
+        }
+      }
+
+      // 6. Lấy danh sách sự kiện sắp diễn ra (5 sự kiện gần nhất)
+      const upcomingEvents = await this.electionsModel
+        .find({
+          startDate: { $gt: now },
+          status: STATUS.ACTIVE,
+        })
+        .sort({ startDate: 1 })
+        .limit(5)
+        .select('title startDate endDate status statusData')
+        .lean();
+
+      const upcomingEventsList = upcomingEvents.map((election) => {
+        const startDate = election.startDate ? new Date(election.startDate) : null;
+        const formattedTime = startDate
+          ? startDate.toLocaleString('vi-VN', {
+              hour: '2-digit',
+              minute: '2-digit',
+              day: '2-digit',
+              month: '2-digit',
+              year: 'numeric',
+            })
+          : 'Chưa có thông tin';
+
+        return {
+          id: election._id.toString(),
+          name: election.title,
+          time: `Bắt đầu: ${formattedTime}`,
+          status: 'Chưa bắt đầu',
+          linkText: 'Chuẩn bị',
+        };
+      });
+
+      // 7. Lấy hoạt động gần đây từ audit logs (20 hoạt động gần nhất)
+      const recentAuditLogs = await this.auditLogsModel
+        .find({
+          $or: [
+            { module: 'MEETING-ATTENDEES' },
+            { module: 'MEETINGS' },
+            { module: 'ELECTIONS' },
+          ],
+        })
+        .sort({ createdAt: -1 })
+        .limit(20)
+        .populate('userId', 'fullName username email')
+        .lean();
+
+      const activities = recentAuditLogs.map((log, index) => {
+        const userName = (log.userId as any)?.fullName || (log.userId as any)?.username || 'Hệ thống';
+        let content = '';
+        let type: 'start' | 'group' | 'notify' = 'notify';
+
+        if (log.module === 'MEETING-ATTENDEES' && log.action === 'POST') {
+          content = `Đại biểu đã check-in thành công.`;
+          type = 'group';
+        } else if (log.module === 'MEETINGS' && log.action === 'PATCH') {
+          const status = log.new_value?.status || '';
+          if (status === 'ONGOING') {
+            content = `Bạn đã Bắt đầu sự kiện "${(log.new_value as any)?.title || 'Sự kiện'}".`;
+            type = 'start';
+          } else if (status === 'POSTPONED') {
+            content = `Bạn đã Tạm dừng sự kiện.`;
+            type = 'notify';
+          }
+        } else if (log.module === 'ELECTIONS') {
+          content = `Bạn đã thực hiện thao tác trên cuộc bầu cử.`;
+          type = 'notify';
+        } else {
+          content = `Hoạt động hệ thống: ${log.module}`;
+        }
+
+        return {
+          id: `a${index + 1}`,
+          content,
+          type,
+        };
+      });
+
+      return {
+        stats: {
+          upcomingEvents: upcomingEventsCount,
+          activeEvents: activeEventsCount,
+          totalAttendees,
+          issues: issuesCount,
+        },
+        eventProgress,
+        upcomingEvents: upcomingEventsList,
+        activities: activities.slice(0, 10), // Chỉ lấy 10 hoạt động gần nhất
+      };
+    } catch (error) {
+      throw error;
+    }
+  }
 
 }
