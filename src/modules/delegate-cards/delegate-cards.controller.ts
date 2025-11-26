@@ -1,8 +1,8 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, HttpException, HttpStatus, Req } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, HttpException, HttpStatus, Req, Query } from '@nestjs/common';
 import { DelegateCardsService } from './delegate-cards.service';
 import { CreateDelegateCardDto } from './dto/create-delegate-card.dto';
 import { UpdateDelegateCardDto } from './dto/update-delegate-card.dto';
-import { ApiBearerAuth, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOperation, ApiResponse, ApiQuery } from '@nestjs/swagger';
 import Api from 'twilio/lib/rest/Api';
 import { BaseResponse } from 'src/common/dto/base-response.dto';
 import { MESSAGE } from 'src/common/enums/message.enum';
@@ -165,6 +165,34 @@ export class DelegateCardsController {
           HttpStatus.OK
         );
       }
+    } catch (e) {
+      throw new HttpException(
+        { message: e.message },
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @Get('check/exists')
+  @ApiOperation({ summary: "Kiểm tra thẻ đại biểu đã được tạo chưa" })
+  @ApiQuery({ name: 'electionId', required: true, description: 'ID cuộc bầu cử' })
+  @ApiQuery({ name: 'voterId', required: true, description: 'ID cử tri' })
+  @ApiQuery({ name: 'delegationId', required: false, description: 'ID ủy quyền (tùy chọn)' })
+  @ApiResponse({ status: 200, description: "Kiểm tra thành công" })
+  @ApiResponse({ status: 400, description: "Dữ liệu không hợp lệ" })
+  @ApiResponse({ status: 500, description: "Lỗi server" })
+  async checkExists(
+    @Query('electionId') electionId: string,
+    @Query('voterId') voterId: string,
+    @Query('delegationId') delegationId?: string
+  ): Promise<{ exists: boolean }> {
+    try {
+      const exists = await this.delegateCardsService.checkDelegateCardExists(
+        electionId,
+        voterId,
+        delegationId
+      );
+      return { exists };
     } catch (e) {
       throw new HttpException(
         { message: e.message },

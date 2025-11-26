@@ -1164,6 +1164,20 @@ export class ElectionsService {
 
     const users = await this.userModel.find({ roleId: roleFilter._id }).lean();
 
+    // Kiểm tra xem có bất kỳ participant với role VOTER hoặc voter nào trong hệ thống không (khởi tạo lần đầu)
+    // Chỉ kiểm tra participant có role VOTER, không phải tất cả participant (có thể có participant role thư ký)
+    const hasAnyVoterParticipant = await this.electionParticipantsModel.exists({ roleId: roleVoter._id });
+    const hasAnyVoter = await this.voterModel.exists({});
+
+    // Nếu không có participant với role VOTER và không có voter nào (khởi tạo lần đầu), trả về tất cả users
+    if (!hasAnyVoterParticipant && !hasAnyVoter) {
+      return users.map((user) => ({
+        _id: user._id,
+        fullName: user.fullName,
+        email: user.email,
+      }));
+    }
+
     const result: any[] = [];
 
     for (const user of users) {
@@ -1843,6 +1857,85 @@ export class ElectionsService {
       }
 
       return updatedElection;
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  async getCurrentStage(electionId: string) {
+    try {
+      const election = await this.electionsModel.findById(new Types.ObjectId(electionId)).exec();
+      if (!election) {
+        throw new Error(MESSAGE.ELECTION_NOT_FOUND);
+      }
+
+      const timeline = election.timeline || {};
+      const stages = election.stages || {};
+      const now = new Date();
+
+      // Xác định giai đoạn hiện tại
+      let currentStage = 'not_started';
+      let stageStartedAt: Date | null = null;
+      let stageStatus = 'NOT_STARTED';
+
+      // Kiểm tra từng giai đoạn theo thứ tự
+      if (timeline.checkinAt && stages.checkin !== 'COMPLETED') {
+        currentStage = 'checkin';
+        stageStartedAt = timeline.checkinAt ?? null;
+        stageStatus = 'STARTED';
+      } else if (stages.checkin === 'COMPLETED' && timeline.reportAt && stages.report !== 'COMPLETED') {
+        currentStage = 'report';
+        stageStartedAt = timeline.reportAt ?? null;
+        stageStatus = 'STARTED';
+      } else if (stages.report === 'COMPLETED' && timeline.votingAt && stages.voting !== 'COMPLETED') {
+        currentStage = 'voting';
+        stageStartedAt = timeline.votingAt ?? null;
+        stageStatus = 'STARTED';
+      } else if (stages.voting === 'COMPLETED' && timeline.resultAnnouncedAt && stages.result !== 'COMPLETED') {
+        currentStage = 'result';
+        stageStartedAt = timeline.resultAnnouncedAt ?? null;
+        stageStatus = 'STARTED';
+      } else if (stages.result === 'COMPLETED' && timeline.closingAt && stages.closing !== 'COMPLETED') {
+        currentStage = 'closing';
+        stageStartedAt = timeline.closingAt ?? null;
+        stageStatus = 'STARTED';
+      } else if (stages.closing === 'COMPLETED') {
+        currentStage = 'completed';
+        stageStartedAt = timeline.closingAt ?? null;
+        stageStatus = 'COMPLETED';
+      } else if (timeline.checkinAt) {
+        // Nếu đã có timeline nhưng không match với điều kiện nào, lấy giai đoạn cuối cùng đã completed
+        if (stages.closing === 'COMPLETED') {
+          currentStage = 'completed';
+          stageStartedAt = timeline.closingAt ?? null;
+          stageStatus = 'COMPLETED';
+        } else if (stages.result === 'COMPLETED') {
+          currentStage = 'result';
+          stageStartedAt = timeline.resultAnnouncedAt ?? null;
+          stageStatus = 'COMPLETED';
+        } else if (stages.voting === 'COMPLETED') {
+          currentStage = 'voting';
+          stageStartedAt = timeline.votingAt ?? null;
+          stageStatus = 'COMPLETED';
+        } else if (stages.report === 'COMPLETED') {
+          currentStage = 'report';
+          stageStartedAt = timeline.reportAt ?? null;
+          stageStatus = 'COMPLETED';
+        } else if (stages.checkin === 'COMPLETED') {
+          currentStage = 'checkin';
+          stageStartedAt = timeline.checkinAt ?? null;
+          stageStatus = 'COMPLETED';
+        }
+      }
+
+      return {
+        startDate: election.startDate,
+        currentStage,
+        stageStartedAt,
+        stageStatus,
+        timeline,
+        stages,
+      };
     } catch (error) {
       throw error;
     }
