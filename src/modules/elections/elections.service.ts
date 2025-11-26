@@ -78,7 +78,7 @@ export class ElectionsService {
     private readonly fileService: MinioService,
     private readonly notificationService: NotificationService,
     private readonly mailService: MailService,
-  ) {}
+  ) { }
 
   async searchElections(req: SearchDTO) {
     try {
