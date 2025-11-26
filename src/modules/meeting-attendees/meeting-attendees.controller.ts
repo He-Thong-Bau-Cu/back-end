@@ -139,6 +139,25 @@ export class MeetingAttendeesController {
 
 
 
+  @Post('checkin')
+  @ApiOperation({ summary: "Check-in đại biểu" })
+  @ApiResponse({ status: 200, description: "Check-in thành công" })
+  @ApiResponse({ status: 400, description: "Dữ liệu không hợp lệ" })
+  @ApiResponse({ status: 500, description: "Lỗi server" })
+  async checkIn(
+    @Body() body: { electionId: string; userId: string },
+    @Req() req: CustomRequest): Promise<BaseResponse> {
+    try {
+      const resData = await this.meetingAttendeesService.checkIn(body.electionId, body.userId, req.user.sub);
+      return BaseResponse.success(resData, MESSAGE.MEETING_ATTENDEE_UPDATE_STATUS_SUCCESS || "Check-in thành công", HttpStatus.OK);
+    } catch (error) {
+      throw new HttpException(
+        { message: error.message },
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
   @Patch("/meetings/:meetingId/participants/:participantId/attendances/:attended")
   @ApiOperation({ summary: "Cập nhật trạng thái tham gia cuộc họp" })
   @ApiResponse({ status: 200, description: "Cập nhật trạng thái tham gia cuộc họp thành công" })

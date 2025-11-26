@@ -2,12 +2,14 @@ import { Injectable } from '@nestjs/common';
 import { NotificationGateway } from './notification.gateway';
 import { InjectModel } from '@nestjs/mongoose';
 import { Notification, NotificationDocument } from 'src/database/schemas/notification.schema';
+import { ElectionsParticipants, ElectionsParticipantsDocument } from 'src/database/schemas/electionParticipants.schema';
 import { Model, Types } from 'mongoose';
 
 @Injectable()
 export class NotificationService {
   constructor(
     @InjectModel(Notification.name) private notificationModel: Model<NotificationDocument>,
+    @InjectModel(ElectionsParticipants.name) private electionParticipantsModel: Model<ElectionsParticipantsDocument>,
     private readonly notificationGateway: NotificationGateway,
   ) { }
 
@@ -71,6 +73,42 @@ export class NotificationService {
       return userId;
     } catch (error) {
       throw new Error('Error deleting notifications: ' + error.message);
+    }
+  }
+
+  async broadcastAnnouncement(electionId: string, message: string) {
+    try {
+      if (!electionId || !message) {
+        throw new Error('ElectionId and message are required');
+      }
+
+      // Lấy tất cả participants trong election
+      const participants = await this.electionParticipantsModel
+        .find({ electionId: new Types.ObjectId(electionId) })
+        .populate('userId', '_id')
+        .exec();
+
+      // Tạo notification cho mỗi participant
+      const notifications = participants.map(participant => ({
+        userId: (participant.userId as any)?._id || participant.userId,
+        message: message,
+        read: false,
+      }));
+
+      // Lưu notifications vào database
+      const createdNotifications = await this.notificationModel.insertMany(notifications);
+
+      // Emit socket để gửi realtime đến tất cả participants
+      participants.forEach(participant => {
+        this.notificationGateway.sendToUser(String(participant.userId), message);
+      });
+
+      return {
+        sent: createdNotifications.length,
+        message: 'Thông báo đã được gửi đến tất cả người tham dự',
+      };
+    } catch (error) {
+      throw new Error('Error broadcasting announcement: ' + error.message);
     }
   }
 }

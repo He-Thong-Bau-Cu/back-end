@@ -111,5 +111,20 @@ export class StatisticsController {
     }
   }
 
+  @Get('organizer/dashboard')
+  @ApiOperation({ summary: 'Lấy thông tin dashboard cho trưởng ban tổ chức' })
+  @ApiResponse({ status: 200, description: 'Lấy thông tin dashboard thành công' })
+  @ApiResponse({ status: 500, description: 'Lỗi server' })
+  async getOrganizerDashboard(): Promise<BaseResponse> {
+    try {
+      const resData = await this.statisticsService.getOrganizerDashboard();
+      return BaseResponse.success(resData, 'Lấy thông tin dashboard thành công', HttpStatus.OK);
+    } catch (error) {
+      throw new HttpException(
+        { message: error.message },
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
 
 }

@@ -5,9 +5,12 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Meetings } from 'src/database/schemas/meetings.schema';
 import { Model, Types } from 'mongoose';
 import { Elections } from 'src/database/schemas/elections.schema';
+import { MeetingAttendees } from 'src/database/schemas/meetingAttendees.schema';
+import { Ballots } from 'src/database/schemas/ballots.schema';
 import { MESSAGE } from 'src/common/enums/message.enum';
 import { SearchDTO } from 'src/common/dto/search.dto';
 import { BaseSearchDTO } from 'src/common/dto/base-search.dto';
+import { STATUS } from 'src/common/enums/status.enum';
 @Injectable()
 export class MeetingsService {
   constructor(
@@ -15,6 +18,10 @@ export class MeetingsService {
     private readonly meetingsModel: Model<Meetings>,
     @InjectModel(Elections.name)
     private readonly electionsModel: Model<Elections>,
+    @InjectModel(MeetingAttendees.name)
+    private readonly meetingAttendeesModel: Model<MeetingAttendees>,
+    @InjectModel(Ballots.name)
+    private readonly ballotsModel: Model<Ballots>,
   ) { }
 
 
@@ -182,6 +189,138 @@ export class MeetingsService {
       return meetings;
 
 
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  async getEventManagementStats(electionId: string) {
+    try {
+      // Check if the electionId exists
+      const electionExists = await this.electionsModel.exists({ _id: electionId });
+      if (!electionExists) {
+        throw new Error(MESSAGE.ELECTION_NOT_FOUND);
+      }
+
+      // Get meeting by electionId
+      const meeting = await this.meetingsModel
+        .findOne({ electionId: new Types.ObjectId(electionId) })
+        .populate({
+          path: 'electionId',
+          select: 'title startDate endDate delegationStart delegationEnd status statusData decisionNumber decisionName',
+        })
+        .exec();
+
+      if (!meeting) {
+        throw new Error(MESSAGE.MEETING_NOT_FOUND);
+      }
+
+      // Get total attendees count
+      const totalAttendees = await this.meetingAttendeesModel.countDocuments({
+        meetingId: meeting._id,
+      });
+
+      // Get checked-in count (attended = true)
+      const checkedInCount = await this.meetingAttendeesModel.countDocuments({
+        meetingId: meeting._id,
+        attended: true,
+      });
+
+      // Get voted count (ballots with status = CAST)
+      const votedCount = await this.ballotsModel.countDocuments({
+        electionId: new Types.ObjectId(electionId),
+        status: STATUS.CAST,
+      });
+
+      // Calculate percentages
+      const checkinPercent = totalAttendees > 0
+        ? Math.round((checkedInCount / totalAttendees) * 100)
+        : 0;
+
+      const votePercent = totalAttendees > 0
+        ? Math.round((votedCount / totalAttendees) * 100)
+        : 0;
+
+      // Get election info
+      const election = await this.electionsModel.findById(electionId).exec();
+
+      // Calculate time left (if meeting is in progress)
+      let timeLeft = 0;
+      let isRunning = false;
+      if (meeting.meetingDate && election?.endDate) {
+        const now = new Date();
+        const endDate = new Date(election.endDate);
+        if (endDate > now) {
+          timeLeft = Math.floor((endDate.getTime() - now.getTime()) / 1000);
+          // Check if meeting is running (ONGOING status means active)
+          isRunning = meeting.status === STATUS.ONGOING ||
+                     meeting.status === STATUS.ACTIVE ||
+                     meeting.status === 'ONGOING' ||
+                     meeting.status === 'in_progress';
+        }
+      }
+
+      return {
+        meeting: {
+          _id: meeting._id,
+          title: meeting.title,
+          meetingDate: meeting.meetingDate,
+          location: meeting.location,
+          status: meeting.status,
+          electionId: meeting.electionId,
+        },
+        election: {
+          _id: election?._id,
+          title: election?.title,
+          startDate: election?.startDate,
+          endDate: election?.endDate,
+          status: election?.status,
+          statusData: election?.statusData,
+          timeline: election?.timeline || {},
+          stages: election?.stages || {},
+        },
+        stats: {
+          totalAttendees,
+          checkedInCount,
+          votedCount,
+          checkinPercent,
+          votePercent,
+          timeLeft,
+          isRunning,
+        },
+      };
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  async updateStatus(meetingId: string, status: string, userId: string) {
+    try {
+      const meetingExists = await this.meetingsModel.exists({ _id: meetingId });
+      if (!meetingExists) {
+        throw new Error(MESSAGE.MEETING_NOT_FOUND);
+      }
+
+      const updatedMeeting = await this.meetingsModel
+        .findByIdAndUpdate(
+          new Types.ObjectId(meetingId),
+          {
+            status: status,
+            updatedBy: userId ? new Types.ObjectId(userId) : null,
+          },
+          { new: true }
+        )
+        .populate({
+          path: 'electionId',
+          select: 'title startDate endDate delegationStart delegationEnd status statusData decisionNumber decisionName',
+        })
+        .exec();
+
+      if (!updatedMeeting) {
+        throw new Error(MESSAGE.MEETING_NOT_FOUND);
+      }
+
+      return updatedMeeting;
     } catch (error) {
       throw error;
     }

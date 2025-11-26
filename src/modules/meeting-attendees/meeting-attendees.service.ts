@@ -138,6 +138,85 @@ export class MeetingAttendeesService {
     }
   }
 
+  async checkIn(electionId: string, userId: string, updatedBy: string) {
+    try {
+      const electionParticipant = await this.electionParticipantsModel.findOne({
+        electionId: new Types.ObjectId(electionId),
+        userId: new Types.ObjectId(userId),
+      }).exec();
+
+      if (!electionParticipant) {
+        throw new Error(MESSAGE.ELECTION_PARTICIPANT_NOT_FOUND || "Không tìm thấy người tham gia trong cuộc bầu cử");
+      }
+
+      const meeting = await this.meetingsModel.findOne({
+        electionId: new Types.ObjectId(electionId),
+      }).exec();
+
+      if (!meeting) {
+        throw new Error(MESSAGE.MEETING_NOT_FOUND || "Không tìm thấy cuộc họp");
+      }
+
+      const meetingAttendee = await this.meetingAttendeesModel.findOneAndUpdate(
+        {
+          meetingId: meeting._id,
+          participantId: electionParticipant._id,
+        },
+        {
+          attended: true,
+          checkInTime: new Date(),
+          updatedBy: updatedBy ? new Types.ObjectId(updatedBy) : null,
+        },
+        { new: true }
+      )
+        .populate('meetingId')
+        .populate({
+          path: 'participantId',
+          populate: [
+            { path: 'electionId' },
+            { path: 'userId', select: 'fullName username email phone position department' }
+          ]
+        })
+        .exec();
+
+      if (!meetingAttendee) {
+        throw new Error(MESSAGE.MEETING_ATTENDEE_NOT_FOUND || "Không tìm thấy bản ghi tham gia cuộc họp");
+      }
+
+      // Emit socket để cập nhật thống kê realtime
+      try {
+        const electionIdStr = electionId.toString();
+        // Lấy thống kê mới nhất
+        const totalAttendees = await this.meetingAttendeesModel.countDocuments({
+          meetingId: meeting._id,
+        });
+        const attendedCount = await this.meetingAttendeesModel.countDocuments({
+          meetingId: meeting._id,
+          attended: true,
+        });
+
+        // Emit socket để cập nhật thống kê
+        this.notificationGateway.dataToElectionId(electionIdStr, {
+          type: 'checkin-update',
+          meetingId: meeting._id,
+          stats: {
+            total: totalAttendees,
+            attended: attendedCount,
+            notAttended: totalAttendees - attendedCount,
+          },
+          attendee: meetingAttendee,
+        });
+      } catch (socketError) {
+        console.error('Error emitting socket:', socketError);
+        // Không throw error vì đây chỉ là thông báo realtime
+      }
+
+      return meetingAttendee;
+    } catch (error) {
+      throw error;
+    }
+  }
+
   async updateStatusAttendance(meetingId: string, participantId: string, attended: boolean, userId: string) {
     try {
       console.log("attended", attended);

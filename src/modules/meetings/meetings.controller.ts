@@ -105,4 +105,42 @@ export class MeetingsController {
       )
     }
   }
+
+  @Get('elections/:electionId/event-management-stats')
+  @ApiOperation({ summary: 'Lấy thống kê điều hành sự kiện theo electionId' })
+  @ApiResponse({ status: 200, description: 'Thống kê điều hành sự kiện đã được lấy thành công.' })
+  @ApiResponse({ status: 404, description: 'Không tìm thấy cuộc bầu cử hoặc cuộc họp.' })
+  @ApiResponse({ status: 500, description: 'Lỗi server' })
+  async getEventManagementStats(@Param('electionId') electionId: string): Promise<BaseResponse> {
+    try {
+      const resData = await this.meetingsService.getEventManagementStats(electionId);
+      return BaseResponse.success(resData, 'Lấy thống kê điều hành sự kiện thành công', HttpStatus.OK);
+    } catch (error) {
+      throw new HttpException(
+        { message: error.message },
+        HttpStatus.INTERNAL_SERVER_ERROR
+      )
+    }
+  }
+
+  @Patch(':id/status')
+  @ApiOperation({ summary: 'Cập nhật trạng thái cuộc họp (pause/resume/stop)' })
+  @ApiResponse({ status: 200, description: 'Trạng thái cuộc họp đã được cập nhật thành công.' })
+  @ApiResponse({ status: 404, description: 'Không tìm thấy cuộc họp.' })
+  @ApiResponse({ status: 500, description: 'Lỗi server' })
+  async updateMeetingStatus(
+    @Param('id') id: string,
+    @Body() body: { status: string },
+    @Req() req: CustomRequest
+  ): Promise<BaseResponse> {
+    try {
+      const resData = await this.meetingsService.updateStatus(id, body.status, req.user.sub);
+      return BaseResponse.success(resData, 'Cập nhật trạng thái cuộc họp thành công', HttpStatus.OK);
+    } catch (error) {
+      throw new HttpException(
+        { message: error.message },
+        HttpStatus.INTERNAL_SERVER_ERROR
+      )
+    }
+  }
 }

@@ -70,6 +70,15 @@ export class SystemConfigService {
     return config;
   }
 
+  async findByKey(configKey: string) {
+    const key = configKey.trim().toUpperCase();
+    const config = await this.systemConfigModel.findOne({ configKey: key }).exec();
+    if (!config) {
+      throw new NotFoundException(MESSAGE.SYSTEM_CONFIG_NOT_FOUND);
+    }
+    return config;
+  }
+
   async update(id: string, payload: UpdateSystemConfigDto, userId: string) {
     if (!userId) {
       throw new BadRequestException('Thiếu thông tin người thực hiện thao tác');

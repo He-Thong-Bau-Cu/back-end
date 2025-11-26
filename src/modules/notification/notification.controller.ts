@@ -48,4 +48,14 @@ export class NotificationController {
             throw new HttpException({message: e.message}, HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
+
+    @Post('broadcast')
+    async broadcastAnnouncement(@Body() body: { electionId: string; message: string }): Promise<BaseResponse> {
+        try {
+            const resData = await this.notificationService.broadcastAnnouncement(body.electionId, body.message);
+            return BaseResponse.success(resData, 'Gửi thông báo thành công', HttpStatus.OK);
+        } catch (e) {
+            throw new HttpException({message: e.message}, HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
 }

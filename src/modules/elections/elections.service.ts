@@ -1779,4 +1779,128 @@ export class ElectionsService {
       throw error;
     }
   }
+
+  async endVotingStage(electionId: string, userId: string) {
+    try {
+      return await this.endStage(electionId, 'voting', userId);
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  async startStage(electionId: string, stage: string, userId: string) {
+    try {
+      const election = await this.electionsModel.findById(new Types.ObjectId(electionId)).exec();
+      if (!election) {
+        throw new Error(MESSAGE.ELECTION_NOT_FOUND);
+      }
+
+      const stageMap: Record<string, { timelineKey: string; statusData: string }> = {
+        'checkin': { timelineKey: 'checkinAt', statusData: 'CHECKIN_STARTED' },
+        'report': { timelineKey: 'reportAt', statusData: 'REPORT_STARTED' },
+        'voting': { timelineKey: 'votingAt', statusData: 'VOTING_STARTED' },
+        'result': { timelineKey: 'resultAnnouncedAt', statusData: 'RESULT_ANNOUNCED' },
+        'closing': { timelineKey: 'closingAt', statusData: 'CLOSING_STARTED' },
+      };
+
+      const stageInfo = stageMap[stage.toLowerCase()];
+      if (!stageInfo) {
+        throw new Error('Giai đoạn không hợp lệ');
+      }
+
+      const timeline = election.timeline || {};
+      timeline[stageInfo.timelineKey] = new Date();
+
+      // Cập nhật stages để lưu trạng thái giai đoạn
+      const stages = election.stages || {};
+      stages[stage.toLowerCase()] = 'STARTED';
+
+      // Chỉ cập nhật timeline và stages, không động vào statusData
+      const updatedElection = await this.electionsModel
+        .findByIdAndUpdate(
+          new Types.ObjectId(electionId),
+          {
+            $set: {
+              timeline: timeline,
+              stages: stages,
+              updatedBy: userId ? new Types.ObjectId(userId) : null,
+            },
+          },
+          { new: true }
+        )
+        .exec();
+
+      // Emit socket để thông báo realtime
+      try {
+        this.notificationService.transferDataRealTime(electionId, {
+          type: 'stage-started',
+          electionId: electionId,
+          stage: stage,
+          message: `Giai đoạn ${stage} đã bắt đầu`,
+        });
+      } catch (socketError) {
+        console.error('Error emitting socket:', socketError);
+      }
+
+      return updatedElection;
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  async endStage(electionId: string, stage: string, userId: string) {
+    try {
+      const election = await this.electionsModel.findById(new Types.ObjectId(electionId)).exec();
+      if (!election) {
+        throw new Error(MESSAGE.ELECTION_NOT_FOUND);
+      }
+
+      const stageMap: Record<string, { statusData: string }> = {
+        'checkin': { statusData: 'CHECKIN_COMPLETED' },
+        'report': { statusData: 'REPORT_COMPLETED' },
+        'voting': { statusData: 'VOTING_COMPLETED' },
+        'result': { statusData: 'RESULT_COMPLETED' },
+        'closing': { statusData: 'CLOSING_COMPLETED' },
+      };
+
+      const stageInfo = stageMap[stage.toLowerCase()];
+      if (!stageInfo) {
+        throw new Error('Giai đoạn không hợp lệ');
+      }
+
+      // Cập nhật stages để đánh dấu giai đoạn đã completed
+      const stages = election.stages || {};
+      stages[stage.toLowerCase()] = 'COMPLETED';
+
+      // Không động vào statusData, chỉ cập nhật stages
+      const updatedElection = await this.electionsModel
+        .findByIdAndUpdate(
+          new Types.ObjectId(electionId),
+          {
+            $set: {
+              stages: stages,
+              updatedBy: userId ? new Types.ObjectId(userId) : null,
+            },
+          },
+          { new: true }
+        )
+        .exec();
+
+      // Emit socket để thông báo realtime
+      try {
+        this.notificationService.transferDataRealTime(electionId, {
+          type: 'stage-ended',
+          electionId: electionId,
+          stage: stage,
+          message: `Giai đoạn ${stage} đã kết thúc`,
+        });
+      } catch (socketError) {
+        console.error('Error emitting socket:', socketError);
+      }
+
+      return updatedElection;
+    } catch (error) {
+      throw error;
+    }
+  }
 }
