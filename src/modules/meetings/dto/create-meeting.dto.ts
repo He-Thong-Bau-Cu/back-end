@@ -30,7 +30,7 @@ export class CreateMeetingDto {
         description: 'Địa điểm của cuộc họp',
         example: 'Phòng họp lớn, Tầng 2, Tòa nhà A'
     })
-    @IsNotEmpty()
+    @IsOptional()
     @IsString()
     location: string;
 

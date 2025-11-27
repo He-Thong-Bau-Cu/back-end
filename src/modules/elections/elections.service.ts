@@ -1329,32 +1329,43 @@ export class ElectionsService {
 
         // Tạo hoặc cập nhật các candidates
         for (const candidate of electionEntities) {
+          console.log(`Processing candidate:`, {
+            _id: candidate._id,
+            title: candidate.title,
+            fileUrl: candidate.fileUrl,
+            hasFileUrl: !!candidate.fileUrl
+          }); // Debug
+
           if (candidate._id) {
             // Update existing
+            const updateData = {
+              title: candidate.title,
+              description: candidate.description,
+              metaData: candidate.metaData,
+              fileUrl: candidate.fileUrl || null, // Đảm bảo lưu fileUrl (có thể là empty string)
+              electionTypeId: new Types.ObjectId(typeId),
+              updatedBy: new Types.ObjectId(userId),
+            };
+            console.log(`Updating candidate ${candidate._id} with:`, updateData); // Debug
             await this.electionEntitiesModel.findByIdAndUpdate(
               new Types.ObjectId(candidate._id),
-              {
-                title: candidate.title,
-                description: candidate.description,
-                metaData: candidate.metaData,
-                fileUrl: candidate.fileUrl,
-                electionTypeId: new Types.ObjectId(typeId),
-                updatedBy: new Types.ObjectId(userId),
-              },
+              updateData,
               { new: true },
             );
           } else {
             // Create new
-            await this.electionEntitiesModel.create({
+            const createData = {
               electionId: new Types.ObjectId(electionId),
               electionTypeId: new Types.ObjectId(typeId),
               title: candidate.title,
               description: candidate.description,
               metaData: candidate.metaData,
-              fileUrl: candidate.fileUrl,
+              fileUrl: candidate.fileUrl || null, // Đảm bảo lưu fileUrl (có thể là empty string)
               status: 'PENDING',
               createdBy: new Types.ObjectId(userId),
-            });
+            };
+            console.log(`Creating new candidate with:`, createData); // Debug
+            await this.electionEntitiesModel.create(createData);
           }
         }
       } else {

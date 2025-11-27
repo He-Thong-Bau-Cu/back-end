@@ -46,5 +46,8 @@ export enum FileType {
 
   // signature
   SIGNATURE = 'signature',
+
+  ELECTION_ENTITIES = 'election-entities',
+  ELECTION_ENTITIES_PROFILE = 'election-entities-profile',
 }
 
