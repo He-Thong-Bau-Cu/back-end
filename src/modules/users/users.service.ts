@@ -1,15 +1,14 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger, NotFoundException, OnModuleInit } from '@nestjs/common';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { InjectModel } from '@nestjs/mongoose';
 import { UserDocument, Users } from 'src/database/schemas/users.schema';
-import { Model, Types } from 'mongoose';
+import { FilterQuery, Model, Types } from 'mongoose';
 import { Roles, RolesDocument } from 'src/database/schemas/roles.schema';
 import { MESSAGE } from 'src/common/enums/message.enum';
 import { STATUS } from '../../common/enums/status.enum';
 import { UserDto } from '../../common/dto/user.dto';
 import { MailService } from '../mail/mail.service';
-import { paginate } from '../../common/dto/paignation';
 import * as bcrypt from 'bcrypt';
 import { USER_ROLE } from '../../common/enums/config.enum';
 import { MinioService } from '../minio/minio.service';
@@ -18,10 +17,14 @@ import { Elections } from 'src/database/schemas/elections.schema';
 import { ElectionsParticipants } from 'src/database/schemas/electionParticipants.schema';
 import * as ExcelJS from 'exceljs';
 import { Express } from 'express';
+import { ElasticsearchService } from '../elasticsearch/elasticsearch.service';
 
 @Injectable()
-export class UsersService {
+export class UsersService implements OnModuleInit {
   bucketName = process.env.MINIO_BUCKET_NAME;
+  private readonly logger = new Logger(UsersService.name);
+  private readonly usersIndex = process.env.ELASTICSEARCH_USERS_INDEX || 'users';
+  private isElasticsearchReady = false;
   constructor(
     @InjectModel(Users.name)
     private userModel: Model<UserDocument>,
@@ -33,7 +36,12 @@ export class UsersService {
     private electionsModel: Model<Elections>,
     private mailService: MailService,
     private fileService: MinioService,
+    private readonly elasticsearchService: ElasticsearchService,
   ) { }
+
+  async onModuleInit() {
+    await this.initializeElasticsearch();
+  }
 
   async getAll() {
     try {
@@ -87,26 +95,124 @@ export class UsersService {
 
   async search(req: UserDto) {
     try {
-      const filters: any[] = [];
-      if (req.fullName) {
-        filters.push({ fullName: { $regex: req.fullName, $options: 'i' } });
+      const page = req.page ?? 1;
+      const limit = req.limit ?? 10;
+
+      if (req.fullName && this.isElasticsearchReady && process.env.ELASTICSEARCH_NODE) {
+        return this.searchUsersInElasticsearch(req.fullName, req.status, page, limit);
       }
-      if (req.email) {
-        filters.push({ email: { $regex: req.email, $options: 'i' } });
-      }
-      if (req.status) {
-        filters.push({ status: req.status });
-      }
-      let query = {};
-      if (filters.length === 1) {
-        query = { $or: filters };
-      } else if (filters.length > 1) {
-        query = { $and: filters };
-      }
-      const userData = await this.userModel.find(query).populate('roleId').exec();
-      return paginate(userData.length > 0 ? userData : [], req.page, req.limit);
+
+      return this.searchUsersInMongo(req, page, limit);
     } catch (error) {
       throw error;
+    }
+  }
+
+  private async searchUsersInMongo(req: UserDto, page: number, limit: number) {
+    const filters: FilterQuery<UserDocument>[] = [];
+    if (req.fullName) {
+      filters.push({ fullName: { $regex: req.fullName, $options: 'i' } });
+    }
+    if (req.email) {
+      filters.push({ email: { $regex: req.email, $options: 'i' } });
+    }
+    if (req.status) {
+      filters.push({ status: req.status });
+    }
+
+    const query: FilterQuery<UserDocument> = filters.length ? { $and: filters } : {};
+    const skip = (page - 1) * limit;
+
+    // Optimize: use lean() for better performance and only populate necessary fields
+    const [users, totalItems] = await Promise.all([
+      this.userModel
+        .find(query)
+        .populate('roleId', 'roleName roleCode') // Only select needed fields
+        .select('-password -twoFaSecret') // Exclude sensitive fields
+        .skip(skip)
+        .limit(limit)
+        .lean()
+        .exec(),
+      this.userModel.countDocuments(query),
+    ]);
+
+    return {
+      content: users,
+      page,
+      limit,
+      totalItems,
+      totalPages: Math.ceil(totalItems / limit),
+    };
+  }
+
+  private async searchUsersInElasticsearch(fullName: string, status: string | undefined, page: number, limit: number) {
+    try {
+      const from = (page - 1) * limit;
+      const filters: any[] = [];
+      if (status) {
+        filters.push({ term: { status } });
+      }
+
+      // Optimize: use match instead of match_phrase_prefix for better performance
+      const esResult = await this.elasticsearchService.search(
+        this.usersIndex,
+        {
+          query: {
+            bool: {
+              must: [
+                {
+                  match: {
+                    fullName: {
+                      query: fullName,
+                      operator: 'and', // All words must match
+                      fuzziness: 'AUTO', // Allow typos
+                    },
+                  },
+                },
+              ],
+              filter: filters,
+            },
+          },
+          sort: [{ createdAt: { order: 'desc' } }],
+        },
+        from,
+        limit,
+      );
+
+      const hits = esResult?.hits?.hits ?? [];
+      if (!hits.length) {
+        return this.searchUsersInMongo({ fullName, status } as UserDto, page, limit);
+      }
+
+      const ids = hits.map((hit: any) => hit._id);
+      // Optimize: use lean() and only populate necessary fields
+      const users = await this.userModel
+        .find({ _id: { $in: ids } })
+        .populate('roleId', 'roleName roleCode')
+        .select('-password -twoFaSecret')
+        .lean()
+        .exec();
+      const userMap = new Map(
+        users.map((user: any) => [user._id ? user._id.toString() : '', user] as [string, any]),
+      );
+      const orderedUsers = ids.map((id) => userMap.get(id)).filter(Boolean);
+
+      const total =
+        typeof esResult.hits.total === 'number'
+          ? esResult.hits.total
+          : esResult.hits.total?.value ?? orderedUsers.length;
+
+      return {
+        content: orderedUsers,
+        page,
+        limit,
+        totalItems: total,
+        totalPages: Math.ceil((total || 0) / limit),
+      };
+    } catch (error) {
+      this.logger.warn(`Elasticsearch search failed, fallback to Mongo: ${error.message}`);
+      this.isElasticsearchReady = false;
+      return this.searchUsersInMongo({ fullName, status } as UserDto, page, limit);
     }
   }
 
@@ -172,6 +278,7 @@ export class UsersService {
       });
       await newUser.save();
       await this.mailService.sendMail(req.email, req.fullName, username, password);
+      await this.indexUserDocument(newUser);
       return newUser;
     } catch (e) {
       throw e;
@@ -236,6 +343,7 @@ export class UsersService {
       });
       await newUser.save();
       await this.mailService.sendMailDelegatge(req.email, req.fullName, username, password);
+      await this.indexUserDocument(newUser);
       return newUser;
     } catch (e) {
       throw e;
@@ -289,6 +397,7 @@ export class UsersService {
       userData.image = req.image ? req.image : userData.image;
       userData.status = req.status ? req.status : userData.status;
       await userData.save();
+      await this.indexUserDocument(userData);
       return userData;
     } catch (error) {
       throw error;
@@ -319,7 +428,9 @@ export class UsersService {
         throw new Error('Người dùng không tồn tại !');
       }
       userData.status = STATUS.INACTIVE;
-      return await userData.save();
+      await userData.save();
+      await this.indexUserDocument(userData);
+      return userData;
     } catch (error) {
       throw error;
     }
@@ -343,6 +454,7 @@ export class UsersService {
 
     user.image = newAvatarUrl;
     await user.save();
+    await this.indexUserDocument(user);
 
     return user.image;
   }
@@ -662,5 +774,88 @@ export class UsersService {
     }
     cache.set(roleCode, role._id.toString());
     return role._id.toString();
+  }
+
+  private async initializeElasticsearch() {
+    if (!process.env.ELASTICSEARCH_NODE) {
+      this.logger.warn('ELASTICSEARCH_NODE is not configured. Skipping Elasticsearch setup.');
+      return;
+    }
+    try {
+      await this.elasticsearchService.ensureIndex(this.usersIndex, {
+        settings: {
+          analysis: {
+            analyzer: {
+              vn_fullname: {
+                type: 'custom',
+                tokenizer: 'standard',
+                filter: ['lowercase', 'asciifolding'],
+              },
+            },
+          },
+        },
+        mappings: {
+          properties: {
+            fullName: { type: 'text', analyzer: 'vn_fullname', search_analyzer: 'vn_fullname' },
+            email: { type: 'keyword' },
+            status: { type: 'keyword' },
+            createdAt: { type: 'date' },
+          },
+        },
+      });
+      await this.bootstrapUsersIndex();
+      this.isElasticsearchReady = true;
+    } catch (error) {
+      this.logger.warn(`Failed to initialize Elasticsearch: ${error.message}`);
+      this.isElasticsearchReady = false;
+    }
+  }
+
+  private async bootstrapUsersIndex() {
+    if (!process.env.ELASTICSEARCH_NODE) return;
+    try {
+      const count = await this.elasticsearchService.count(this.usersIndex);
+      if (count > 0) {
+        return;
+      }
+      const users = await this.userModel.find({}, 'fullName email status createdAt').lean().exec();
+      if (!users.length) {
+        return;
+      }
+      await this.elasticsearchService.bulk(
+        this.usersIndex,
+        users.map((user) => ({
+          id: user._id.toString(),
+          document: this.mapUserToIndex(user),
+        })),
+      );
+    } catch (error) {
+      this.logger.warn(`Failed to bootstrap Elasticsearch index: ${error.message}`);
+    }
+  }
+
+  private mapUserToIndex(user: any) {
+    return {
+      fullName: user.fullName || '',
+      email: user.email || '',
+      status: user.status || '',
+      createdAt: user.createdAt || new Date(),
+    };
+  }
+
+  private async indexUserDocument(user: any) {
+    if (!this.isElasticsearchReady || !process.env.ELASTICSEARCH_NODE) {
+      return;
+    }
+    try {
+      const plain = user?.toObject ? user.toObject() : user;
+      await this.elasticsearchService.indexDocument(
+        this.usersIndex,
+        plain._id.toString(),
+        this.mapUserToIndex(plain),
+      );
+    } catch (error) {
+      this.logger.warn(`Failed to index user ${user?._id}: ${error.message}`);
+    }
   }
 }

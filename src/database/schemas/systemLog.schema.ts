@@ -38,3 +38,9 @@ export class SystemLog extends BaseSchema {
 }
 
 export const SystemLogSchema = SchemaFactory.createForClass(SystemLog);
+
+SystemLogSchema.index({ createdAt: -1 });
+SystemLogSchema.index({ statusCode: 1, createdAt: -1 });
+SystemLogSchema.index({ method: 1 });
+SystemLogSchema.index({ url: 1 });
+SystemLogSchema.index({ ipAddress: 1 });
