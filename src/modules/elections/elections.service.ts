@@ -78,7 +78,7 @@ export class ElectionsService {
     private readonly fileService: MinioService,
     private readonly notificationService: NotificationService,
     private readonly mailService: MailService,
-  ) { }
+  ) {}
 
   async searchElections(req: SearchDTO) {
     try {
@@ -1166,7 +1166,9 @@ export class ElectionsService {
 
     // Kiểm tra xem có bất kỳ participant với role VOTER hoặc voter nào trong hệ thống không (khởi tạo lần đầu)
     // Chỉ kiểm tra participant có role VOTER, không phải tất cả participant (có thể có participant role thư ký)
-    const hasAnyVoterParticipant = await this.electionParticipantsModel.exists({ roleId: roleVoter._id });
+    const hasAnyVoterParticipant = await this.electionParticipantsModel.exists({
+      roleId: roleVoter._id,
+    });
     const hasAnyVoter = await this.voterModel.exists({});
 
     // Nếu không có participant với role VOTER và không có voter nào (khởi tạo lần đầu), trả về tất cả users
@@ -1277,11 +1279,9 @@ export class ElectionsService {
         }
       }
 
-      // 1. Sử dụng trực tiếp typeId và thresholdId
       const typeId = meetingInfo.type as string;
       const thresholdId = meetingInfo.threshold as string;
 
-      // 2. Cập nhật Election
       const electionUpdate: any = {
         typeId: typeId ? new Types.ObjectId(typeId) : null,
         votingMethodId: meetingInfo.method ? new Types.ObjectId(meetingInfo.method) : null,
@@ -1307,83 +1307,63 @@ export class ElectionsService {
         throw new Error(MESSAGE.ELECTION_NOT_FOUND);
       }
 
-      // 3. Xử lý Candidates/ElectionEntities
       if (electionEntities && Array.isArray(electionEntities)) {
-        // Lấy danh sách IDs từ request
         const candidateIds = electionEntities
           .filter((c: any) => c._id)
           .map((c: any) => new Types.ObjectId(c._id));
 
-        // Xóa các entities không còn trong danh sách
         if (candidateIds.length > 0) {
           await this.electionEntitiesModel.deleteMany({
             electionId: new Types.ObjectId(electionId),
             _id: { $nin: candidateIds },
           });
         } else {
-          // Nếu không có candidate nào có _id, xóa tất cả entities cũ
           await this.electionEntitiesModel.deleteMany({
             electionId: new Types.ObjectId(electionId),
           });
         }
 
-        // Tạo hoặc cập nhật các candidates
         for (const candidate of electionEntities) {
-          console.log(`Processing candidate:`, {
-            _id: candidate._id,
-            title: candidate.title,
-            fileUrl: candidate.fileUrl,
-            hasFileUrl: !!candidate.fileUrl
-          }); // Debug
 
           if (candidate._id) {
-            // Update existing
             const updateData = {
               title: candidate.title,
               description: candidate.description,
               metaData: candidate.metaData,
-              fileUrl: candidate.fileUrl || null, // Đảm bảo lưu fileUrl (có thể là empty string)
+              fileUrl: candidate.fileUrl || null,
               electionTypeId: new Types.ObjectId(typeId),
               updatedBy: new Types.ObjectId(userId),
             };
-            console.log(`Updating candidate ${candidate._id} with:`, updateData); // Debug
             await this.electionEntitiesModel.findByIdAndUpdate(
               new Types.ObjectId(candidate._id),
               updateData,
               { new: true },
             );
           } else {
-            // Create new
             const createData = {
               electionId: new Types.ObjectId(electionId),
               electionTypeId: new Types.ObjectId(typeId),
               title: candidate.title,
               description: candidate.description,
               metaData: candidate.metaData,
-              fileUrl: candidate.fileUrl || null, // Đảm bảo lưu fileUrl (có thể là empty string)
+              fileUrl: candidate.fileUrl || null,
               status: 'PENDING',
               createdBy: new Types.ObjectId(userId),
             };
-            console.log(`Creating new candidate with:`, createData); // Debug
             await this.electionEntitiesModel.create(createData);
           }
         }
       } else {
-        // Nếu không có candidates trong request, xóa tất cả entities cũ
         await this.electionEntitiesModel.deleteMany({
           electionId: new Types.ObjectId(electionId),
         });
       }
 
-      // 4. Xử lý Voters và VotingRights
       if (voters && Array.isArray(voters)) {
-        // Lấy role VOTER từ database (chỉ lấy 1 lần)
         const voterRole = await this.rolesModel.findOne({ roleCode: USER_ROLE.VOTER });
 
-        // Lấy danh sách userIds từ list voters mới
         const voterUserIds = voters.map((v: any) => new Types.ObjectId(v.userId));
 
-        // Xóa các election participants có role VOTER nhưng userId không còn trong list mới
         if (voterRole && voterUserIds.length > 0) {
           await this.electionParticipantsModel.deleteMany({
             electionId: new Types.ObjectId(electionId),
@@ -1391,7 +1371,6 @@ export class ElectionsService {
             userId: { $nin: voterUserIds },
           });
         } else if (voterRole) {
-          // Nếu không có voters trong request, xóa tất cả election participants có role VOTER
           await this.electionParticipantsModel.deleteMany({
             electionId: new Types.ObjectId(electionId),
             roleId: voterRole._id,
@@ -1401,7 +1380,6 @@ export class ElectionsService {
         for (const voterItem of voters) {
           let voter;
           if (voterItem._id) {
-            // Update existing voter
             voter = await this.voterModel.findByIdAndUpdate(
               new Types.ObjectId(voterItem._id),
               {
@@ -1421,7 +1399,6 @@ export class ElectionsService {
             });
           }
 
-          // Tự động tạo/cập nhật election participant cho voter
           if (voter && voterRole) {
             const existingParticipant = await this.electionParticipantsModel.findOne({
               electionId: new Types.ObjectId(electionId),
@@ -1430,7 +1407,6 @@ export class ElectionsService {
             });
 
             if (existingParticipant) {
-              // Update existing participant
               await this.electionParticipantsModel.findByIdAndUpdate(
                 existingParticipant._id,
                 {
@@ -1440,7 +1416,6 @@ export class ElectionsService {
                 { new: true },
               );
             } else {
-              // Create new participant
               const userInfo = await this.userModel.findById(new Types.ObjectId(voterItem.userId));
               await this.electionParticipantsModel.create({
                 electionId: new Types.ObjectId(electionId),
@@ -1454,15 +1429,17 @@ export class ElectionsService {
           }
 
           if (voter && voterItem.percentage !== undefined) {
-            // Create or update voting right
             const existingVotingRight = await this.votingRightsModel.findOne({
               electionId: new Types.ObjectId(electionId),
               voterId: voter._id,
             });
 
+            const votes = this.calculateVotes(voterItem.percentage);
+
             if (existingVotingRight) {
               await this.votingRightsModel.findByIdAndUpdate(existingVotingRight._id, {
                 shares: voterItem.percentage,
+                votes: votes,
                 updatedBy: new Types.ObjectId(userId),
               });
             } else {
@@ -1470,7 +1447,7 @@ export class ElectionsService {
                 electionId: new Types.ObjectId(electionId),
                 voterId: voter._id,
                 shares: voterItem.percentage,
-                votes: 0,
+                votes: votes,
                 status: 'PENDING',
                 createdBy: new Types.ObjectId(userId),
               });
@@ -1478,7 +1455,6 @@ export class ElectionsService {
           }
         }
       } else {
-        // Nếu không có voters trong request, xóa tất cả election participants có role VOTER
         const voterRole = await this.rolesModel.findOne({ roleCode: USER_ROLE.VOTER });
         if (voterRole) {
           await this.electionParticipantsModel.deleteMany({
@@ -1488,11 +1464,9 @@ export class ElectionsService {
         }
       }
 
-      // 5. Xử lý Participants
       if (participants && Array.isArray(participants)) {
         for (const participantItem of participants) {
           if (participantItem._id) {
-            // Update existing
             await this.electionParticipantsModel.findByIdAndUpdate(
               new Types.ObjectId(participantItem._id),
               {
@@ -1504,7 +1478,6 @@ export class ElectionsService {
               { new: true },
             );
           } else {
-            // Create new
             await this.electionParticipantsModel.create({
               electionId: new Types.ObjectId(electionId),
               userId: new Types.ObjectId(participantItem.userId),
@@ -1516,11 +1489,9 @@ export class ElectionsService {
         }
       }
 
-      // 6. Xử lý ElectionDocuments
       if (electionDocuments && Array.isArray(electionDocuments)) {
         for (const docItem of electionDocuments) {
           if (docItem._id) {
-            // Update existing
             await this.electionDocumentsModel.findByIdAndUpdate(
               new Types.ObjectId(docItem._id),
               {
@@ -2003,6 +1974,49 @@ export class ElectionsService {
       }
 
       return updatedElection;
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  private async getTotalCommonShares(): Promise<number> {
+    try {
+      const config = await this.systemConfigModel
+        .findOne({ configKey: 'TOTAL_OF_COMMON_SHARES' })
+        .exec();
+
+      if (!config) {
+        throw new Error('Không tìm thấy cấu hình TOTAL_OF_COMMON_SHARES');
+      }
+
+      let totalShares: number;
+      if (typeof config.configValue === 'number') {
+        totalShares = config.configValue;
+      } else if (typeof config.configValue === 'object' && config.configValue !== null) {
+        totalShares =
+          config.configValue.value || config.configValue.amount || config.configValue.total || 0;
+      } else if (typeof config.configValue === 'string') {
+        totalShares = parseFloat(config.configValue) || 0;
+      } else {
+        throw new Error('Giá trị TOTAL_OF_COMMON_SHARES không hợp lệ');
+      }
+
+      if (!totalShares || totalShares <= 0) {
+        throw new Error('Tổng số cổ phần phổ thông phải lớn hơn 0');
+      }
+
+      return totalShares;
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  async calculateVotes(shares: any): Promise<number> {
+    try {
+      const totalCommonShares = await this.getTotalCommonShares();
+      const calculatedVotes = (shares / 100) * totalCommonShares;
+      const votes = Math.round(calculatedVotes);
+      return votes;
     } catch (error) {
       throw error;
     }

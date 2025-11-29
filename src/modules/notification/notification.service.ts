@@ -32,6 +32,13 @@ export class NotificationService {
     this.notificationGateway.dataToElectionId(electionId, data);
   }
 
+  async transferStateDataRT(electionId: string, data: any) {
+    if (!electionId || !data) {
+      throw new Error('ElectionId and data are required');
+    }
+    this.notificationGateway.transferStateDataRT(electionId, data);
+  }
+
   async getBallotsVoter(voterId: string, data: any) {
     if (!voterId || !data) {
       throw new Error('VoterId and data are required');

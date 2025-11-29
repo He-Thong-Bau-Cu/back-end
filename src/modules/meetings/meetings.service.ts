@@ -331,6 +331,19 @@ export class MeetingsService {
       const electionId = this.extractElectionId(updatedMeeting.electionId);
       if (electionId) {
         await this.emitEventManagementUpdate(electionId, 'meeting-status-updated');
+
+        // Gọi socket transferStateDataRT sau khi đổi trạng thái
+        try {
+          const statsData = await this.getEventManagementStats(electionId);
+          await this.notificationService.transferStateDataRT(electionId, {
+            type: 'meeting-status-changed',
+            electionId,
+            payload: statsData,
+            timestamp: new Date().toISOString(),
+          });
+        } catch (error) {
+          console.error('Failed to emit transferStateDataRT:', error.message || error);
+        }
       }
 
       return updatedMeeting;

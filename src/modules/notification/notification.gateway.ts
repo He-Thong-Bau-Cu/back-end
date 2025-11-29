@@ -52,6 +52,13 @@ export class NotificationGateway implements OnGatewayConnection, OnGatewayDiscon
     console.log('Emitting to voter: ', voterId, "data: ", data);
   }
 
+  transferStateDataRT(electionId: string, data: any) {
+    // Emit socket với tên transferStateDataRT đến room electionId
+    this.server.to(electionId).emit('transferStateDataRT', data);
+    // Cũng emit broadcast để đảm bảo tất cả client đều nhận được
+    this.server.emit('transferStateDataRT', data);
+    console.log('Emitting transferStateDataRT to election:', electionId, 'data:', data);
+  }
 
   // Helper method để client join room theo electionId
   joinElectionRoom(client: Socket, electionId: string) {
