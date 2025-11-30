@@ -1,0 +1,193 @@
+<mxfile host="app.diagrams.net" modified="2025-11-28T00:00:00.000Z" agent="draw.io" version="22.0.0" type="device">
+  <diagram id="VotingSystemClassDiagram" name="Voting System Class Diagram">
+    <mxGraphModel dx="2400" dy="1400" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="3000" pageHeight="2400" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        
+        <!-- LEGEND -->
+        <mxCell id="legend-title" value="Legend / Chú thích" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=16;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="40" y="40" width="200" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-controller" value="Controllers (API Endpoints)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E3F2FD;strokeColor=#1976D2;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="40" y="80" width="200" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-service" value="Services (Business Logic)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF3E0;strokeColor=#F57C00;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="40" y="130" width="200" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-model" value="Models (Database Entities)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E8F5E9;strokeColor=#388E3C;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="40" y="180" width="200" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-dto" value="DTOs (Data Transfer Objects)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F3E5F5;strokeColor=#7B1FA2;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="40" y="230" width="200" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-utility" value="Utility Services" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF9C4;strokeColor=#F9A825;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="40" y="280" width="200" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- CONTROLLERS LAYER -->
+        <mxCell id="controller-layer" value="Controllers Layer" style="swimlane;fontStyle=1;align=center;verticalAlign=top;childLayout=stackLayout;horizontal=1;startSize=26;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;whiteSpace=wrap;html=1;fillColor=#E3F2FD;strokeColor=#1976D2;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="300" y="40" width="380" height="400" as="geometry" />
+        </mxCell>
+        
+        <!-- BallotsController -->
+        <mxCell id="ballots-controller" value="&lt;&lt;Controller&gt;&gt;&#xa;BallotsController" style="swimlane;fontStyle=1;align=center;verticalAlign=top;childLayout=stackLayout;horizontal=1;startSize=40;horizontalStack=0;resizeParent=1;resizeLast=0;collapsible=1;marginBottom=0;rounded=1;shadow=0;strokeWidth=1;fillColor=#E3F2FD;strokeColor=#1976D2;" vertex="1" parent="1">
+          <mxGeometry x="300" y="480" width="380" height="260" as="geometry">
+            <mxRectangle x="300" y="480" width="160" height="40" as="alternateBounds" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="ballots-controller-methods" value="+ getById(id: string): BaseResponse&#xa;+ getBallotsByElectionId(electionId): BaseResponse&#xa;+ getBallotsByVoterId(voterId): BaseResponse&#xa;+ create(dto: CreateBallotDto): BaseResponse&#xa;+ update(id, dto: UpdateBallotDto): BaseResponse&#xa;+ updateStatus(id: string): BaseResponse&#xa;+ delete(id: string): BaseResponse&#xa;+ searchBallots(req: BaseSearchDTO): BaseResponse&#xa;+ getBallotPDF(id: string): void&#xa;+ signBallot(file, id, password): BaseResponse&#xa;+ verifyOtp(id, dto: VerifyOtpDto): BaseResponse" style="text;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=10;" vertex="1" parent="ballots-controller">
+          <mxGeometry y="40" width="380" height="220" as="geometry" />
+        </mxCell>
+        
+        <!-- VotersController -->
+        <mxCell id="voters-controller" value="&lt;&lt;Controller&gt;&gt;&#xa;VotersController" style="swimlane;fontStyle=1;align=center;verticalAlign=top;childLayout=stackLayout;horizontal=1;startSize=40;horizontalStack=0;resizeParent=1;resizeLast=0;collapsible=1;marginBottom=0;rounded=1;shadow=0;strokeWidth=1;fillColor=#E3F2FD;strokeColor=#1976D2;" vertex="1" parent="1">
+          <mxGeometry x="720" y="480" width="350" height="180" as="geometry">
+            <mxRectangle x="720" y="480" width="150" height="40" as="alternateBounds" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="voters-controller-methods" value="+ search(req: BaseSearchDTO): BaseResponse&#xa;+ create(dto: CreateVoterDto): BaseResponse&#xa;+ update(id, dto: UpdateVoterDto): BaseResponse&#xa;+ updateStatus(id, status): BaseResponse&#xa;+ getEligibleVoters(electionId): BaseResponse&#xa;+ delete(id: string): BaseResponse" style="text;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=10;" vertex="1" parent="voters-controller">
+          <mxGeometry y="40" width="350" height="140" as="geometry" />
+        </mxCell>
+        
+        <!-- ResultsController -->
+        <mxCell id="results-controller" value="&lt;&lt;Controller&gt;&gt;&#xa;ResultsController" style="swimlane;fontStyle=1;align=center;verticalAlign=top;childLayout=stackLayout;horizontal=1;startSize=40;horizontalStack=0;resizeParent=1;resizeLast=0;collapsible=1;marginBottom=0;rounded=1;shadow=0;strokeWidth=1;fillColor=#E3F2FD;strokeColor=#1976D2;" vertex="1" parent="1">
+          <mxGeometry x="1110" y="480" width="380" height="160" as="geometry">
+            <mxRectangle x="1110" y="480" width="160" height="40" as="alternateBounds" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="results-controller-methods" value="+ search(req: BaseSearchDTO): BaseResponse&#xa;+ getById(id: string): BaseResponse&#xa;+ getByElectionId(electionId): BaseResponse&#xa;+ createAndSign(p12File, password, electionId): BaseResponse&#xa;+ confirmResults(electionId): BaseResponse" style="text;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=10;" vertex="1" parent="results-controller">
+          <mxGeometry y="40" width="380" height="120" as="geometry" />
+        </mxCell>
+
+        <!-- SERVICES LAYER -->
+        
+        <!-- BallotsService -->
+        <mxCell id="ballots-service" value="&lt;&lt;Service&gt;&gt;&#xa;BallotsService" style="swimlane;fontStyle=1;align=center;verticalAlign=top;childLayout=stackLayout;horizontal=1;startSize=40;horizontalStack=0;resizeParent=1;resizeLast=0;collapsible=1;marginBottom=0;rounded=1;shadow=0;strokeWidth=1;fillColor=#FFF3E0;strokeColor=#F57C00;" vertex="1" parent="1">
+          <mxGeometry x="300" y="800" width="380" height="320" as="geometry" />
+        </mxCell>
+        <mxCell id="ballots-service-methods" value="+ getById(id: string): Ballots&#xa;+ getByElectionId(electionId): Ballots[]&#xa;+ getByVoterId(voterId): Ballots[]&#xa;+ create(dto: CreateBallotDto): Ballots&#xa;+ update(id, dto: UpdateBallotDto): Ballots&#xa;+ updateStatus(id: string): Ballots&#xa;+ delete(id: string): Ballots&#xa;+ getStatistics(electionId): Object&#xa;+ searchBallots(req: BaseSearchDTO): Ballots[]&#xa;+ generateBallotPDF(id): Buffer&#xa;+ signBallot(file, id, password): string&#xa;+ verifyOtp(id, dto): boolean&#xa;+ activateBallot(id): Ballots&#xa;+ disableBallot(id): Ballots&#xa;+ submitVote(id, allocations): Ballots&#xa;+ getVoteHistory(voterId): Ballots[]" style="text;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=10;" vertex="1" parent="ballots-service">
+          <mxGeometry y="40" width="380" height="280" as="geometry" />
+        </mxCell>
+        
+        <!-- VotersService -->
+        <mxCell id="voters-service" value="&lt;&lt;Service&gt;&gt;&#xa;VotersService" style="swimlane;fontStyle=1;align=center;verticalAlign=top;childLayout=stackLayout;horizontal=1;startSize=40;horizontalStack=0;resizeParent=1;resizeLast=0;collapsible=1;marginBottom=0;rounded=1;shadow=0;strokeWidth=1;fillColor=#FFF3E0;strokeColor=#F57C00;" vertex="1" parent="1">
+          <mxGeometry x="720" y="800" width="350" height="200" as="geometry" />
+        </mxCell>
+        <mxCell id="voters-service-methods" value="+ search(req: BaseSearchDTO): Voters[]&#xa;+ create(dto: CreateVoterDto): Voters&#xa;+ update(id, dto: UpdateVoterDto): Voters&#xa;+ updateStatus(id, status): Voters&#xa;+ delete(id: string): Voters&#xa;+ getEligibleVoters(electionId): Voters[]&#xa;+ confirmParticipation(voterId): Voters" style="text;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=10;" vertex="1" parent="voters-service">
+          <mxGeometry y="40" width="350" height="160" as="geometry" />
+        </mxCell>
+        
+        <!-- ResultsService -->
+        <mxCell id="results-service" value="&lt;&lt;Service&gt;&gt;&#xa;ResultsService" style="swimlane;fontStyle=1;align=center;verticalAlign=top;childLayout=stackLayout;horizontal=1;startSize=40;horizontalStack=0;resizeParent=1;resizeLast=0;collapsible=1;marginBottom=0;rounded=1;shadow=0;strokeWidth=1;fillColor=#FFF3E0;strokeColor=#F57C00;" vertex="1" parent="1">
+          <mxGeometry x="1110" y="800" width="380" height="220" as="geometry" />
+        </mxCell>
+        <mxCell id="results-service-methods" value="+ search(req: BaseSearchDTO): Results[]&#xa;+ getById(id): Results&#xa;+ getByElectionId(electionId): Results[]&#xa;+ createAndSign(file, password, electionId): Results&#xa;+ getWinnersCumulative(electionId): Results[]&#xa;+ getWinnersYesNo(electionId): Results[]&#xa;+ confirmResults(electionId): Results[]&#xa;+ viewVotingProcess(electionId): Object" style="text;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=10;" vertex="1" parent="results-service">
+          <mxGeometry y="40" width="380" height="180" as="geometry" />
+        </mxCell>
+
+        <!-- UTILITY SERVICES -->
+        
+        <!-- SigningService -->
+        <mxCell id="signing-service" value="&lt;&lt;Utility&gt;&gt;&#xa;SigningService" style="swimlane;fontStyle=1;align=center;verticalAlign=top;childLayout=stackLayout;horizontal=1;startSize=40;horizontalStack=0;resizeParent=1;resizeLast=0;collapsible=1;marginBottom=0;rounded=1;shadow=0;strokeWidth=1;fillColor=#FFF9C4;strokeColor=#F9A825;" vertex="1" parent="1">
+          <mxGeometry x="1110" y="1080" width="380" height="140" as="geometry" />
+        </mxCell>
+        <mxCell id="signing-service-methods" value="+ signPdfWithP12(pdfBuffer, p12Buffer, passphrase): Buffer&#xa;+ signDocxWithP12(docBuffer, p12Buffer, passphrase): Buffer&#xa;+ signDocxXml(docBuffer, p12Buffer, passphrase): Buffer&#xa;+ verifyPdfSignature(pdfBuffer): boolean&#xa;+ verifyDocxSignature(docxBuffer): boolean" style="text;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=10;" vertex="1" parent="signing-service">
+          <mxGeometry y="40" width="380" height="100" as="geometry" />
+        </mxCell>
+        
+        <!-- NotificationService -->
+        <mxCell id="notification-service" value="&lt;&lt;Utility&gt;&gt;&#xa;NotificationService" style="swimlane;fontStyle=1;align=center;verticalAlign=top;childLayout=stackLayout;horizontal=1;startSize=40;horizontalStack=0;resizeParent=1;resizeLast=0;collapsible=1;marginBottom=0;rounded=1;shadow=0;strokeWidth=1;fillColor=#FFF9C4;strokeColor=#F9A825;" vertex="1" parent="1">
+          <mxGeometry x="300" y="1180" width="350" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="notification-service-methods" value="+ transferDataRealTime(electionId, data): void&#xa;+ sendNotification(userId, message): void" style="text;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=10;" vertex="1" parent="notification-service">
+          <mxGeometry y="40" width="350" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- MinioService -->
+        <mxCell id="minio-service" value="&lt;&lt;Utility&gt;&gt;&#xa;MinioService" style="swimlane;fontStyle=1;align=center;verticalAlign=top;childLayout=stackLayout;horizontal=1;startSize=40;horizontalStack=0;resizeParent=1;resizeLast=0;collapsible=1;marginBottom=0;rounded=1;shadow=0;strokeWidth=1;fillColor=#FFF9C4;strokeColor=#F9A825;" vertex="1" parent="1">
+          <mxGeometry x="720" y="1080" width="350" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="minio-service-methods" value="+ uploadFile(file, bucketName): string&#xa;+ downloadFile(fileName, bucketName): Buffer&#xa;+ deleteFile(fileName, bucketName): boolean" style="text;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=10;" vertex="1" parent="minio-service">
+          <mxGeometry y="40" width="350" height="80" as="geometry" />
+        </mxCell>
+
+        <!-- MailService -->
+        <mxCell id="mail-service" value="&lt;&lt;Utility&gt;&gt;&#xa;MailService" style="swimlane;fontStyle=1;align=center;verticalAlign=top;childLayout=stackLayout;horizontal=1;startSize=40;horizontalStack=0;resizeParent=1;resizeLast=0;collapsible=1;marginBottom=0;rounded=1;shadow=0;strokeWidth=1;fillColor=#FFF9C4;strokeColor=#F9A825;" vertex="1" parent="1">
+          <mxGeometry x="720" y="1240" width="350" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="mail-service-methods" value="+ sendEmail(to, subject, content): void&#xa;+ sendResultNotification(electionId): void" style="text;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=10;" vertex="1" parent="mail-service">
+          <mxGeometry y="40" width="350" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- RELATIONSHIPS - Controllers to Services -->
+        <mxCell id="edge-ballots-controller-service" edge="1" parent="1" source="ballots-controller" target="ballots-service">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="490" y="740" as="sourcePoint" />
+            <mxPoint x="490" y="800" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge-ballots-label" value="uses" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="edge-ballots-controller-service">
+          <mxGeometry x="-0.2" y="1" relative="1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="edge-voters-controller-service" edge="1" parent="1" source="voters-controller" target="voters-service">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge-voters-label" value="uses" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="edge-voters-controller-service">
+          <mxGeometry x="-0.2" y="1" relative="1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="edge-results-controller-service" edge="1" parent="1" source="results-controller" target="results-service">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge-results-label" value="uses" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="edge-results-controller-service">
+          <mxGeometry x="-0.2" y="1" relative="1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- RELATIONSHIPS - Services to Utilities -->
+        <mxCell id="edge-ballots-notification" edge="1" parent="1" source="ballots-service" target="notification-service" style="dashed=1;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge-results-signing" edge="1" parent="1" source="results-service" target="signing-service" style="dashed=1;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge-results-minio" edge="1" parent="1" source="results-service" target="minio-service" style="dashed=1;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge-results-mail" edge="1" parent="1" source="results-service" target="mail-service" style="dashed=1;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- USE CASES NOTES -->
+        <mxCell id="note-ballots-usecases" value="&lt;b&gt;Use Cases Supported:&lt;/b&gt;&lt;br&gt;• Activate ballot functionality&lt;br&gt;• Ballot disable functionality&lt;br&gt;• View vote history functionality&lt;br&gt;• Selection vote content functionality&lt;br&gt;• Submit vote functionality&lt;br&gt;• Digital signature on ballot functionality" style="shape=note;whiteSpace=wrap;html=1;backgroundOutline=1;darkOpacity=0.05;fillColor=#FFFACD;strokeColor=#F9A825;align=left;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="40" y="800" width="240" height="140" as="geometry" />
+        </mxCell>
+        <mxCell id="edge-note-ballots" edge="1" parent="1" source="note-ballots-usecases" target="ballots-service" style="dashed=1;dashPattern=2 2;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="note-voters-usecases" value="&lt;b&gt;Use Cases Supported:&lt;/b&gt;&lt;br&gt;• Add voter functionality&lt;br&gt;• View voter list functionality&lt;br&gt;• Update voter list functionality&lt;br&gt;• Delete voter list functionality&lt;br&gt;• Confirm to participation functionality" style="shape=note;whiteSpace=wrap;html=1;backgroundOutline=1;darkOpacity=0.05;fillColor=#FFFACD;strokeColor=#F9A825;align=left;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="40" y="960" width="240" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="edge-note-voters" edge="1" parent="1" source="note-voters-usecases" target="voters-service" style="dashed=1;dashPattern=2 2;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="note-results-usecases" value="&lt;b&gt;Use Cases Supported:&lt;/b&gt;&lt;br&gt;• View vote result functionality&lt;br&gt;• Confirmation of voting results functionality&lt;br&gt;• View voting process functionality" style="shape=note;whiteSpace=wrap;html=1;backgroundOutline=1;darkOpacity=0.05;fillColor=#FFFACD;strokeColor=#F9A825;align=left;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="40" y="1100" width="240" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="edge-note-results" edge="1" parent="1" source="note-results-usecases" target="results-service" style="dashed=1;dashPattern=2 2;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

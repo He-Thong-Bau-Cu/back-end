@@ -46,6 +46,13 @@ export class NotificationService {
     this.notificationGateway.sendToVoter(voterId, data);
   }
 
+  async voterSign(voterId: string, data: any) {
+    if (!voterId || !data) {
+      throw new Error('VoterId and data are required');
+    }
+    this.notificationGateway.voterSign(voterId, data);
+  }
+
 
   async getUserNotifications(userId: string) {
     return this.notificationModel
