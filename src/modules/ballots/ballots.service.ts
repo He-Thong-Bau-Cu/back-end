@@ -55,10 +55,6 @@ export class BallotsService {
     private readonly redisService: RedisService,
   ) { }
 
-
-
-
-
   async getById(id: string) {
     try {
       //Check if the ballot is exist
@@ -653,7 +649,7 @@ export class BallotsService {
         })
         .lean();
 
-      if (!ballot) throw new NotFoundException(MESSAGE.BALLOT_NOT_FOUND);
+      if (!ballot) throw new Error(MESSAGE.BALLOT_NOT_FOUND);
 
       const election = ballot.electionId;
       const voter = ballot.voterId?.userId;
