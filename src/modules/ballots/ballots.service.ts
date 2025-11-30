@@ -662,6 +662,7 @@ export class BallotsService {
             createdBy: userId && Types.ObjectId.isValid(userId) ? new Types.ObjectId(userId) : null,
           });
         }
+        this.notificationService.voterSign(ballot.voterId.toString(), ballot);
         return fileUpload;
       } else {
         // 1. Nếu quá 5 lần → khóa phiếu
@@ -673,6 +674,7 @@ export class BallotsService {
         ballot.attempts += 1;
         throw new Error('Ký phiếu bầu thất bại');
       }
+
     } catch (error) {
       throw error;
     }

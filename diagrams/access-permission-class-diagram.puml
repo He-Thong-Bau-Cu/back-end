@@ -1,0 +1,227 @@
+@startuml Access and Permission Management Class Diagram
+
+' =====================================
+' COLOR DEFINITIONS
+' =====================================
+!define CONTROLLER_COLOR #E3F2FD
+!define SERVICE_COLOR #FFF3E0
+!define MODEL_COLOR #E8F5E9
+!define DTO_COLOR #F3E5F5
+!define UTILITY_COLOR #FFF9C4
+
+' =====================================
+' CONTROLLERS
+' =====================================
+
+class SystemController <<Controller>> CONTROLLER_COLOR {
+  - systemService: SystemService
+  - roleService: RoleService
+  + searchRole(req: RoleDto): BaseResponse
+  + createRole(req: RoleDto): BaseResponse
+  + updateRole(req: RoleDto): BaseResponse
+  + getRoleById(id: string): BaseResponse
+  + deleteRole(id: string): BaseResponse
+  + getRoleStatistics(): BaseResponse
+  + searchPermission(req: PermissionDto): BaseResponse
+  + createPermission(req: PermissionDto): BaseResponse
+  + updatePermission(req: PermissionDto): BaseResponse
+  + getPermissionById(id: string): BaseResponse
+  + deletePermission(id: string): BaseResponse
+  + getPermissionStatistics(): BaseResponse
+  + searchRolePermission(req: RolePermissionDto): BaseResponse
+  + updateRolePermission(req: RolePermissionDto): BaseResponse
+  + getAllPermission(): BaseResponse
+}
+
+' =====================================
+' SERVICES
+' =====================================
+
+class RoleService <<Service>> SERVICE_COLOR {
+  - roleModel: Model<Roles>
+  - rolePermissionModel: Model<RolePermissions>
+  - permissionModel: Model<Permissions>
+  + searchRole(req: RoleDto): Roles[]
+  + createRole(req: RoleDto): Roles
+  + updateRole(req: RoleDto): Roles
+  + detailRole(roleId: string): Roles
+  + deleteRole(id: string): Roles
+  + getStatsRole(): Object
+  + searchPermission(req: PermissionDto): Permissions[]
+  + createPermission(req: PermissionDto): Permissions
+  + updatePermission(req: PermissionDto): Permissions
+  + detailPermission(permissionId: string): Permissions
+  + deletePermission(id: string): Permissions
+  + getStatsPermission(): Object
+  + searchRolePermission(req: RolePermissionDto): RolePermissions[]
+  + updateRolePermission(req: RolePermissionDto): RolePermissions
+  + getAllPermission(): Permissions[]
+}
+
+class SystemService <<Service>> SERVICE_COLOR {
+  + getStatisticsCards(): Object
+  + getParticipationRateChart(): Object
+  + getResultDistributionChart(): Object
+  + getSystemLogStatistics(type: string): Object
+}
+
+' =====================================
+' MODELS / SCHEMAS
+' =====================================
+
+class Roles <<Entity>> MODEL_COLOR {
+  + _id: ObjectId
+  + roleName: string
+  + roleCode: string
+  + description: string
+  + status: string
+  + createdAt: Date
+  + updatedAt: Date
+  + createdBy: ObjectId
+  + updatedBy: ObjectId
+}
+
+class Permissions <<Entity>> MODEL_COLOR {
+  + _id: ObjectId
+  + permissionName: string
+  + permissionCode: string
+  + url: string
+  + description: string
+  + status: string
+  + createdAt: Date
+  + updatedAt: Date
+  + createdBy: ObjectId
+  + updatedBy: ObjectId
+}
+
+class RolePermissions <<Entity>> MODEL_COLOR {
+  + _id: ObjectId
+  + roleId: ObjectId
+  + permissionIds: ObjectId[]
+  + createdAt: Date
+  + updatedAt: Date
+  + createdBy: ObjectId
+  + updatedBy: ObjectId
+}
+
+class Users <<Entity>> MODEL_COLOR {
+  + _id: ObjectId
+  + username: string
+  + fullName: string
+  + email: string
+  + phone: string
+  + position: string
+  + department: string
+  + password: string
+  + roleId: ObjectId
+  + status: string
+  + createdAt: Date
+  + updatedAt: Date
+}
+
+' =====================================
+' DTOs
+' =====================================
+
+class RoleDto <<DTO>> DTO_COLOR {
+  + roleId: string
+  + roleName: string
+  + roleCode: string
+  + description: string
+  + status: string
+  + page: number
+  + limit: number
+}
+
+class PermissionDto <<DTO>> DTO_COLOR {
+  + permissionId: string
+  + permissionName: string
+  + permissionCode: string
+  + url: string
+  + description: string
+  + status: string
+  + page: number
+  + limit: number
+}
+
+class RolePermissionDto <<DTO>> DTO_COLOR {
+  + rolePermissionId: string
+  + roleId: string
+  + permissionIds: string[]
+  + page: number
+  + limit: number
+}
+
+class BaseResponse <<DTO>> DTO_COLOR {
+  + success: boolean
+  + data: any
+  + message: string
+  + statusCode: number
+  + metadata: any
+}
+
+' =====================================
+' RELATIONSHIPS
+' =====================================
+
+' Controller -> Service relationships
+SystemController --> RoleService : uses
+SystemController --> SystemService : uses
+
+' Service -> Model relationships
+RoleService --> Roles : manages
+RoleService --> Permissions : manages
+RoleService --> RolePermissions : manages
+
+' Model relationships
+RolePermissions "1" --> "1" Roles : belongs to
+RolePermissions "*" --> "*" Permissions : contains
+Users "1" --> "1" Roles : has role
+
+' Controller -> DTO relationships
+SystemController --> RoleDto : receives
+SystemController --> PermissionDto : receives
+SystemController --> RolePermissionDto : receives
+SystemController --> BaseResponse : returns
+
+' Service -> DTO relationships
+RoleService --> RoleDto : uses
+RoleService --> PermissionDto : uses
+RoleService --> RolePermissionDto : uses
+
+note right of RoleService
+  <b>Use Cases Supported:</b>
+  • Create Role (Access) functionality
+  • View Role (Access) functionality
+  • Update Role (Access) functionality
+  • Delete Role (Access) functionality
+  • Create Permission functionality
+  • View Permission functionality
+  • Update Permission functionality
+  • Delete Permission functionality
+  • Assign Permissions to Role
+  • Get Role Statistics
+  • Get Permission Statistics
+end note
+
+note right of Roles
+  <b>Role Entity</b>
+  Represents access levels/roles
+  in the system (Admin, User, etc.)
+end note
+
+note right of Permissions
+  <b>Permission Entity</b>
+  Represents specific permissions
+  that can be assigned to roles
+  (Create, Read, Update, Delete)
+end note
+
+note right of RolePermissions
+  <b>RolePermissions Entity</b>
+  Junction table mapping roles
+  to their assigned permissions
+  (Many-to-Many relationship)
+end note
+
+@enduml

@@ -49,7 +49,11 @@ export class NotificationGateway implements OnGatewayConnection, OnGatewayDiscon
 
   sendToVoter(voterId: string, data: any) {
     this.server.to(voterId).emit('ballotsVoter', data);
-    console.log('Emitting to voter: ', voterId, "data: ", data);
+  }
+
+  voterSign(voterId: string, data: any) {
+    this.server.to(voterId).emit('voterSign', data);
+    this.server.emit('voterSign', data);
   }
 
   transferStateDataRT(electionId: string, data: any) {
