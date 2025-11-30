@@ -58,3 +58,9 @@ export class Users extends BaseSchema {
 }
 
 export const UsersSchema = SchemaFactory.createForClass(Users);
+
+UsersSchema.index({ fullName: 1 });
+UsersSchema.index({ email: 1 });
+UsersSchema.index({ status: 1 });
+UsersSchema.index({ fullName: 'text' });
+UsersSchema.index({ roleId: 1 });

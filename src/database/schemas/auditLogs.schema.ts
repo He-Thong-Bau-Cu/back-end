@@ -36,3 +36,8 @@ export class AuditLogs extends BaseSchema {
 }
 
 export const AuditLogsSchema = SchemaFactory.createForClass(AuditLogs);
+
+AuditLogsSchema.index({ createdAt: -1 });
+AuditLogsSchema.index({ module: 1, createdAt: -1 });
+AuditLogsSchema.index({ action: 1, createdAt: -1 });
+AuditLogsSchema.index({ userId: 1, createdAt: -1 });

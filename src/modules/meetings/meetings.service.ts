@@ -11,6 +11,7 @@ import { MESSAGE } from 'src/common/enums/message.enum';
 import { SearchDTO } from 'src/common/dto/search.dto';
 import { BaseSearchDTO } from 'src/common/dto/base-search.dto';
 import { STATUS } from 'src/common/enums/status.enum';
+import { NotificationService } from '../notification/notification.service';
 @Injectable()
 export class MeetingsService {
   constructor(
@@ -22,6 +23,7 @@ export class MeetingsService {
     private readonly meetingAttendeesModel: Model<MeetingAttendees>,
     @InjectModel(Ballots.name)
     private readonly ballotsModel: Model<Ballots>,
+    private readonly notificationService: NotificationService,
   ) { }
 
 
@@ -135,6 +137,12 @@ export class MeetingsService {
       if (!updatedMeeting) {
         throw new Error(MESSAGE.MEETING_NOT_FOUND);
       }
+
+      const electionId = this.extractElectionId(updatedMeeting.electionId);
+      if (electionId) {
+        await this.emitEventManagementUpdate(electionId, 'meeting-updated');
+      }
+
       return updatedMeeting;
     }
     catch (error) {
@@ -320,9 +328,61 @@ export class MeetingsService {
         throw new Error(MESSAGE.MEETING_NOT_FOUND);
       }
 
+      const electionId = this.extractElectionId(updatedMeeting.electionId);
+      if (electionId) {
+        await this.emitEventManagementUpdate(electionId, 'meeting-status-updated');
+
+        // Gọi socket transferStateDataRT sau khi đổi trạng thái
+        try {
+          const statsData = await this.getEventManagementStats(electionId);
+          await this.notificationService.transferStateDataRT(electionId, {
+            type: 'meeting-status-changed',
+            electionId,
+            payload: statsData,
+            timestamp: new Date().toISOString(),
+          });
+        } catch (error) {
+          console.error('Failed to emit transferStateDataRT:', error.message || error);
+        }
+      }
+
       return updatedMeeting;
     } catch (error) {
       throw error;
+    }
+  }
+
+  private extractElectionId(electionId: any): string | null {
+    if (!electionId) {
+      return null;
+    }
+
+    if (typeof electionId === 'string') {
+      return electionId;
+    }
+
+    if (electionId instanceof Types.ObjectId) {
+      return electionId.toString();
+    }
+
+    if (typeof electionId === 'object' && '_id' in electionId) {
+      return String((electionId as any)._id);
+    }
+
+    return null;
+  }
+
+  private async emitEventManagementUpdate(electionId: string, eventType: string) {
+    try {
+      const snapshot = await this.getEventManagementStats(electionId);
+      this.notificationService.transferDataRealTime(electionId, {
+        type: eventType,
+        electionId,
+        payload: snapshot,
+        timestamp: new Date().toISOString(),
+      });
+    } catch (error) {
+      console.error(`Failed to emit realtime update (${eventType}):`, error.message || error);
     }
   }
 }

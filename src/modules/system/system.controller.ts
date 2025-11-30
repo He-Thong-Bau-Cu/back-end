@@ -9,6 +9,7 @@ import {
   Post,
   Put,
   Query,
+  Res,
 } from '@nestjs/common';
 import { SystemService } from './system.service';
 import { SearchDTO } from 'src/common/dto/search.dto';
@@ -483,6 +484,27 @@ export class SystemController {
     try {
       const resData = await this.roleService.getStatsPermission();
       return BaseResponse.success(resData, MESSAGE_STATUS.PERMISSION_STATS, HttpStatus.OK);
+    } catch (e) {
+      throw new HttpException({ message: e.message }, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+  }
+
+  @ApiOperation({ summary: 'Xuất báo cáo Excel system logs' })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'Xuất báo cáo Excel thành công',
+  })
+  @ApiResponse({
+    status: HttpStatus.INTERNAL_SERVER_ERROR,
+    description: MESSAGE_STATUS.SERVER_ERROR,
+  })
+  @Post(`${ENDPOINT.SYSTEM_LOG}/export`)
+  async exportSystemLogs(@Body() req: SearchDTO, @Res() res: any) {
+    try {
+      const { buffer, fileName } = await this.systemService.exportSystemLogsToExcel(req);
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
+      res.send(buffer);
     } catch (e) {
       throw new HttpException({ message: e.message }, HttpStatus.INTERNAL_SERVER_ERROR);
     }

@@ -20,7 +20,7 @@ export class Meetings extends BaseSchema {
   @Prop({ required: true })
   meetingDate: Date;
 
-  @Prop({ required: true })
+  @Prop({ default: null })
   location: string;
 
   @Prop({ default: null })

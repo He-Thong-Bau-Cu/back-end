@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model, Types } from 'mongoose';
-import { paginate } from 'src/common/dto/paignation';
+import { FilterQuery, Model, Types } from 'mongoose';
+import { PaginationResult } from 'src/common/dto/paignation';
 import { SearchDTO } from 'src/common/dto/search.dto';
 import { STATUS, STATUS_SYSTEM } from 'src/common/enums/status.enum';
 import { formatDateVN } from 'src/common/utils/format';
@@ -15,6 +15,7 @@ import {
   ElectionsParticipants,
   ElectionsParticipantsDocument,
 } from 'src/database/schemas/electionParticipants.schema';
+import * as ExcelJS from 'exceljs';
 
 @Injectable()
 export class SystemService {
@@ -33,35 +34,52 @@ export class SystemService {
 
   async searchSystemLogs(req: SearchDTO) {
     try {
-      let statusCodeRange: number[] = [];
-      switch (req.status as string) {
-        case STATUS_SYSTEM.SUCCESS:
-          statusCodeRange = [200, 299];
-          break;
-        case STATUS_SYSTEM.CLIENT_ERROR:
-          statusCodeRange = [400, 499];
-          break;
-        case STATUS_SYSTEM.SERVER_ERROR:
-          statusCodeRange = [500, 599];
-          break;
-        case STATUS_SYSTEM.INFORMATION:
-          statusCodeRange = [100, 199];
-          break;
-        case STATUS_SYSTEM.REDIRECTION:
-          statusCodeRange = [300, 399];
-          break;
-        default:
-          statusCodeRange = [200, 599];
+      const page = req.page ?? 1;
+      const limit = req.limit ?? 10;
+      const skip = (page - 1) * limit;
+
+      const filter: FilterQuery<SystemLogDocument> = {};
+
+      if (req.status) {
+        const statusCodeRange = this.getStatusCodeRange(req.status as string);
+        if (statusCodeRange) {
+          filter.statusCode = {
+            $gte: statusCodeRange[0],
+            $lte: statusCodeRange[1],
+          };
+        }
       }
-      let from = formatDateVN(req.fromDate);
-      let to = formatDateVN(req.toDate);
-      const systemLogData = await this.systemLogModel
-        .find({
-          statusCode: { $gte: statusCodeRange[0], $lte: statusCodeRange[1] },
-        })
-        .sort({ createdAt: -1 })
-        .exec();
-      return paginate(systemLogData, req.page, req.limit);
+
+      if (req.textSearch) {
+        const regex = new RegExp(req.textSearch, 'i');
+        filter.$or = [{ method: regex }, { url: regex }, { ipAddress: regex }];
+      }
+
+      const createdAtFilter: FilterQuery<SystemLogDocument>['createdAt'] = {};
+      if (req.fromDate) {
+        createdAtFilter.$gte = new Date(req.fromDate);
+      }
+      if (req.toDate) {
+        const toDate = new Date(req.toDate);
+        toDate.setHours(23, 59, 59, 999);
+        createdAtFilter.$lte = toDate;
+      }
+      if (Object.keys(createdAtFilter).length) {
+        filter.createdAt = createdAtFilter;
+      }
+
+      const [logs, totalItems] = await Promise.all([
+        this.systemLogModel
+          .find(filter)
+          .sort({ createdAt: -1 })
+          .skip(skip)
+          .limit(limit)
+          .lean()
+          .exec(),
+        this.systemLogModel.countDocuments(filter),
+      ]);
+
+      return this.buildPagination(logs, page, limit, totalItems);
     } catch (e) {
       throw e;
     }
@@ -69,15 +87,82 @@ export class SystemService {
 
   async searchAuditLogs(req: SearchDTO) {
     try {
-      const auditLogData = await this.auditLogModel
-        .find()
-        .populate('userId', 'fullName email position')
-        .sort({ createdAt: -1 })
-        .exec();
-      return paginate(auditLogData, req.page, req.limit);
+      const page = req.page ?? 1;
+      const limit = req.limit ?? 10;
+      const skip = (page - 1) * limit;
+
+      const filter: FilterQuery<AuditLogsDocument> = {};
+
+      if (req.textSearch) {
+        const regex = new RegExp(req.textSearch, 'i');
+        filter.$or = [{ module: regex }, { action: regex }];
+      }
+
+      if (req.type) {
+        filter.module = req.type;
+      }
+
+      const createdAtFilter: FilterQuery<AuditLogsDocument>['createdAt'] = {};
+      if (req.fromDate) {
+        createdAtFilter.$gte = new Date(req.fromDate);
+      }
+      if (req.toDate) {
+        const toDate = new Date(req.toDate);
+        toDate.setHours(23, 59, 59, 999);
+        createdAtFilter.$lte = toDate;
+      }
+      if (Object.keys(createdAtFilter).length) {
+        filter.createdAt = createdAtFilter;
+      }
+
+      const [auditLogs, totalItems] = await Promise.all([
+        this.auditLogModel
+          .find(filter)
+          .populate('userId', 'fullName email position')
+          .sort({ createdAt: -1 })
+          .skip(skip)
+          .limit(limit)
+          .lean()
+          .exec(),
+        this.auditLogModel.countDocuments(filter),
+      ]);
+
+      return this.buildPagination(auditLogs, page, limit, totalItems);
     } catch (e) {
       throw e;
     }
+  }
+
+  private getStatusCodeRange(status?: string): number[] | null {
+    switch (status) {
+      case STATUS_SYSTEM.SUCCESS:
+        return [200, 299];
+      case STATUS_SYSTEM.CLIENT_ERROR:
+        return [400, 499];
+      case STATUS_SYSTEM.SERVER_ERROR:
+        return [500, 599];
+      case STATUS_SYSTEM.INFORMATION:
+        return [100, 199];
+      case STATUS_SYSTEM.REDIRECTION:
+        return [300, 399];
+      default:
+        return null;
+    }
+  }
+
+  private buildPagination<T>(
+    content: T[],
+    page: number,
+    limit: number,
+    totalItems: number,
+  ): PaginationResult<T> {
+    return {
+      content,
+      page,
+      limit,
+      totalItems,
+      totalPages: Math.ceil(totalItems / limit),
+    };
   }
 
   async getStatisticsCards() {
@@ -275,6 +360,120 @@ export class SystemService {
           avgResponseTime,
           errorRate,
         },
+      };
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  async exportSystemLogsToExcel(req: SearchDTO) {
+    try {
+      const workbook = new ExcelJS.Workbook();
+      const worksheet = workbook.addWorksheet('System Logs');
+
+      worksheet.columns = [
+        { header: 'STT', key: 'index', width: 6 },
+        { header: 'Phương thức', key: 'method', width: 12 },
+        { header: 'URL', key: 'url', width: 50 },
+        { header: 'Mã trạng thái', key: 'statusCode', width: 12 },
+        { header: 'Địa chỉ IP', key: 'ipAddress', width: 18 },
+        { header: 'Thời gian phản hồi (ms)', key: 'responseTime', width: 20 },
+        { header: 'Ngày tạo', key: 'createdAt', width: 22 },
+      ];
+
+      // Build filter same as search
+      const filter: FilterQuery<SystemLogDocument> = {};
+
+      if (req.status) {
+        const statusCodeRange = this.getStatusCodeRange(req.status as string);
+        if (statusCodeRange) {
+          filter.statusCode = {
+            $gte: statusCodeRange[0],
+            $lte: statusCodeRange[1],
+          };
+        }
+      }
+
+      if (req.textSearch) {
+        const regex = new RegExp(req.textSearch, 'i');
+        filter.$or = [{ method: regex }, { url: regex }, { ipAddress: regex }];
+      }
+
+      const createdAtFilter: FilterQuery<SystemLogDocument>['createdAt'] = {};
+      if (req.fromDate) {
+        createdAtFilter.$gte = new Date(req.fromDate);
+      }
+      if (req.toDate) {
+        const toDate = new Date(req.toDate);
+        toDate.setHours(23, 59, 59, 999);
+        createdAtFilter.$lte = toDate;
+      }
+      if (Object.keys(createdAtFilter).length) {
+        filter.createdAt = createdAtFilter;
+      }
+
+      // Get all logs matching filter (no pagination for export)
+      const logs = await this.systemLogModel.find(filter).sort({ createdAt: -1 }).lean().exec();
+
+      logs.forEach((log, index) => {
+        worksheet.addRow({
+          index: index + 1,
+          method: log.method || '',
+          url: log.url || '',
+          statusCode: log.statusCode || '',
+          ipAddress: log.ipAddress || '',
+          responseTime: log.responseTime || 0,
+          createdAt: log.createdAt
+            ? new Date(log.createdAt).toLocaleString('vi-VN', {
+                timeZone: 'Asia/Ho_Chi_Minh',
+              })
+            : '',
+        });
+      });
+
+      // Style header row
+      const headerRow = worksheet.getRow(1);
+      headerRow.font = { bold: true };
+      headerRow.alignment = { horizontal: 'center', vertical: 'middle' };
+      headerRow.fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: 'FFE0E0E0' },
+      };
+
+      // Style data rows
+      worksheet.eachRow((row, rowNumber) => {
+        if (rowNumber > 1) {
+          row.alignment = { vertical: 'middle' };
+          // Color code status
+          const statusCode = row.getCell(4).value as number;
+          if (statusCode >= 200 && statusCode < 300) {
+            row.getCell(4).fill = {
+              type: 'pattern',
+              pattern: 'solid',
+              fgColor: { argb: 'FFC6EFCE' },
+            };
+          } else if (statusCode >= 400 && statusCode < 500) {
+            row.getCell(4).fill = {
+              type: 'pattern',
+              pattern: 'solid',
+              fgColor: { argb: 'FFFFEB9C' },
+            };
+          } else if (statusCode >= 500) {
+            row.getCell(4).fill = {
+              type: 'pattern',
+              pattern: 'solid',
+              fgColor: { argb: 'FFFFC7CE' },
+            };
+          }
+        }
+      });
+
+      const arrayBuffer = await workbook.xlsx.writeBuffer();
+      const nodeBuffer = Buffer.from(new Uint8Array(arrayBuffer as ArrayBuffer));
+      return {
+        buffer: nodeBuffer,
+        fileName: `system-logs-${Date.now()}.xlsx`,
       };
     } catch (error) {
       throw error;

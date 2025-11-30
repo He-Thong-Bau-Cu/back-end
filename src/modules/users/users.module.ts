@@ -10,6 +10,7 @@ import { MailModule } from "../mail/mail.module";
 import { MinioModule } from '../minio/minio.module';
 import { Elections, ElectionsSchema } from 'src/database/schemas/elections.schema';
 import { ElectionsParticipants, ElectionsParticipantsSchema } from 'src/database/schemas/electionParticipants.schema';
+import { ElasticsearchModule } from '../elasticsearch/elasticsearch.module';
 
 @Module({
     imports: [
@@ -20,7 +21,8 @@ import { ElectionsParticipants, ElectionsParticipantsSchema } from 'src/database
             { name: ElectionsParticipants.name, schema: ElectionsParticipantsSchema },
         ]),
         MailModule,
-        MinioModule
+        MinioModule,
+        ElasticsearchModule
     ],
     controllers: [UsersController],
     providers: [UsersService],
