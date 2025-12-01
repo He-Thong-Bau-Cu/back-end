@@ -1266,7 +1266,6 @@ export class ElectionsService {
         isSubmitForApproval,
       } = dto;
 
-      // Validation khi gửi duyệt: kiểm tra các trường bắt buộc
       if (isSubmitForApproval) {
         if (!electionEntities || !Array.isArray(electionEntities) || electionEntities.length === 0) {
           throw new Error('Vui lòng thêm ít nhất một ứng viên/bầu chọn trước khi gửi duyệt');
@@ -1501,6 +1500,7 @@ export class ElectionsService {
                 title: docItem.title,
                 content: docItem.content,
                 fileUrl: docItem.fileUrl,
+                type: FileType.ELECTION_DOCUMENT_IMPORTANT,
                 remarks: docItem.remarks,
                 updatedBy: new Types.ObjectId(userId),
               },
@@ -1514,6 +1514,7 @@ export class ElectionsService {
               title: docItem.title,
               content: docItem.content,
               fileUrl: docItem.fileUrl,
+              type: FileType.ELECTION_DOCUMENT_IMPORTANT,
               status: 'PENDING',
               remarks: docItem.remarks,
               createdBy: new Types.ObjectId(userId),
@@ -1548,25 +1549,19 @@ export class ElectionsService {
         });
       }
 
-      // 8. Xử lý MeetingAttendees cho participants có role voter (chỉ từ danh sách voters)
       if (meeting) {
-        // Lấy role voter
         const voterRole = await this.rolesModel.findOne({ roleCode: USER_ROLE.VOTER });
         if (voterRole) {
-          // Lấy danh sách election participants có role VOTER từ database (dựa trên voters đã được tạo/cập nhật)
           const voterParticipants = await this.electionParticipantsModel.find({
             electionId: new Types.ObjectId(electionId),
             roleId: voterRole._id,
           }).exec();
 
-          // Xóa tất cả meetingAttendees cũ của meeting này (logic ghi đè)
           await this.meetingAttendeesModel.deleteMany({
             meetingId: meeting._id,
           });
 
-          // Tạo meetingAttendees mới cho các participants có role VOTER
           for (const voterParticipant of voterParticipants) {
-            // Kiểm tra xem đã có meetingAttendee chưa (tránh duplicate)
             const existingAttendee = await this.meetingAttendeesModel.findOne({
               meetingId: meeting._id,
               participantId: voterParticipant._id,

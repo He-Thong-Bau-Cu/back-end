@@ -1,6 +1,7 @@
 export enum FileType {
   // Election related files
   ELECTION_DOCUMENT = 'election-documents',
+  ELECTION_DOCUMENT_IMPORTANT = 'election-documents-important',
   ELECTION_RESULT = 'election-results',
   ELECTION_REPORT = 'election-reports',
 
