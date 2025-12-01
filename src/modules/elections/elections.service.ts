@@ -32,6 +32,7 @@ import { Meetings } from 'src/database/schemas/meetings.schema';
 import { VotingRights } from 'src/database/schemas/votingRights.schema';
 import { BulkSaveDraftDto } from './dto/bulk-save-draft-dto';
 import { MeetingAttendees } from 'src/database/schemas/meetingAttendees.schema';
+import { Ballots } from 'src/database/schemas/ballots.schema';
 import { SigningService } from '../signature/signature.service';
 import { MinioService } from '../minio/minio.service';
 import { FileType } from 'src/common/enums/file-type.enum';
@@ -74,6 +75,8 @@ export class ElectionsService {
     private readonly meetingAttendeesModel: Model<MeetingAttendees>,
     @InjectModel(SystemConfig.name)
     private readonly systemConfigModel: Model<SystemConfigDocument>,
+    @InjectModel(Ballots.name)
+    private readonly ballotsModel: Model<Ballots>,
     private readonly signatureService: SigningService,
     private readonly fileService: MinioService,
     private readonly notificationService: NotificationService,
@@ -1811,6 +1814,25 @@ export class ElectionsService {
       const stages = election.stages || {};
       stages[stage.toLowerCase()] = 'STARTED';
 
+      // Khi bắt đầu giai đoạn bỏ phiếu (stage = voting), cập nhật tất cả ballots thành ACTIVE
+      // Thực hiện TRƯỚC khi update election để đảm bảo logic chạy đúng
+      if (stage.toLowerCase() === 'voting') {
+        try {
+          const updateResult = await this.ballotsModel.updateMany(
+            { electionId: new Types.ObjectId(electionId) },
+            {
+              $set: {
+                status: STATUS.ACTIVE,
+                updatedBy: userId ? new Types.ObjectId(userId) : null,
+              }
+            }
+          );
+          console.log(`[START VOTING STAGE] Đã cập nhật ${updateResult.modifiedCount} ballots của electionId ${electionId} thành ACTIVE`);
+        } catch (error) {
+          console.error('[START VOTING STAGE] Failed to update ballots status to ACTIVE:', error.message || error);
+        }
+      }
+
       // Chỉ cập nhật timeline và stages, không động vào statusData
       const updatedElection = await this.electionsModel
         .findByIdAndUpdate(
@@ -1946,6 +1968,25 @@ export class ElectionsService {
       // Cập nhật stages để đánh dấu giai đoạn đã completed
       const stages = election.stages || {};
       stages[stage.toLowerCase()] = 'COMPLETED';
+
+      // Khi kết thúc giai đoạn bỏ phiếu (stage = voting), cập nhật tất cả ballots thành INACTIVE
+      // Thực hiện TRƯỚC khi update election để đảm bảo logic chạy đúng
+      if (stage.toLowerCase() === 'voting') {
+        try {
+          const updateResult = await this.ballotsModel.updateMany(
+            { electionId: new Types.ObjectId(electionId) },
+            {
+              $set: {
+                status: STATUS.INACTIVE,
+                updatedBy: userId ? new Types.ObjectId(userId) : null,
+              }
+            }
+          );
+          console.log(`[END VOTING STAGE] Đã cập nhật ${updateResult.modifiedCount} ballots của electionId ${electionId} thành INACTIVE`);
+        } catch (error) {
+          console.error('[END VOTING STAGE] Failed to update ballots status to INACTIVE:', error.message || error);
+        }
+      }
 
       // Không động vào statusData, chỉ cập nhật stages
       const updatedElection = await this.electionsModel

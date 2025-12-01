@@ -23,6 +23,7 @@ import { Meetings, MeetingsSchema } from 'src/database/schemas/meetings.schema';
 import { VotingRights, VotingRightsSchema } from 'src/database/schemas/votingRights.schema';
 import { MeetingAttendees, MeetingAttendeesSchema } from 'src/database/schemas/meetingAttendees.schema';
 import { SystemConfig, SystemConfigSchema } from 'src/database/schemas/systemConfig.schema';
+import { Ballots, BallotsSchema } from 'src/database/schemas/ballots.schema';
 import { SignatureModule } from '../signature/signature.module';
 import { MinioModule } from '../minio/minio.module';
 import { NotificationModule } from '../notification/notification.module';
@@ -46,6 +47,7 @@ import { MailModule } from '../mail/mail.module';
       { name: VotingRights.name, schema: VotingRightsSchema },
       { name: MeetingAttendees.name, schema: MeetingAttendeesSchema },
       { name: SystemConfig.name, schema: SystemConfigSchema },
+      { name: Ballots.name, schema: BallotsSchema },
     ]),
     SignatureModule,
     MinioModule,
