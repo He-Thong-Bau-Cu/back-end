@@ -339,15 +339,25 @@ export class BallotsService {
         throw new Error(MESSAGE.BALLOT_NOT_FOUND);
       }
 
+      const updateData: any = {
+        ...updateBalllot,
+      };
+
+      if (updateBalllot.electionId) {
+        updateData.electionId = new Types.ObjectId(updateBalllot.electionId);
+      }
+
+      if (updateBalllot.voterId) {
+        updateData.voterId = new Types.ObjectId(updateBalllot.voterId);
+      }
+
+      if (userId) {
+        updateData.updatedBy = new Types.ObjectId(userId);
+      }
 
 
       const ballot = await this.ballotsModel
-        .findByIdAndUpdate(new Types.ObjectId(id), {
-          ...updateBalllot,
-          electionId: updateBalllot.electionId ? new Types.ObjectId(updateBalllot.electionId) : null,
-          voterId: updateBalllot.voterId ? new Types.ObjectId(updateBalllot.voterId) : null,
-          updatedBy: new Types.ObjectId(userId) ? new Types.ObjectId(userId) : null,
-        }, { new: true })
+        .findByIdAndUpdate(new Types.ObjectId(id), updateData, { new: true })
         .populate('electionId', 'title startDate endDate delegationStart delegationEnd status statusData decisionNumber decisionName')
         .populate({
           path: 'voterId',
@@ -372,6 +382,8 @@ export class BallotsService {
       throw error;
     }
   }
+
+  //Cập nhật trạng thái phiếu bầu thành active
   async updateStatus(id: string, userId: string) {
     try {
       //Check if the ballot is exist
@@ -399,22 +411,21 @@ export class BallotsService {
       }
 
       //Check the status of ballots is valid
-      if (ballotExist.status === 'Active') {
+      if (ballotExist.status === STATUS.ACTIVE) {
         throw new Error('Ballot is already active');
       }
-      if (ballotExist.status === 'Locked' || ballotExist.status === 'Invalid') {
+      if (ballotExist.status === STATUS.LOCKED || ballotExist.status === STATUS.INVALID) {
         throw new Error('Ballot cannot be activated');
       }
 
-      //genertate OTP
-
-      ballotExist.status = 'Active';
-      ballotExist.issuedAt = new Date();
-      ballotExist.updatedBy = new Types.ObjectId(userId);
 
 
-      await ballotExist.save();
-      return ballotExist;
+      const updateBallots = await this.ballotsModel.findByIdAndUpdate(new Types.ObjectId(id), {
+        status: STATUS.ACTIVE,
+        issuedAt: new Date(),
+        updatedBy: new Types.ObjectId(userId) ? new Types.ObjectId(userId) : null,
+      }, { new: true });
+      return updateBallots;
     } catch (error) {
       throw error;
     }
