@@ -1,6 +1,19 @@
 import { BadRequestException } from '@nestjs/common';
 import moment from 'moment-timezone';
 
+/**
+ * Lấy thời gian hiện tại theo múi giờ Việt Nam (GMT+7)
+ * Luôn trả về thời gian Việt Nam bằng cách lấy UTC và cộng thêm 7 giờ
+ * @returns Date object với thời gian Việt Nam (GMT+7)
+ */
+export function getCurrentDateVN(): Date {
+  // Date.now() luôn trả về UTC timestamp (milliseconds từ epoch)
+  const utcTimestamp = Date.now();
+  // Cộng thêm 7 giờ (7 * 60 * 60 * 1000 = 25200000 milliseconds) cho múi giờ Việt Nam (GMT+7)
+  const vnTimestamp = utcTimestamp + (7 * 60 * 60 * 1000);
+  return new Date(vnTimestamp);
+}
+
 export function formatDateVN(date: Date): string {
   return moment(date)
     .tz('Asia/Ho_Chi_Minh')

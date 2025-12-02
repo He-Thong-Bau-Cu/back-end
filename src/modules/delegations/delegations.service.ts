@@ -16,7 +16,7 @@ import PdfPrinter from 'pdfmake';
 import path from 'path';
 import { BaseSearchDTO } from 'src/common/dto/base-search.dto';
 import { paginate } from 'src/common/dto/paignation';
-import { formatDateDMYVN, formatDateVN, validateStatusFormat } from 'src/common/utils/format';
+import { formatDateDMYVN, formatDateVN, validateStatusFormat, getCurrentDateVN } from 'src/common/utils/format';
 import { SigningService } from '../signature/signature.service';
 import { Voters, VotersDocument } from 'src/database/schemas/voters.schema';
 import { MinioService } from '../minio/minio.service';
@@ -889,6 +889,7 @@ export class DelegationsService {
                 id: '$_id',
                 delegateReason: '$delegateReason',
                 status: '$status',
+                delegationType: '$delegationType',
                 timeDelegation: {
                   $floor: {
                     $divide: [{ $subtract: ['$endDate', '$startDate'] }, 1000 * 60 * 60 * 24],
@@ -1000,7 +1001,7 @@ export class DelegationsService {
     };
     const printer = new PdfPrinter(fonts);
 
-    const currentDate = new Date();
+    const currentDate = getCurrentDateVN();
     const formattedDate = currentDate.toLocaleDateString('vi-VN');
 
     // Tạo số công văn
@@ -1206,6 +1207,7 @@ export class DelegationsService {
               $push: {
                 delegator: '$delegator',
                 delegate: { $ifNull: ['$delegate', '$delegateInfo'] },
+                delegationType: '$delegationType',
                 createdAt: '$createdAt',
               },
             },
@@ -1275,7 +1277,7 @@ export class DelegationsService {
       if (!election) {
         throw new NotFoundException('Không tìm thấy cuộc bầu cử!');
       }
-      if (election.delegationEnd > new Date()) {
+      if (election.delegationEnd > getCurrentDateVN()) {
         throw new Error('Bạn chỉ có thể kí khi thời hạn ủy quyền kết thúc!');
       }
       const dataSummaryElection = await this.getSummaryDelegateByElectionId(
@@ -1392,7 +1394,7 @@ export class DelegationsService {
                   const newMeetingAttendee = new this.meetingAttendeesModel({
                     meetingId: meeting._id,
                     participantId: electionParticipantVoter._id,
-                    checkInTime: new Date(),
+                    checkInTime: getCurrentDateVN(),
                     attended: false,
                     createdBy: new Types.ObjectId(userId),
                     updatedBy: new Types.ObjectId(userId),
@@ -1472,7 +1474,7 @@ export class DelegationsService {
                   const newMeetingAttendee = new this.meetingAttendeesModel({
                     meetingId: meeting._id,
                     participantId: electionParticipantVoter._id,
-                    checkInTime: new Date(),
+                    checkInTime: getCurrentDateVN(),
                     attended: false,
                     createdBy: new Types.ObjectId(userId),
                     updatedBy: new Types.ObjectId(userId),
@@ -1523,7 +1525,7 @@ export class DelegationsService {
                         $set: {
                           status: STATUS.INACTIVE,
                           updatedBy: new Types.ObjectId(userId),
-                          updatedAt: new Date()
+                          updatedAt: getCurrentDateVN()
                         }
                       }
                     ).exec();
@@ -1566,7 +1568,7 @@ export class DelegationsService {
             type: FileType.DELEGATION_SUMMARY_SIGNED,
             fileUrl: fileUpload.key,
             createdBy: new Types.ObjectId(userId),
-            createdAt: new Date(),
+            createdAt: getCurrentDateVN(),
           });
           await electionDocument.save();
         }
@@ -1589,7 +1591,7 @@ export class DelegationsService {
       };
       const printer = new PdfPrinter(fonts);
 
-      const currentDate = new Date();
+      const currentDate = getCurrentDateVN();
       const formattedDate = currentDate.toLocaleDateString('vi-VN');
 
       // Tạo số công văn
@@ -1759,7 +1761,7 @@ export class DelegationsService {
         delegation.rejectReasonBySecretary = rejectReason || '';
       } else {
         delegation.status = STATUS.CONFIRMED;
-        delegation.confirmedAt = new Date();
+        delegation.confirmedAt = getCurrentDateVN();
       }
       return delegation.save();
     } catch (error) {
@@ -1826,7 +1828,7 @@ export class DelegationsService {
           type: FileType.DELEGATION_DELEGATOR_SIGNED,
           fileUrl: fileUpload.key,
           createdBy: new Types.ObjectId(delegator?._id),
-          createdAt: new Date(),
+          createdAt: getCurrentDateVN(),
         });
         await electionDocument.save();
         delegation.documentId = electionDocument.id;
@@ -1851,7 +1853,7 @@ export class DelegationsService {
       };
       const printer = new PdfPrinter(fonts);
 
-      const currentDate = new Date();
+      const currentDate = getCurrentDateVN();
       const formattedDate = `${currentDate.getDate()}/${currentDate.getMonth() + 1
         }/${currentDate.getFullYear()}`;
 

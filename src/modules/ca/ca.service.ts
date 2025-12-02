@@ -6,6 +6,7 @@ import { SignerInfo } from 'src/common/dto/singerInfo.dot';
 import { PassThrough } from 'stream';
 import archiver from 'archiver';
 import { MailService } from '../mail/mail.service';
+import { getCurrentDateVN } from 'src/common/utils/format';
 
 const CERTS_DIR = path.join(process.cwd(), 'certs');
 
@@ -29,8 +30,8 @@ export class CaService {
     const cert = forge.pki.createCertificate();
     cert.publicKey = keys.publicKey;
     cert.serialNumber = Date.now().toString();
-    cert.validity.notBefore = new Date();
-    cert.validity.notAfter = new Date();
+    cert.validity.notBefore = getCurrentDateVN();
+    cert.validity.notAfter = getCurrentDateVN();
     cert.validity.notAfter.setFullYear(
         cert.validity.notBefore.getFullYear() + 10,
     );
@@ -92,8 +93,8 @@ export class CaService {
 
     const cert = forge.pki.createCertificate();
     cert.serialNumber = Date.now().toString();
-    cert.validity.notBefore = new Date();
-    cert.validity.notAfter = new Date();
+    cert.validity.notBefore = getCurrentDateVN();
+    cert.validity.notAfter = getCurrentDateVN();
     cert.validity.notAfter.setFullYear(
         cert.validity.notBefore.getFullYear() + 2,
     );

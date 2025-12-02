@@ -18,6 +18,7 @@ import { SearchDTO } from 'src/common/dto/search.dto';
 import removeVietnameseTones, {
   isValidateTimeline,
   formatDateDMYVN,
+  getCurrentDateVN,
 } from 'src/common/utils/format';
 import {
   ElectionsParticipants,
@@ -158,7 +159,7 @@ export class ElectionsService {
         }
       }
 
-      const createdAt = new Date();
+      const createdAt = getCurrentDateVN();
       if (createElection?.endDate && createElection?.startDate) {
         //Kiểm tra ngày kết thúc phải lớn hơn ngày tạo ít nhất 20 ngày
         const endDate = new Date(createElection?.endDate);
@@ -308,7 +309,7 @@ export class ElectionsService {
         }
       }
 
-      const createdAt = new Date();
+      const createdAt = getCurrentDateVN();
       if (updateElection?.endDate && updateElection?.startDate) {
         //Kiểm tra ngày kết thúc phải lớn hơn ngày tạo ít nhất 20 ngày
         const endDate = new Date(updateElection?.endDate);
@@ -629,7 +630,7 @@ export class ElectionsService {
           fileUrl: fileUpload.key,
           status: STATUS.ACTIVE,
           createdBy: new Types.ObjectId(userId),
-          createdAt: new Date(),
+          createdAt: getCurrentDateVN(),
         });
         const savedDocument = await electionDocument.save();
         electionDocumentId = savedDocument._id as Types.ObjectId;
@@ -790,7 +791,7 @@ export class ElectionsService {
       };
       const printer = new PdfPrinter(fonts);
 
-      const currentDate = new Date();
+      const currentDate = getCurrentDateVN();
       const formattedDate = formatDateDMYVN(currentDate);
       const dateParts = formattedDate.split('/');
       const day = dateParts[0];
@@ -1157,7 +1158,7 @@ export class ElectionsService {
   }
 
   async getUserIsVoter() {
-    const now = new Date();
+    const now = getCurrentDateVN();
 
     const roleVoter = await this.rolesModel.findOne({ roleCode: USER_ROLE.VOTER });
     if (!roleVoter) throw new Error('Không tìm thấy role VOTER');
@@ -1941,7 +1942,9 @@ export class ElectionsService {
       }
 
       const timeline = election.timeline || {};
-      timeline[stageInfo.timelineKey] = new Date();
+      timeline[stageInfo.timelineKey] = getCurrentDateVN();
+      console.log('timeline[stageInfo.timelineKey]', timeline[stageInfo.timelineKey]);
+      console.log('time now', getCurrentDateVN());
 
       // Cập nhật stages để lưu trạng thái giai đoạn
       const stages = election.stages || {};
@@ -2008,7 +2011,7 @@ export class ElectionsService {
 
       const timeline = election.timeline || {};
       const stages = election.stages || {};
-      const now = new Date();
+      const now = getCurrentDateVN();
 
       // Xác định giai đoạn hiện tại
       let currentStage = 'not_started';

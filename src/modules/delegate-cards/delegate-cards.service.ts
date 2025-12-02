@@ -17,7 +17,7 @@ import PdfPrinter from "pdfmake";
 import * as fs from "fs";
 import * as os from "os";
 import { VotingRights } from 'src/database/schemas/votingRights.schema';
-import { formatDateDMY } from 'src/common/utils/format';
+import { formatDateDMY, getCurrentDateVN } from 'src/common/utils/format';
 import { MinioService } from '../minio/minio.service';
 import console from 'console';
 import path from 'path';
@@ -134,7 +134,7 @@ export class DelegateCardsService {
       if (delegateCardExists) {
         throw new Error(MESSAGE.DELEGATE_CARD_ALREADY_EXISTS);
       }
-      const issuedAt = new Date();
+      const issuedAt = getCurrentDateVN();
       const expiresAt = new Date(issuedAt.getTime() + 24 * 60 * 60 * 1000);
 
       const token = this.generateToken(createDelegateCardDto.electionId, createDelegateCardDto.voterId);
@@ -315,7 +315,7 @@ export class DelegateCardsService {
 
   async getDelegateCardsActive() {
     try {
-      const now = new Date();
+      const now = getCurrentDateVN();
       const delegateCards = await this.delegateCardModel.find({
         status: STATUS.ACTIVE,
         expiresAt: { $gte: now }
@@ -732,7 +732,7 @@ export class DelegateCardsService {
         throw new Error(MESSAGE.ELECTION_NOT_FOUND);
       }
 
-      const now = new Date();
+      const now = getCurrentDateVN();
 
       // 2. Kiểm tra user đã có thẻ đại biểu cho election này chưa
       const existingVoter = await this.votersModel
@@ -823,7 +823,7 @@ export class DelegateCardsService {
     this.logger.log('=== BẮT ĐẦU CRON JOB TỰ ĐỘNG TẠO THẺ ĐẠI BIỂU ===');
 
     try {
-      const now = new Date();
+      const now = getCurrentDateVN();
       this.logger.log(`Thời gian hiện tại: ${now.toISOString()}`);
 
       // 1. Tìm tất cả elections đã hết hạn ủy quyền (delegationEnd < now)

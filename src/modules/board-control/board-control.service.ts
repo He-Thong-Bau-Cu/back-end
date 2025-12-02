@@ -19,6 +19,7 @@ import { USER_ROLE } from 'src/common/enums/config.enum';
 import { createHash } from 'crypto';
 import PdfPrinter from 'pdfmake';
 import * as path from 'path';
+import { getCurrentDateVN } from 'src/common/utils/format';
 
 @Injectable()
 export class BoardControlService {
@@ -152,7 +153,7 @@ export class BoardControlService {
     ]);
 
     const percent = totalVoters ? +((castBallots / totalVoters) * 100).toFixed(2) : 0;
-    const now = new Date();
+    const now = getCurrentDateVN();
     const endDate = election.endDate ? new Date(election.endDate) : null;
     const timeLeftSeconds =
       endDate && endDate.getTime() > now.getTime()
@@ -345,11 +346,11 @@ export class BoardControlService {
     const checksumAfter = this.buildChecksum(`${electionId}:${Date.now()}:after`);
 
     verificationReport.reviewedBy = userIdObjectId;
-    verificationReport.reviewedAt = new Date();
+    verificationReport.reviewedAt = getCurrentDateVN();
     verificationReport.summary = JSON.stringify({
       checksumBefore,
       checksumAfter,
-      confirmedAt: new Date(),
+      confirmedAt: getCurrentDateVN(),
     });
 
     await verificationReport.save();
@@ -413,7 +414,7 @@ export class BoardControlService {
         .lean(),
     ]);
 
-    const startWindow = new Date();
+    const startWindow = getCurrentDateVN();
     startWindow.setDate(startWindow.getDate() - 7);
     const [totalSystemLogs, healthySystemLogs] = await Promise.all([
       this.systemLogModel.countDocuments({ createdAt: { $gte: startWindow } }),
@@ -463,7 +464,7 @@ export class BoardControlService {
 
     const reportInfo = {
       id: populatedReport?._id ? `AUD-${populatedReport._id.toString().slice(-6).toUpperCase()}` : `AUD-${electionId.slice(-6).toUpperCase()}`,
-      createdDate: populatedReport?.createdAt ? this.formatDate(populatedReport.createdAt, false) : this.formatDate(new Date(), false),
+      createdDate: populatedReport?.createdAt ? this.formatDate(populatedReport.createdAt, false) : this.formatDate(getCurrentDateVN(), false),
       reportPeriod: `${this.formatDate(election.startDate)} - ${this.formatDate(election.endDate)}`,
       status: populatedReport?.reviewedBy ? 'Đã ký số' : populatedReport?.status === STATUS.PENDING ? 'Chờ ký duyệt' : populatedReport?.status || 'Chờ ký duyệt',
     };
@@ -515,7 +516,7 @@ export class BoardControlService {
     const auditReport = await this.getOrCreateReport(electionObjectId, 'AUDIT');
 
     auditReport.reviewedBy = userIdObjectId;
-    auditReport.reviewedAt = new Date();
+    auditReport.reviewedAt = getCurrentDateVN();
 
     await auditReport.save();
 
@@ -562,7 +563,7 @@ export class BoardControlService {
     };
     const printer = new PdfPrinter(fonts);
 
-    const currentDate = new Date();
+    const currentDate = getCurrentDateVN();
     const formattedDate = this.formatDate(currentDate, false);
 
     const docDefinition: any = {
@@ -724,7 +725,7 @@ export class BoardControlService {
     };
     const printer = new PdfPrinter(fonts);
 
-    const currentDate = new Date();
+    const currentDate = getCurrentDateVN();
     const formattedDate = this.formatDate(currentDate, false);
 
     const docDefinition: any = {

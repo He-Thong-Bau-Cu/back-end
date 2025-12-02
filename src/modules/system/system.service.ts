@@ -4,7 +4,7 @@ import { FilterQuery, Model, Types } from 'mongoose';
 import { PaginationResult } from 'src/common/dto/paignation';
 import { SearchDTO } from 'src/common/dto/search.dto';
 import { STATUS, STATUS_SYSTEM } from 'src/common/enums/status.enum';
-import { formatDateVN } from 'src/common/utils/format';
+import { formatDateVN, getCurrentDateVN } from 'src/common/utils/format';
 import { AuditLogs, AuditLogsDocument } from 'src/database/schemas/auditLogs.schema';
 import { Elections, ElectionsDocument } from 'src/database/schemas/elections.schema';
 import { Results, ResultsDocument } from 'src/database/schemas/results.schema';
@@ -274,7 +274,7 @@ export class SystemService {
 
   async getSystemLogStatistics(type: 'week' | 'month' | 'year') {
     try {
-      const now = new Date();
+      const now = getCurrentDateVN();
       let startDate: Date;
 
       switch (type) {

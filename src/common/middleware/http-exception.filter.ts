@@ -7,6 +7,7 @@ import {
 } from '@nestjs/common';
 import { Request, Response } from 'express';
 import { BaseResponse } from '../dto/base-response.dto';
+import { getCurrentDateVN } from '../utils/format';
 
 @Catch()
 export class HttpExceptionFilter implements ExceptionFilter {
@@ -39,7 +40,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
         ? exceptionResponse['data']
         : null;
 
-    const timestamp = new Date().toISOString();
+    const timestamp = getCurrentDateVN().toISOString();
     const path = request?.url;
 
     response

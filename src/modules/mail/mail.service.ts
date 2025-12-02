@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 
 import * as nodemailer from 'nodemailer';
 import { InjectModel } from '@nestjs/mongoose';
+import { getCurrentDateVN } from 'src/common/utils/format';
 
 @Injectable()
 export class MailService {
@@ -199,7 +200,7 @@ export class MailService {
   }
 
   private getHtmlTemplate(fullName: string, username: string, password: string): string {
-    const createdDate = new Date().toLocaleDateString('vi-VN');
+    const createdDate = getCurrentDateVN().toLocaleDateString('vi-VN');
     return `
       <div style="font-family:sans-serif;max-width:600px;margin:auto;padding:20px;background:#f9fafb;border-radius:12px;">
         <h2>Xin chào ${fullName} 👋</h2>
@@ -223,7 +224,7 @@ export class MailService {
     password: string,
     token: string,
   ): string {
-    const createdDate = new Date().toLocaleDateString('vi-VN');
+    const createdDate = getCurrentDateVN().toLocaleDateString('vi-VN');
     return `
       <div style="font-family:sans-serif;max-width:600px;margin:auto;padding:20px;background:#f9fafb;border-radius:12px;">
         <h2>Xin chào ${fullName} 👋</h2>
@@ -260,7 +261,7 @@ export class MailService {
     username: string,
     password: string,
   ): string {
-    const resetDate = new Date().toLocaleDateString('vi-VN');
+    const resetDate = getCurrentDateVN().toLocaleDateString('vi-VN');
     return `
       <div style="font-family:sans-serif;max-width:600px;margin:auto;padding:20px;background:#f9fafb;border-radius:12px;">
         <h2>Xin chào ${fullName} 👋</h2>
@@ -308,8 +309,8 @@ export class MailService {
   }
 
   private getOtpHtmlTemplate(fullName: string, otp: string): string {
-    const sentDate = new Date().toLocaleDateString('vi-VN');
-    const sentTime = new Date().toLocaleTimeString('vi-VN');
+    const sentDate = getCurrentDateVN().toLocaleDateString('vi-VN');
+    const sentTime = getCurrentDateVN().toLocaleTimeString('vi-VN');
     return `
       <div style="font-family:sans-serif;max-width:600px;margin:auto;padding:20px;background:#f9fafb;border-radius:12px;">
         <h2>Xin chào ${fullName} 👋</h2>
@@ -393,7 +394,7 @@ export class MailService {
       </div>
 
       <div style="background: #f0f0f0; text-align: center; padding: 12px; font-size: 12px; color: #999;">
-        © ${new Date().getFullYear()} CA Service. Mọi quyền được bảo lưu.
+        © ${getCurrentDateVN().getFullYear()} CA Service. Mọi quyền được bảo lưu.
       </div>
     </div>
   </div>
@@ -507,7 +508,7 @@ export class MailService {
         </div>
 
         <div style="background: #f0f0f0; text-align: center; padding: 12px; font-size: 12px; color: #999;">
-          © ${new Date().getFullYear()} Hệ thống Bầu Cử. Mọi quyền được bảo lưu.
+          © ${getCurrentDateVN().getFullYear()} Hệ thống Bầu Cử. Mọi quyền được bảo lưu.
         </div>
       </div>
     </div>

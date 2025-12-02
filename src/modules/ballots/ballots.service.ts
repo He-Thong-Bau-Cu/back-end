@@ -27,6 +27,7 @@ import { ElectionDocuments } from 'src/database/schemas/electionDocuments.schema
 import signer, { plainAddPlaceholder } from 'node-signpdf';
 import { VerifyOtpDto } from 'src/common/dto/verify-otp.dto';
 import { RedisService } from '../redis/redis.service';
+import { getCurrentDateVN } from 'src/common/utils/format';
 
 @ApiBearerAuth('access-token')
 @Injectable()
@@ -422,7 +423,7 @@ export class BallotsService {
 
       const updateBallots = await this.ballotsModel.findByIdAndUpdate(new Types.ObjectId(id), {
         status: STATUS.ACTIVE,
-        issuedAt: new Date(),
+        issuedAt: getCurrentDateVN(),
         updatedBy: new Types.ObjectId(userId) ? new Types.ObjectId(userId) : null,
       }, { new: true });
       return updateBallots;
@@ -597,7 +598,7 @@ export class BallotsService {
       //Tạo file kí
       const signFile = await this.signingService.signPdfWithP12(pdfPath, p12File.buffer, password);
       if (signFile) {
-        ballot.castAt = new Date();
+        ballot.castAt = getCurrentDateVN();
         ballot.status = STATUS.CAST;
         await ballot.save();
 

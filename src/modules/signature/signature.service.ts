@@ -5,6 +5,7 @@ import * as forge from 'node-forge';
 import { SignPdf, plainAddPlaceholder } from 'node-signpdf';
 import PizZip from 'pizzip';
 import { createHash } from 'crypto';
+import { getCurrentDateVN } from 'src/common/utils/format';
 
 const UPLOADS = path.join(process.cwd(), 'uploads');
 if (!fs.existsSync(UPLOADS)) fs.mkdirSync(UPLOADS, { recursive: true });
@@ -93,7 +94,7 @@ export class SigningService {
     // Tạo JSON metadata chữ ký
     const signatureJson = JSON.stringify(
         {
-          signedAt: new Date().toISOString(),
+          signedAt: getCurrentDateVN().toISOString(),
           signature: signatureBase64,
           certificate: certPem,
           algorithm: 'RSA-SHA256',
