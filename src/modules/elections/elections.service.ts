@@ -1255,6 +1255,18 @@ export class ElectionsService {
   }
 
   async bulkSaveDraft(dto: BulkSaveDraftDto, userId: string) {
+    // Track các records đã tạo mới để rollback nếu có lỗi
+    let originalElection: any = null;
+    const newRecords = {
+      electionEntityIds: [] as Types.ObjectId[],
+      voterIds: [] as Types.ObjectId[],
+      votingRightIds: [] as Types.ObjectId[],
+      participantIds: [] as Types.ObjectId[],
+      documentIds: [] as Types.ObjectId[],
+      meetingId: null as Types.ObjectId | null,
+      attendeeIds: [] as Types.ObjectId[],
+    };
+
     try {
       const {
         electionId,
@@ -1279,6 +1291,12 @@ export class ElectionsService {
         if (!participants || !Array.isArray(participants) || participants.length === 0) {
           throw new Error('Vui lòng thêm ít nhất một thành viên tổ chức trước khi gửi duyệt');
         }
+      }
+
+      // Lưu trạng thái ban đầu của election trước khi thay đổi
+      originalElection = await this.electionsModel.findById(new Types.ObjectId(electionId)).lean();
+      if (!originalElection) {
+        throw new Error(MESSAGE.ELECTION_NOT_FOUND);
       }
 
       const typeId = meetingInfo.type as string;
@@ -1352,7 +1370,8 @@ export class ElectionsService {
               status: 'PENDING',
               createdBy: new Types.ObjectId(userId),
             };
-            await this.electionEntitiesModel.create(createData);
+            const createdEntity = await this.electionEntitiesModel.create(createData);
+            newRecords.electionEntityIds.push(createdEntity._id as Types.ObjectId);
           }
         }
       } else {
@@ -1402,13 +1421,15 @@ export class ElectionsService {
               voter = existingVoter;
             } else {
               // Create new voter
-              voter = await this.voterModel.create({
+              const createdVoter = await this.voterModel.create({
                 electionId: new Types.ObjectId(electionId),
                 userId: new Types.ObjectId(voterItem.userId),
                 eligible: true,
                 status: 'PENDING',
                 createdBy: new Types.ObjectId(userId),
               });
+              voter = createdVoter;
+              newRecords.voterIds.push(voter._id as Types.ObjectId);
             }
           }
 
@@ -1430,7 +1451,7 @@ export class ElectionsService {
               );
             } else {
               const userInfo = await this.userModel.findById(new Types.ObjectId(voterItem.userId));
-              await this.electionParticipantsModel.create({
+              const createdParticipant = await this.electionParticipantsModel.create({
                 electionId: new Types.ObjectId(electionId),
                 userId: new Types.ObjectId(voterItem.userId),
                 roleId: voterRole._id,
@@ -1438,6 +1459,7 @@ export class ElectionsService {
                 status: STATUS.ACTIVE,
                 createdBy: new Types.ObjectId(userId),
               });
+              newRecords.participantIds.push(createdParticipant._id as Types.ObjectId);
             }
           }
 
@@ -1456,7 +1478,7 @@ export class ElectionsService {
                 updatedBy: new Types.ObjectId(userId),
               });
             } else {
-              await this.votingRightsModel.create({
+              const createdVotingRight = await this.votingRightsModel.create({
                 electionId: new Types.ObjectId(electionId),
                 voterId: voter._id,
                 shares: voterItem.percentage,
@@ -1464,6 +1486,7 @@ export class ElectionsService {
                 status: 'PENDING',
                 createdBy: new Types.ObjectId(userId),
               });
+              newRecords.votingRightIds.push(createdVotingRight._id as Types.ObjectId);
             }
           }
         }
@@ -1491,13 +1514,14 @@ export class ElectionsService {
               { new: true },
             );
           } else {
-            await this.electionParticipantsModel.create({
+            const createdParticipant = await this.electionParticipantsModel.create({
               electionId: new Types.ObjectId(electionId),
               userId: new Types.ObjectId(participantItem.userId),
               roleId: new Types.ObjectId(participantItem.roleId),
               position: participantItem.position,
               createdBy: new Types.ObjectId(userId),
             });
+            newRecords.participantIds.push(createdParticipant._id as Types.ObjectId);
           }
         }
       }
@@ -1519,7 +1543,7 @@ export class ElectionsService {
             );
           } else {
             // Create new
-            await this.electionDocumentsModel.create({
+            const createdDocument = await this.electionDocumentsModel.create({
               electionId: new Types.ObjectId(electionId),
               preparedBy: new Types.ObjectId(userId),
               title: docItem.title,
@@ -1530,6 +1554,7 @@ export class ElectionsService {
               remarks: docItem.remarks,
               createdBy: new Types.ObjectId(userId),
             });
+            newRecords.documentIds.push(createdDocument._id as Types.ObjectId);
           }
         }
       }
@@ -1550,7 +1575,7 @@ export class ElectionsService {
           { new: true },
         );
       } else {
-        meeting = await this.meetingsModel.create({
+        const createdMeeting = await this.meetingsModel.create({
           title: `Cuộc họp ${updatedElection.decisionName || updatedElection.title}`,
           electionId: new Types.ObjectId(electionId),
           location: meetingInfo.location,
@@ -1558,6 +1583,8 @@ export class ElectionsService {
           status: 'PENDING',
           createdBy: new Types.ObjectId(userId),
         });
+        meeting = createdMeeting;
+        newRecords.meetingId = meeting._id as Types.ObjectId;
       }
 
       if (meeting) {
@@ -1579,13 +1606,14 @@ export class ElectionsService {
             });
 
             if (!existingAttendee) {
-              await this.meetingAttendeesModel.create({
+              const createdAttendee = await this.meetingAttendeesModel.create({
                 meetingId: meeting._id,
                 participantId: voterParticipant._id,
                 checkInTime: meeting.meetingDate || updatedElection.startDate,
                 attended: false,
                 createdBy: new Types.ObjectId(userId),
               });
+              newRecords.attendeeIds.push(createdAttendee._id as Types.ObjectId);
             }
           }
         }
@@ -1596,6 +1624,87 @@ export class ElectionsService {
         message: isSubmitForApproval ? 'Gửi duyệt thành công' : 'Lưu nháp thành công',
       };
     } catch (error) {
+      // ROLLBACK: Nếu có lỗi, xóa các records đã tạo mới và restore lại trạng thái ban đầu
+      console.error('❌ Lỗi xảy ra, bắt đầu rollback...', error);
+
+      try {
+        // 1. Xóa các meeting attendees đã tạo mới
+        if (newRecords.attendeeIds.length > 0) {
+          await this.meetingAttendeesModel.deleteMany({
+            _id: { $in: newRecords.attendeeIds },
+          });
+          console.log(`✅ Đã xóa ${newRecords.attendeeIds.length} meeting attendees`);
+        }
+
+        // 2. Xóa meeting đã tạo mới
+        if (newRecords.meetingId) {
+          await this.meetingsModel.findByIdAndDelete(newRecords.meetingId);
+          console.log(`✅ Đã xóa meeting ${newRecords.meetingId}`);
+        }
+
+        // 3. Xóa các documents đã tạo mới
+        if (newRecords.documentIds.length > 0) {
+          await this.electionDocumentsModel.deleteMany({
+            _id: { $in: newRecords.documentIds },
+          });
+          console.log(`✅ Đã xóa ${newRecords.documentIds.length} documents`);
+        }
+
+        // 4. Xóa các participants đã tạo mới
+        if (newRecords.participantIds.length > 0) {
+          await this.electionParticipantsModel.deleteMany({
+            _id: { $in: newRecords.participantIds },
+          });
+          console.log(`✅ Đã xóa ${newRecords.participantIds.length} participants`);
+        }
+
+        // 5. Xóa các voting rights đã tạo mới
+        if (newRecords.votingRightIds.length > 0) {
+          await this.votingRightsModel.deleteMany({
+            _id: { $in: newRecords.votingRightIds },
+          });
+          console.log(`✅ Đã xóa ${newRecords.votingRightIds.length} voting rights`);
+        }
+
+        // 6. Xóa các voters đã tạo mới
+        if (newRecords.voterIds.length > 0) {
+          await this.voterModel.deleteMany({
+            _id: { $in: newRecords.voterIds },
+          });
+          console.log(`✅ Đã xóa ${newRecords.voterIds.length} voters`);
+        }
+
+        // 7. Xóa các election entities đã tạo mới
+        if (newRecords.electionEntityIds.length > 0) {
+          await this.electionEntitiesModel.deleteMany({
+            _id: { $in: newRecords.electionEntityIds },
+          });
+          console.log(`✅ Đã xóa ${newRecords.electionEntityIds.length} election entities`);
+        }
+
+        // 8. Restore lại trạng thái ban đầu của election
+        if (originalElection) {
+          await this.electionsModel.findByIdAndUpdate(
+            new Types.ObjectId(dto.electionId),
+            {
+              typeId: originalElection.typeId,
+              votingMethodId: originalElection.votingMethodId,
+              thresholdId: originalElection.thresholdId,
+              delegationStart: originalElection.delegationStart,
+              delegationEnd: originalElection.delegationEnd,
+              statusData: originalElection.statusData,
+              updatedBy: originalElection.updatedBy,
+            },
+          );
+          console.log(`✅ Đã rollback election ${dto.electionId} về trạng thái ban đầu`);
+        }
+
+        console.log('✅ Rollback hoàn tất');
+      } catch (rollbackError) {
+        console.error('❌ Lỗi khi rollback:', rollbackError);
+        // Không throw rollback error để không che giấu error gốc
+      }
+
       throw error;
     }
   }
