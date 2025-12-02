@@ -1391,14 +1391,25 @@ export class ElectionsService {
               { new: true },
             );
           } else {
-            // Create new voter
-            voter = await this.voterModel.create({
+            // Kiểm tra xem đã có voter với userId này chưa (tránh duplicate)
+            const existingVoter = await this.voterModel.findOne({
               electionId: new Types.ObjectId(electionId),
               userId: new Types.ObjectId(voterItem.userId),
-              eligible: true,
-              status: 'PENDING',
-              createdBy: new Types.ObjectId(userId),
             });
+
+            if (existingVoter) {
+              // Nếu đã có, dùng voter hiện có
+              voter = existingVoter;
+            } else {
+              // Create new voter
+              voter = await this.voterModel.create({
+                electionId: new Types.ObjectId(electionId),
+                userId: new Types.ObjectId(voterItem.userId),
+                eligible: true,
+                status: 'PENDING',
+                createdBy: new Types.ObjectId(userId),
+              });
+            }
           }
 
           if (voter && voterRole) {
@@ -1436,7 +1447,7 @@ export class ElectionsService {
               voterId: voter._id,
             });
 
-            const votes = this.calculateVotes(voterItem.percentage);
+            const votes = await this.calculateVotes(voterItem.percentage);
 
             if (existingVotingRight) {
               await this.votingRightsModel.findByIdAndUpdate(existingVotingRight._id, {
@@ -1678,23 +1689,41 @@ export class ElectionsService {
         .exec();
 
       // Map voters với percentage từ votingRights
-      const votersWithPercentage = voters.map((voter) => {
+      // Lọc bỏ duplicate voters (giữ lại voter có percentage, nếu không có thì giữ voter đầu tiên)
+      const uniqueVotersMap = new Map<string, any>();
+
+      voters.forEach((voter) => {
+        const userId = voter.userId && typeof voter.userId === 'object' && '_id' in voter.userId
+          ? String(voter.userId._id)
+          : String(voter.userId);
+
         const votingRight = votingRights.find((vr) => String(vr.voterId) === String(voter._id));
-        const voterObj: any = { ...voter };
-        // Khi populate với lean(), userId sẽ là object, cần extract _id
-        if (voter.userId) {
-          if (voter.userId && typeof voter.userId === 'object' && '_id' in voter.userId) {
-            // Đã được populate, extract _id
-            voterObj.userId = String(voter.userId._id);
-            voterObj.user = voter.userId;
-          } else {
-            // Chưa được populate hoặc là string/ObjectId, convert sang string
-            voterObj.userId = String(voter.userId);
+        const percentage = votingRight ? votingRight.shares : null;
+
+        // Nếu chưa có trong map, hoặc voter hiện tại có percentage mà voter trong map không có
+        if (!uniqueVotersMap.has(userId) ||
+            (percentage !== null && uniqueVotersMap.get(userId).percentage === null)) {
+          const voterObj: any = { ...voter };
+          // Khi populate với lean(), userId sẽ là object, cần extract _id
+          if (voter.userId) {
+            if (voter.userId && typeof voter.userId === 'object' && '_id' in voter.userId) {
+              // Đã được populate, extract _id
+              voterObj.userId = String(voter.userId._id);
+              voterObj.user = voter.userId;
+            } else {
+              // Chưa được populate hoặc là string/ObjectId, convert sang string
+              voterObj.userId = String(voter.userId);
+            }
           }
+          voterObj.percentage = percentage;
+          uniqueVotersMap.set(userId, voterObj);
         }
-        voterObj.percentage = votingRight ? votingRight.shares : null;
-        return voterObj;
       });
+
+      // Chỉ trả về những voters có percentage (không null)
+      const votersWithPercentage = Array.from(uniqueVotersMap.values()).filter(
+        (v) => v.percentage !== null && v.percentage !== undefined
+      );
 
       // 7. Lấy participants với user và role info
       const participantsRaw = await this.electionParticipantsModel
