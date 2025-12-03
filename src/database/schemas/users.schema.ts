@@ -14,7 +14,7 @@ export class Users extends BaseSchema {
   @Prop({ select: false, required: true })
   password: string;
 
-  @Prop({ required: true, default: false })
+  @Prop({ required: true, default: true })
   isTempPassword: boolean;
 
   @Prop({ required: true })
@@ -32,7 +32,7 @@ export class Users extends BaseSchema {
   @Prop({ required: true, unique: true })
   phone: string;
 
-  @Prop({ required: true })
+  @Prop()
   address: string;
 
   @Prop({ default: USER_ROLE.USER })

@@ -12,7 +12,7 @@ import { MailService } from '../mail/mail.service';
 import * as bcrypt from 'bcrypt';
 import { USER_ROLE } from '../../common/enums/config.enum';
 import { MinioService } from '../minio/minio.service';
-import { isValidateCitizenId, isValidEmail, isValidPhone } from 'src/common/utils/format';
+import { isValidateCitizenId, isValidEmail, isValidPhone, getCurrentDateVN } from 'src/common/utils/format';
 import { Elections } from 'src/database/schemas/elections.schema';
 import { ElectionsParticipants } from 'src/database/schemas/electionParticipants.schema';
 import * as ExcelJS from 'exceljs';
@@ -839,7 +839,7 @@ export class UsersService implements OnModuleInit {
       fullName: user.fullName || '',
       email: user.email || '',
       status: user.status || '',
-      createdAt: user.createdAt || new Date(),
+      createdAt: user.createdAt || getCurrentDateVN(),
     };
   }
 

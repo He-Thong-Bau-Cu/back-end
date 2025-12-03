@@ -15,6 +15,7 @@ import { ConfigService } from '@nestjs/config';
 import { FileType } from '../../common/enums/file-type.enum';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { decryptBuffer, encryptBuffer } from '../../common/utils/encryption';
+import { getCurrentDateVN } from '../../common/utils/format';
 
 @Injectable()
 export class MinioService {
@@ -123,7 +124,7 @@ export class MinioService {
       originalName: file.originalname,
       mimeType: file.mimetype,
       size: file.size,
-      uploadDate: new Date(),
+      uploadDate: getCurrentDateVN(),
       url: `${this.minioEndpoint}/${this.bucketName}/${key}`,
     });
   }
@@ -164,7 +165,7 @@ export class MinioService {
         key,
         ETag: response.ETag,
         url: `${this.minioEndpoint}/${this.bucketName}/${key}`,
-        uploadDate: new Date(),
+        uploadDate: getCurrentDateVN(),
       };
     }
     console.error(`❌ Upload không trả về ETag: ${key}`);
@@ -362,7 +363,7 @@ export class MinioService {
               headResponse.Metadata?.['original-name'] || object.Key.split('/').pop() || '',
             mimeType: headResponse.ContentType || 'application/octet-stream',
             size: object.Size || 0,
-            uploadDate: object.LastModified || new Date(),
+            uploadDate: object.LastModified || getCurrentDateVN(),
             url: `${this.minioEndpoint}/${this.bucketName}/${object.Key}`,
           }),
         );
@@ -547,7 +548,7 @@ export class MinioService {
       originalName: file.originalname,
       mimeType: file.mimetype,
       size: file.size,
-      uploadDate: new Date(),
+      uploadDate: getCurrentDateVN(),
       url: `${this.minioEndpoint}/${this.bucketName}/${key}`,
     });
   }

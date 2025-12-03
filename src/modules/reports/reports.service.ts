@@ -18,6 +18,7 @@ import { REPORT_TYPE, STATUS } from 'src/common/enums/status.enum';
 import { ElectionDocuments } from 'src/database/schemas/electionDocuments.schema';
 import { MailService } from '../mail/mail.service';
 import { Users } from 'src/database/schemas/users.schema';
+import { getCurrentDateVN } from 'src/common/utils/format';
 
 @Injectable()
 export class ReportsService {
@@ -194,7 +195,7 @@ export class ReportsService {
           report.documentId = new Types.ObjectId(document._id);
           report.status = STATUS.SIGNED;
           report.reviewedBy = new Types.ObjectId(userId);
-          report.reviewedAt = new Date();
+          report.reviewedAt = getCurrentDateVN();
           report.status = STATUS.SIGNED;
           report.updatedBy = new Types.ObjectId(userId);
           await report.save();

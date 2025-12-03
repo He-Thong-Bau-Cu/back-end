@@ -18,6 +18,7 @@ import { SearchDTO } from 'src/common/dto/search.dto';
 import removeVietnameseTones, {
   isValidateTimeline,
   formatDateDMYVN,
+  getCurrentDateVN,
 } from 'src/common/utils/format';
 import {
   ElectionsParticipants,
@@ -158,7 +159,7 @@ export class ElectionsService {
         }
       }
 
-      const createdAt = new Date();
+      const createdAt = getCurrentDateVN();
       if (createElection?.endDate && createElection?.startDate) {
         //Kiểm tra ngày kết thúc phải lớn hơn ngày tạo ít nhất 20 ngày
         const endDate = new Date(createElection?.endDate);
@@ -308,7 +309,7 @@ export class ElectionsService {
         }
       }
 
-      const createdAt = new Date();
+      const createdAt = getCurrentDateVN();
       if (updateElection?.endDate && updateElection?.startDate) {
         //Kiểm tra ngày kết thúc phải lớn hơn ngày tạo ít nhất 20 ngày
         const endDate = new Date(updateElection?.endDate);
@@ -629,7 +630,7 @@ export class ElectionsService {
           fileUrl: fileUpload.key,
           status: STATUS.ACTIVE,
           createdBy: new Types.ObjectId(userId),
-          createdAt: new Date(),
+          createdAt: getCurrentDateVN(),
         });
         const savedDocument = await electionDocument.save();
         electionDocumentId = savedDocument._id as Types.ObjectId;
@@ -790,7 +791,7 @@ export class ElectionsService {
       };
       const printer = new PdfPrinter(fonts);
 
-      const currentDate = new Date();
+      const currentDate = getCurrentDateVN();
       const formattedDate = formatDateDMYVN(currentDate);
       const dateParts = formattedDate.split('/');
       const day = dateParts[0];
@@ -1157,7 +1158,7 @@ export class ElectionsService {
   }
 
   async getUserIsVoter() {
-    const now = new Date();
+    const now = getCurrentDateVN();
 
     const roleVoter = await this.rolesModel.findOne({ roleCode: USER_ROLE.VOTER });
     if (!roleVoter) throw new Error('Không tìm thấy role VOTER');
@@ -1255,6 +1256,18 @@ export class ElectionsService {
   }
 
   async bulkSaveDraft(dto: BulkSaveDraftDto, userId: string) {
+    // Track các records đã tạo mới để rollback nếu có lỗi
+    let originalElection: any = null;
+    const newRecords = {
+      electionEntityIds: [] as Types.ObjectId[],
+      voterIds: [] as Types.ObjectId[],
+      votingRightIds: [] as Types.ObjectId[],
+      participantIds: [] as Types.ObjectId[],
+      documentIds: [] as Types.ObjectId[],
+      meetingId: null as Types.ObjectId | null,
+      attendeeIds: [] as Types.ObjectId[],
+    };
+
     try {
       const {
         electionId,
@@ -1279,6 +1292,12 @@ export class ElectionsService {
         if (!participants || !Array.isArray(participants) || participants.length === 0) {
           throw new Error('Vui lòng thêm ít nhất một thành viên tổ chức trước khi gửi duyệt');
         }
+      }
+
+      // Lưu trạng thái ban đầu của election trước khi thay đổi
+      originalElection = await this.electionsModel.findById(new Types.ObjectId(electionId)).lean();
+      if (!originalElection) {
+        throw new Error(MESSAGE.ELECTION_NOT_FOUND);
       }
 
       const typeId = meetingInfo.type as string;
@@ -1352,7 +1371,8 @@ export class ElectionsService {
               status: 'PENDING',
               createdBy: new Types.ObjectId(userId),
             };
-            await this.electionEntitiesModel.create(createData);
+            const createdEntity = await this.electionEntitiesModel.create(createData);
+            newRecords.electionEntityIds.push(createdEntity._id as Types.ObjectId);
           }
         }
       } else {
@@ -1391,14 +1411,27 @@ export class ElectionsService {
               { new: true },
             );
           } else {
-            // Create new voter
-            voter = await this.voterModel.create({
+            // Kiểm tra xem đã có voter với userId này chưa (tránh duplicate)
+            const existingVoter = await this.voterModel.findOne({
               electionId: new Types.ObjectId(electionId),
               userId: new Types.ObjectId(voterItem.userId),
-              eligible: true,
-              status: 'PENDING',
-              createdBy: new Types.ObjectId(userId),
             });
+
+            if (existingVoter) {
+              // Nếu đã có, dùng voter hiện có
+              voter = existingVoter;
+            } else {
+              // Create new voter
+              const createdVoter = await this.voterModel.create({
+                electionId: new Types.ObjectId(electionId),
+                userId: new Types.ObjectId(voterItem.userId),
+                eligible: true,
+                status: 'PENDING',
+                createdBy: new Types.ObjectId(userId),
+              });
+              voter = createdVoter;
+              newRecords.voterIds.push(voter._id as Types.ObjectId);
+            }
           }
 
           if (voter && voterRole) {
@@ -1419,7 +1452,7 @@ export class ElectionsService {
               );
             } else {
               const userInfo = await this.userModel.findById(new Types.ObjectId(voterItem.userId));
-              await this.electionParticipantsModel.create({
+              const createdParticipant = await this.electionParticipantsModel.create({
                 electionId: new Types.ObjectId(electionId),
                 userId: new Types.ObjectId(voterItem.userId),
                 roleId: voterRole._id,
@@ -1427,6 +1460,7 @@ export class ElectionsService {
                 status: STATUS.ACTIVE,
                 createdBy: new Types.ObjectId(userId),
               });
+              newRecords.participantIds.push(createdParticipant._id as Types.ObjectId);
             }
           }
 
@@ -1436,7 +1470,7 @@ export class ElectionsService {
               voterId: voter._id,
             });
 
-            const votes = this.calculateVotes(voterItem.percentage);
+            const votes = await this.calculateVotes(voterItem.percentage);
 
             if (existingVotingRight) {
               await this.votingRightsModel.findByIdAndUpdate(existingVotingRight._id, {
@@ -1445,7 +1479,7 @@ export class ElectionsService {
                 updatedBy: new Types.ObjectId(userId),
               });
             } else {
-              await this.votingRightsModel.create({
+              const createdVotingRight = await this.votingRightsModel.create({
                 electionId: new Types.ObjectId(electionId),
                 voterId: voter._id,
                 shares: voterItem.percentage,
@@ -1453,6 +1487,7 @@ export class ElectionsService {
                 status: 'PENDING',
                 createdBy: new Types.ObjectId(userId),
               });
+              newRecords.votingRightIds.push(createdVotingRight._id as Types.ObjectId);
             }
           }
         }
@@ -1480,13 +1515,14 @@ export class ElectionsService {
               { new: true },
             );
           } else {
-            await this.electionParticipantsModel.create({
+            const createdParticipant = await this.electionParticipantsModel.create({
               electionId: new Types.ObjectId(electionId),
               userId: new Types.ObjectId(participantItem.userId),
               roleId: new Types.ObjectId(participantItem.roleId),
               position: participantItem.position,
               createdBy: new Types.ObjectId(userId),
             });
+            newRecords.participantIds.push(createdParticipant._id as Types.ObjectId);
           }
         }
       }
@@ -1508,7 +1544,7 @@ export class ElectionsService {
             );
           } else {
             // Create new
-            await this.electionDocumentsModel.create({
+            const createdDocument = await this.electionDocumentsModel.create({
               electionId: new Types.ObjectId(electionId),
               preparedBy: new Types.ObjectId(userId),
               title: docItem.title,
@@ -1519,6 +1555,7 @@ export class ElectionsService {
               remarks: docItem.remarks,
               createdBy: new Types.ObjectId(userId),
             });
+            newRecords.documentIds.push(createdDocument._id as Types.ObjectId);
           }
         }
       }
@@ -1539,7 +1576,7 @@ export class ElectionsService {
           { new: true },
         );
       } else {
-        meeting = await this.meetingsModel.create({
+        const createdMeeting = await this.meetingsModel.create({
           title: `Cuộc họp ${updatedElection.decisionName || updatedElection.title}`,
           electionId: new Types.ObjectId(electionId),
           location: meetingInfo.location,
@@ -1547,6 +1584,8 @@ export class ElectionsService {
           status: 'PENDING',
           createdBy: new Types.ObjectId(userId),
         });
+        meeting = createdMeeting;
+        newRecords.meetingId = meeting._id as Types.ObjectId;
       }
 
       if (meeting) {
@@ -1568,13 +1607,14 @@ export class ElectionsService {
             });
 
             if (!existingAttendee) {
-              await this.meetingAttendeesModel.create({
+              const createdAttendee = await this.meetingAttendeesModel.create({
                 meetingId: meeting._id,
                 participantId: voterParticipant._id,
                 checkInTime: meeting.meetingDate || updatedElection.startDate,
                 attended: false,
                 createdBy: new Types.ObjectId(userId),
               });
+              newRecords.attendeeIds.push(createdAttendee._id as Types.ObjectId);
             }
           }
         }
@@ -1585,6 +1625,87 @@ export class ElectionsService {
         message: isSubmitForApproval ? 'Gửi duyệt thành công' : 'Lưu nháp thành công',
       };
     } catch (error) {
+      // ROLLBACK: Nếu có lỗi, xóa các records đã tạo mới và restore lại trạng thái ban đầu
+      console.error('❌ Lỗi xảy ra, bắt đầu rollback...', error);
+
+      try {
+        // 1. Xóa các meeting attendees đã tạo mới
+        if (newRecords.attendeeIds.length > 0) {
+          await this.meetingAttendeesModel.deleteMany({
+            _id: { $in: newRecords.attendeeIds },
+          });
+          console.log(`✅ Đã xóa ${newRecords.attendeeIds.length} meeting attendees`);
+        }
+
+        // 2. Xóa meeting đã tạo mới
+        if (newRecords.meetingId) {
+          await this.meetingsModel.findByIdAndDelete(newRecords.meetingId);
+          console.log(`✅ Đã xóa meeting ${newRecords.meetingId}`);
+        }
+
+        // 3. Xóa các documents đã tạo mới
+        if (newRecords.documentIds.length > 0) {
+          await this.electionDocumentsModel.deleteMany({
+            _id: { $in: newRecords.documentIds },
+          });
+          console.log(`✅ Đã xóa ${newRecords.documentIds.length} documents`);
+        }
+
+        // 4. Xóa các participants đã tạo mới
+        if (newRecords.participantIds.length > 0) {
+          await this.electionParticipantsModel.deleteMany({
+            _id: { $in: newRecords.participantIds },
+          });
+          console.log(`✅ Đã xóa ${newRecords.participantIds.length} participants`);
+        }
+
+        // 5. Xóa các voting rights đã tạo mới
+        if (newRecords.votingRightIds.length > 0) {
+          await this.votingRightsModel.deleteMany({
+            _id: { $in: newRecords.votingRightIds },
+          });
+          console.log(`✅ Đã xóa ${newRecords.votingRightIds.length} voting rights`);
+        }
+
+        // 6. Xóa các voters đã tạo mới
+        if (newRecords.voterIds.length > 0) {
+          await this.voterModel.deleteMany({
+            _id: { $in: newRecords.voterIds },
+          });
+          console.log(`✅ Đã xóa ${newRecords.voterIds.length} voters`);
+        }
+
+        // 7. Xóa các election entities đã tạo mới
+        if (newRecords.electionEntityIds.length > 0) {
+          await this.electionEntitiesModel.deleteMany({
+            _id: { $in: newRecords.electionEntityIds },
+          });
+          console.log(`✅ Đã xóa ${newRecords.electionEntityIds.length} election entities`);
+        }
+
+        // 8. Restore lại trạng thái ban đầu của election
+        if (originalElection) {
+          await this.electionsModel.findByIdAndUpdate(
+            new Types.ObjectId(dto.electionId),
+            {
+              typeId: originalElection.typeId,
+              votingMethodId: originalElection.votingMethodId,
+              thresholdId: originalElection.thresholdId,
+              delegationStart: originalElection.delegationStart,
+              delegationEnd: originalElection.delegationEnd,
+              statusData: originalElection.statusData,
+              updatedBy: originalElection.updatedBy,
+            },
+          );
+          console.log(`✅ Đã rollback election ${dto.electionId} về trạng thái ban đầu`);
+        }
+
+        console.log('✅ Rollback hoàn tất');
+      } catch (rollbackError) {
+        console.error('❌ Lỗi khi rollback:', rollbackError);
+        // Không throw rollback error để không che giấu error gốc
+      }
+
       throw error;
     }
   }
@@ -1678,23 +1799,41 @@ export class ElectionsService {
         .exec();
 
       // Map voters với percentage từ votingRights
-      const votersWithPercentage = voters.map((voter) => {
+      // Lọc bỏ duplicate voters (giữ lại voter có percentage, nếu không có thì giữ voter đầu tiên)
+      const uniqueVotersMap = new Map<string, any>();
+
+      voters.forEach((voter) => {
+        const userId = voter.userId && typeof voter.userId === 'object' && '_id' in voter.userId
+          ? String(voter.userId._id)
+          : String(voter.userId);
+
         const votingRight = votingRights.find((vr) => String(vr.voterId) === String(voter._id));
-        const voterObj: any = { ...voter };
-        // Khi populate với lean(), userId sẽ là object, cần extract _id
-        if (voter.userId) {
-          if (voter.userId && typeof voter.userId === 'object' && '_id' in voter.userId) {
-            // Đã được populate, extract _id
-            voterObj.userId = String(voter.userId._id);
-            voterObj.user = voter.userId;
-          } else {
-            // Chưa được populate hoặc là string/ObjectId, convert sang string
-            voterObj.userId = String(voter.userId);
+        const percentage = votingRight ? votingRight.shares : null;
+
+        // Nếu chưa có trong map, hoặc voter hiện tại có percentage mà voter trong map không có
+        if (!uniqueVotersMap.has(userId) ||
+            (percentage !== null && uniqueVotersMap.get(userId).percentage === null)) {
+          const voterObj: any = { ...voter };
+          // Khi populate với lean(), userId sẽ là object, cần extract _id
+          if (voter.userId) {
+            if (voter.userId && typeof voter.userId === 'object' && '_id' in voter.userId) {
+              // Đã được populate, extract _id
+              voterObj.userId = String(voter.userId._id);
+              voterObj.user = voter.userId;
+            } else {
+              // Chưa được populate hoặc là string/ObjectId, convert sang string
+              voterObj.userId = String(voter.userId);
+            }
           }
+          voterObj.percentage = percentage;
+          uniqueVotersMap.set(userId, voterObj);
         }
-        voterObj.percentage = votingRight ? votingRight.shares : null;
-        return voterObj;
       });
+
+      // Chỉ trả về những voters có percentage (không null)
+      const votersWithPercentage = Array.from(uniqueVotersMap.values()).filter(
+        (v) => v.percentage !== null && v.percentage !== undefined
+      );
 
       // 7. Lấy participants với user và role info
       const participantsRaw = await this.electionParticipantsModel
@@ -1803,7 +1942,9 @@ export class ElectionsService {
       }
 
       const timeline = election.timeline || {};
-      timeline[stageInfo.timelineKey] = new Date();
+      timeline[stageInfo.timelineKey] = getCurrentDateVN();
+      console.log('timeline[stageInfo.timelineKey]', timeline[stageInfo.timelineKey]);
+      console.log('time now', getCurrentDateVN());
 
       // Cập nhật stages để lưu trạng thái giai đoạn
       const stages = election.stages || {};
@@ -1870,7 +2011,7 @@ export class ElectionsService {
 
       const timeline = election.timeline || {};
       const stages = election.stages || {};
-      const now = new Date();
+      const now = getCurrentDateVN();
 
       // Xác định giai đoạn hiện tại
       let currentStage = 'not_started';

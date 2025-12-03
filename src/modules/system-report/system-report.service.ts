@@ -5,6 +5,7 @@ import { SystemLog, SystemLogDocument } from 'src/database/schemas/systemLog.sch
 import { AuditLogs, AuditLogsDocument } from 'src/database/schemas/auditLogs.schema';
 import { Backups, BackupsDocument } from 'src/database/schemas/backups.schema';
 import { SystemReportQueryDto } from './dto/system-report-query.dto';
+import { getCurrentDateVN } from 'src/common/utils/format';
 
 interface TimelineBucket {
   key: string;
@@ -129,7 +130,7 @@ export class SystemReportService {
   }
 
   private resolveDateRange(from?: Date, to?: Date) {
-    const now = new Date();
+    const now = getCurrentDateVN();
     const toDate = to ? new Date(to) : now;
     const fromDate = from ? new Date(from) : new Date(toDate.getTime() - 30 * 24 * 60 * 60 * 1000);
 

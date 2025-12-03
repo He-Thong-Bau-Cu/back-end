@@ -13,6 +13,7 @@ import { NotificationGateway } from '../notification/notification.gateway';
 import { Ballots } from 'src/database/schemas/ballots.schema';
 import { STATUS } from 'src/common/enums/status.enum';
 import { Voters } from 'src/database/schemas/voters.schema';
+import { getCurrentDateVN } from 'src/common/utils/format';
 
 @Injectable()
 export class MeetingAttendeesService {
@@ -164,7 +165,7 @@ export class MeetingAttendeesService {
         },
         {
           attended: true,
-          checkInTime: new Date(),
+          checkInTime: getCurrentDateVN(),
           updatedBy: updatedBy ? new Types.ObjectId(updatedBy) : null,
         },
         { new: true }
@@ -196,7 +197,7 @@ export class MeetingAttendeesService {
           electionId: electionParticipant.electionId,
           voterId: voter._id,
           status: STATUS.PENDING,
-          issuedAt: new Date(),
+          issuedAt: getCurrentDateVN(),
           createdBy: userId ? new Types.ObjectId(userId) : null,
         });
         if (!ballot) {
@@ -348,7 +349,7 @@ export class MeetingAttendeesService {
         {
 
           attended: true,
-          checkInTime: new Date(),
+          checkInTime: getCurrentDateVN(),
           updatedBy: userId ? new Types.ObjectId(userId) : null,
         },
         { new: true })
@@ -367,7 +368,7 @@ export class MeetingAttendeesService {
           electionId: participantExist.electionId,
           voterId: voter._id,
           status: STATUS.PENDING,
-          issuedAt: new Date(),
+          issuedAt: getCurrentDateVN(),
           createdBy: userId ? new Types.ObjectId(userId) : null,
         });
         if (!ballot) {

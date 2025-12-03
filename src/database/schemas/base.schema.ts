@@ -2,13 +2,14 @@ import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose";
 import { Document, Types } from "mongoose";
 import { Users } from "./users.schema";
 import moment from 'moment-timezone';
+import { getCurrentDateVN } from 'src/common/utils/format';
 
 @Schema()
 export class BaseSchema extends Document {
-  @Prop({ default: () => new Date() })
+  @Prop({ default: () => getCurrentDateVN() })
   updatedAt: Date;
 
-  @Prop({ default: () => new Date() })
+  @Prop({ default: () => getCurrentDateVN() })
   createdAt: Date;
 
   @Prop({ type: Types.ObjectId, ref: 'Users' })

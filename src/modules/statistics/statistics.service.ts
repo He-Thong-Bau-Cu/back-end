@@ -16,6 +16,7 @@ import { MeetingAttendees } from 'src/database/schemas/meetingAttendees.schema';
 import { VotingMethods } from 'src/database/schemas/votingMethods.schema';
 import { Meetings } from 'src/database/schemas/meetings.schema';
 import { AuditLogs } from 'src/database/schemas/auditLogs.schema';
+import { getCurrentDateVN } from 'src/common/utils/format';
 
 @Injectable()
 export class StatisticsService {
@@ -59,7 +60,7 @@ export class StatisticsService {
       //Lấy tông số hoạt động trong tháng
       let totalActivitiesThisMonth: number | null = null;
       try {
-        const now = new Date();
+        const now = getCurrentDateVN();
         const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
         const startOfNextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1, 0, 0, 0, 0);
         totalActivitiesThisMonth = await this.systemLogModel.countDocuments({
@@ -382,7 +383,7 @@ export class StatisticsService {
   // Dashboard cho trưởng ban tổ chức
   async getOrganizerDashboard() {
     try {
-      const now = new Date();
+      const now = getCurrentDateVN();
 
       // 1. Đếm sự kiện sắp diễn ra (startDate > now và status = ACTIVE)
       const upcomingEventsCount = await this.electionsModel.countDocuments({

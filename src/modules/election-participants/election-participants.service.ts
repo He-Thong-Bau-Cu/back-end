@@ -17,6 +17,7 @@ import {
 import { Voters, VotersDocument } from 'src/database/schemas/voters.schema';
 import { Permissions, PermissionsDocument } from 'src/database/schemas/permissions.schema';
 import { STATUS } from 'src/common/enums/status.enum';
+import { Meetings } from 'src/database/schemas/meetings.schema';
 
 @Injectable()
 export class ElectionParticipantsService {
@@ -35,6 +36,8 @@ export class ElectionParticipantsService {
     private readonly votersModel: Model<VotersDocument>,
     @InjectModel(Permissions.name)
     private readonly permissionsModel: Model<PermissionsDocument>,
+    @InjectModel(Meetings.name)
+    private readonly meetingsModel: Model<Meetings>,
   ) { }
   async getParticipantsAsVoter(electionId: string) {
     try {
@@ -170,6 +173,23 @@ export class ElectionParticipantsService {
             userId: item.userId._id,
           });
 
+          // Lấy meeting status cho election này
+          let meetingStatus: string = 'UNDEFINED';
+          try {
+            const meeting = await this.meetingsModel
+              .findOne({ electionId: item.electionId._id })
+              .select('status')
+              .lean()
+              .exec();
+
+            if (meeting && meeting.status) {
+              meetingStatus = meeting.status;
+            }
+          } catch (error) {
+            console.error(`Error fetching meeting status for election ${item.electionId._id}:`, error);
+            // Giữ nguyên meetingStatus = 'UNDEFINED' nếu có lỗi
+          }
+
           const permissionElections =
             (rolePermission?.permissionIds as any[])?.map((p) => p.url) || [];
 
@@ -177,6 +197,7 @@ export class ElectionParticipantsService {
             ...item,
             permissionElections: permissionElections || [],
             voter: voters?._id || null,
+            meetingStatus: meetingStatus,
           };
         }),
       );

@@ -13,6 +13,7 @@ import { CreateVoterInvitationDto } from './dto/create-voter-invitation.dto';
 import { STATUS } from 'src/common/enums/status.enum';
 import { Users } from 'src/database/schemas/users.schema';
 import * as bcrypt from 'bcrypt';
+import { getCurrentDateVN } from 'src/common/utils/format';
 
 @Injectable()
 export class VoterInvitationsService {
@@ -59,7 +60,7 @@ export class VoterInvitationsService {
       }
 
       const token = this.generateToken(voterInvitation.voterId, voterInvitation.electionId);
-      const sentAt = new Date();
+      const sentAt = getCurrentDateVN();
       const expiresAt = new Date(sentAt.getTime() + 24 * 60 * 60 * 1000);
 
       //send email and create user

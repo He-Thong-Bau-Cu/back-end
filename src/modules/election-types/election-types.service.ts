@@ -17,16 +17,23 @@ export class ElectionTypesService {
 
   async search(req: BaseSearchDTO) {
     try {
-      const types = await this.electionTypesModel.find({
-        $or: [
-          { title: { $regex: req.keyword || '', $options: 'i' } },
-          { typeCode: { $regex: req.keyword || '', $options: 'i' } },
-          { description: { $regex: req.keyword || '', $options: 'i' } },
-          { status: { $regex: req.keyword || '', $options: 'i' } },
-        ]
-      })
+      const keyword = req.keyword || '';
+      const query: any = {};
+
+      // Nếu có keyword, tìm kiếm trong các trường
+      if (keyword) {
+        query.$or = [
+          { typeName: { $regex: keyword, $options: 'i' } },
+          { typeCode: { $regex: keyword, $options: 'i' } },
+          { description: { $regex: keyword, $options: 'i' } },
+          { status: { $regex: keyword, $options: 'i' } },
+        ];
+      }
+
+      const types = await this.electionTypesModel.find(query)
         .populate('createdBy', 'username fullName email position')
         .populate('updatedBy', 'username fullName email position')
+        .sort({ createdAt: -1 })
         .exec();
 
       return paginate(

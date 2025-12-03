@@ -12,6 +12,7 @@ import { SearchDTO } from 'src/common/dto/search.dto';
 import { BaseSearchDTO } from 'src/common/dto/base-search.dto';
 import { STATUS } from 'src/common/enums/status.enum';
 import { NotificationService } from '../notification/notification.service';
+import { getCurrentDateVN } from 'src/common/utils/format';
 @Injectable()
 export class MeetingsService {
   constructor(
@@ -256,7 +257,7 @@ export class MeetingsService {
       let timeLeft = 0;
       let isRunning = false;
       if (meeting.meetingDate && election?.endDate) {
-        const now = new Date();
+        const now = getCurrentDateVN();
         const endDate = new Date(election.endDate);
         if (endDate > now) {
           timeLeft = Math.floor((endDate.getTime() - now.getTime()) / 1000);
@@ -339,7 +340,7 @@ export class MeetingsService {
             type: 'meeting-status-changed',
             electionId,
             payload: statsData,
-            timestamp: new Date().toISOString(),
+            timestamp: getCurrentDateVN().toISOString(),
           });
         } catch (error) {
           console.error('Failed to emit transferStateDataRT:', error.message || error);
@@ -379,7 +380,7 @@ export class MeetingsService {
         type: eventType,
         electionId,
         payload: snapshot,
-        timestamp: new Date().toISOString(),
+        timestamp: getCurrentDateVN().toISOString(),
       });
     } catch (error) {
       console.error(`Failed to emit realtime update (${eventType}):`, error.message || error);

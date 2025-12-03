@@ -10,6 +10,7 @@ import { ElectionDocuments } from './electionDocuments.schema';
 import { Voters } from './voters.schema';
 import { Delegations } from './delegations.schema';
 import { STATUS } from 'src/common/enums/status.enum';
+import { getCurrentDateVN } from 'src/common/utils/format';
 
 export type DelegateCardDocument = DelegateCard & Document;
 
@@ -27,7 +28,7 @@ export class DelegateCard extends BaseSchema {
   @Prop({ type: Types.ObjectId, ref: Delegations.name, default: null })
   delegationId: Types.ObjectId;
 
-  @Prop({ default: new Date() })
+  @Prop({ default: () => getCurrentDateVN() })
   issuedAt: Date;
 
   @Prop({ default: null })
