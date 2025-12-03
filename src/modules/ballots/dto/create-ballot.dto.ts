@@ -37,21 +37,7 @@ export class CreateBallotDto {
         voteValue: number;
     }>
 
-    // @ApiProperty({
-    //     description: "OTP xác thực của cử tri",
-    //     example: "123456"
-    // })
-    @IsOptional()
-    @IsString()
-    otpCode: string
 
-    // @ApiProperty({
-    //     description: "Chữ kí của cử tri",
-    //     example: "Nguyễn Văn A"
-    // })
-    @IsOptional()
-    @IsString()
-    signature: string
 
     // @ApiProperty({
     //     description: "Số lần cử tri nhập OTP",
@@ -61,13 +47,7 @@ export class CreateBallotDto {
     // @IsNumber()
     // attempts: number
 
-    // @ApiProperty({
-    //     description: "Giá trị bầu cử mã hóa",
-    //     example: "123456"
-    // })
-    // @IsOptional()
-    // @IsString()
-    // encryptedVote: string
+
 
     // @ApiProperty({
     //     description: "Trạng thái của phiếu bầu",

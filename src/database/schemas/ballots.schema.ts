@@ -38,12 +38,6 @@ export class Ballots extends BaseSchema {
   }[];
 
 
-  @Prop({ default: null })
-  otpCode: string;
-
-  @Prop({ default: null })
-  signature: string;
-
   @Prop({ default: 0 })
   attempts: number;
 
