@@ -98,31 +98,35 @@ export class NotificationService {
     }
   }
 
-  async broadcastAnnouncement(electionId: string, message: string) {
+  async broadcastAnnouncement(electionId: string, message: string, userIdFromToken?: string) {
     try {
       if (!electionId || !message) {
         throw new Error('ElectionId and message are required');
       }
 
-      // Lấy tất cả participants trong election
       const participants = await this.electionParticipantsModel
-        .find({ electionId: new Types.ObjectId(electionId) })
+        .find({
+          electionId: new Types.ObjectId(electionId),
+          userId: { $ne: userIdFromToken ? new Types.ObjectId(userIdFromToken) : null },
+        })
         .populate('userId', '_id')
         .exec();
 
-      // Tạo notification cho mỗi participant
       const notifications = participants.map(participant => ({
         userId: (participant.userId as any)?._id || participant.userId,
         message: message,
         read: false,
       }));
 
-      // Lưu notifications vào database
       const createdNotifications = await this.notificationModel.insertMany(notifications);
 
-      // Emit socket để gửi realtime đến tất cả participants
+      let data = {
+        message: message,
+        type: 'announcement',
+      }
+
       participants.forEach(participant => {
-        this.notificationGateway.sendToUser(String(participant.userId), message);
+        this.notificationGateway.sendToUser(participant.userId._id.toString(), data);
       });
 
       return {

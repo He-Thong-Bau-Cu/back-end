@@ -720,6 +720,28 @@ export class ElectionsService {
         console.error('Error sending approval emails:', emailError);
       }
 
+      // 17. Gửi thông báo socket đến tất cả participants sau khi duyệt
+      try {
+        const participantsWithDetails = await this.electionParticipantsModel
+          .find({ electionId: new Types.ObjectId(electionId) })
+          .populate('userId', '_id email fullName')
+          .populate('roleId', 'roleName')
+          .exec();
+
+        for (const participant of participantsWithDetails) {
+          const user = participant.userId as any;
+          if (user && user._id) {
+            await this.notificationService.notifyUser(
+              String(user._id),
+              `Cuộc bầu cử "${election.title}" đã được chủ tọa duyệt và ký thành công!`,
+            );
+          }
+        }
+      } catch (socketError) {
+        // Log lỗi nhưng không throw để không ảnh hưởng đến quá trình duyệt
+        console.error('Error sending socket notifications:', socketError);
+      }
+
       return fileUpload;
     } catch (error) {
       throw error;
@@ -1283,6 +1305,17 @@ export class ElectionsService {
         if (!electionEntities || !Array.isArray(electionEntities) || electionEntities.length === 0) {
           throw new Error('Vui lòng thêm ít nhất một ứng viên/bầu chọn trước khi gửi duyệt');
         }
+
+        // Kiểm tra nếu hình thức bầu cử là YES_NO_ABSTAIN thì chỉ cho phép 1 bản ghi
+        if (meetingInfo.method) {
+          const votingMethod = await this.votingMethodModel.findById(new Types.ObjectId(meetingInfo.method)).exec();
+          if (votingMethod && votingMethod.methodCode === 'YES_NO_ABSTAIN') {
+            if (electionEntities.length > 1) {
+              throw new Error('Hình thức bầu cử YES-NO chỉ cho phép 1 nội dung bầu chọn. Vui lòng chỉ nhập 1 bản ghi.');
+            }
+          }
+        }
+
         if (!electionDocuments || !Array.isArray(electionDocuments) || electionDocuments.length === 0) {
           throw new Error('Vui lòng thêm ít nhất một tài liệu trước khi gửi duyệt');
         }
@@ -1328,7 +1361,47 @@ export class ElectionsService {
         throw new Error(MESSAGE.ELECTION_NOT_FOUND);
       }
 
+      // Gửi thông báo socket đến chủ tọa (createdBy) khi thư ký gửi duyệt
+      if (isSubmitForApproval) {
+        try {
+          // Lấy lại election với populated createdBy để lấy thông tin chủ tọa
+          const electionWithPreside = await this.electionsModel
+            .findById(new Types.ObjectId(electionId))
+            .populate('createdBy', '_id')
+            .exec();
+
+          if (electionWithPreside && electionWithPreside.createdBy) {
+            const presideId = (electionWithPreside.createdBy as any)?._id || electionWithPreside.createdBy;
+            if (presideId) {
+              await this.notificationService.notifyUser(
+                String(presideId),
+                `Cuộc bầu cử "${updatedElection.title || updatedElection.decisionName}" đã được thư ký gửi duyệt. Vui lòng kiểm tra và duyệt.`,
+              );
+            }
+          }
+        } catch (notifyError) {
+          // Log lỗi nhưng không throw để không ảnh hưởng đến quá trình gửi duyệt
+          console.error('Error sending socket notification to preside:', notifyError);
+        }
+      }
+
+      // Kiểm tra nếu hình thức bầu cử là YES_NO_ABSTAIN thì chỉ cho phép 1 bản ghi
       if (electionEntities && Array.isArray(electionEntities)) {
+        // Lấy voting method để kiểm tra methodCode
+        let votingMethodCode: string | null = null;
+        if (electionUpdate.votingMethodId) {
+          const votingMethod = await this.votingMethodModel.findById(electionUpdate.votingMethodId).exec();
+          votingMethodCode = votingMethod?.methodCode || null;
+        } else if (originalElection?.votingMethodId) {
+          const votingMethod = await this.votingMethodModel.findById(originalElection.votingMethodId).exec();
+          votingMethodCode = votingMethod?.methodCode || null;
+        }
+
+        // Nếu là YES_NO_ABSTAIN, chỉ cho phép 1 electionEntity
+        if (votingMethodCode === 'YES_NO_ABSTAIN' && electionEntities.length > 1) {
+          throw new Error('Hình thức bầu cử YES-NO chỉ cho phép 1 nội dung bầu chọn. Vui lòng chỉ nhập 1 bản ghi.');
+        }
+
         const candidateIds = electionEntities
           .filter((c: any) => c._id)
           .map((c: any) => new Types.ObjectId(c._id));

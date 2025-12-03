@@ -270,7 +270,7 @@ export class BoardControlService {
         const summaryData = JSON.parse(verificationReport.summary);
         checksumBefore = summaryData.checksumBefore || defaultChecksum;
         checksumAfter = summaryData.checksumAfter || defaultChecksum;
-        isConfirmed = !!verificationReport.reviewedBy;
+        isConfirmed = !!verificationReport.reviewedBy && verificationReport.status === STATUS.SIGNED;
       } catch {
         // Nếu không parse được, dùng giá trị mặc định
       }

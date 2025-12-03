@@ -1,7 +1,8 @@
-import { Body, Controller, Get, HttpException, HttpStatus, Param, Post } from '@nestjs/common';
+import { Body, Controller, Get, HttpException, HttpStatus, Param, Post, Req } from '@nestjs/common';
 import { NotificationService } from './notification.service';
 import { BaseResponse } from 'src/common/dto/base-response.dto';
 import { NotificationDto } from './notification.dto';
+import { CustomRequest } from 'src/common/middleware/auth.middleware';
 
 @Controller('notification')
 export class NotificationController {
@@ -50,9 +51,9 @@ export class NotificationController {
     }
 
     @Post('broadcast')
-    async broadcastAnnouncement(@Body() body: { electionId: string; message: string }): Promise<BaseResponse> {
+    async broadcastAnnouncement(@Body() body: { electionId: string; message: string }, @Req() req: CustomRequest): Promise<BaseResponse> {
         try {
-            const resData = await this.notificationService.broadcastAnnouncement(body.electionId, body.message);
+            const resData = await this.notificationService.broadcastAnnouncement(body.electionId, body.message, req.user.sub);
             return BaseResponse.success(resData, 'Gửi thông báo thành công', HttpStatus.OK);
         } catch (e) {
             throw new HttpException({message: e.message}, HttpStatus.INTERNAL_SERVER_ERROR);
