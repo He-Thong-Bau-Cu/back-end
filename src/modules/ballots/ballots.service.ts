@@ -532,8 +532,6 @@ export class BallotsService {
       const matchedBallots = await this.ballotsModel.find({
         $or: [
           { status: { $regex: keyword, $options: 'i' } },
-          { otpCode: { $regex: keyword, $options: 'i' } },
-          { signature: { $regex: keyword, $options: 'i' } },
         ]
       })
         .collation({ locale: 'vi', strength: 1 })
@@ -685,7 +683,7 @@ export class BallotsService {
       const fonts = {
         Roboto: {
           normal: path.join(process.cwd(), 'src', 'fonts', 'Roboto-Regular.ttf'),
-          bold: path.join(process.cwd(), 'src', 'fonts', 'Roboto-Bold.ttf'),
+          bold: path.join(process.cwd(), 'src', 'fonts', 'RobotoItalic.ttf'),
         },
       };
 

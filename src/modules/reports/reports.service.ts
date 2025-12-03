@@ -64,7 +64,6 @@ export class ReportsService {
         .find()
         .populate('electionId')
         .populate('reviewedBy', 'username fullName email position')
-        .populate('signedBy', 'username fullName email position')
         .exec();
     } catch (error) {
       throw error;
@@ -196,7 +195,6 @@ export class ReportsService {
           report.status = STATUS.SIGNED;
           report.reviewedBy = new Types.ObjectId(userId);
           report.reviewedAt = getCurrentDateVN();
-          report.status = STATUS.SIGNED;
           report.updatedBy = new Types.ObjectId(userId);
           await report.save();
 
