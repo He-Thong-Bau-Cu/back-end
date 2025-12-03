@@ -1,24 +1,33 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { VotingRightsController } from './voting-rights.controller';
 import { VotingRightsService } from './voting-rights.service';
-import { BaseResponse } from 'src/common/dto/base-response.dto';
 import { HttpException, HttpStatus } from '@nestjs/common';
+import { BaseResponse } from 'src/common/dto/base-response.dto';
+import { MESSAGE } from 'src/common/enums/message.enum';
 
 describe('VotingRightsController', () => {
   let controller: VotingRightsController;
   let service: VotingRightsService;
 
+  const mockService = {
+    getById: jest.fn(),
+    getByElectionId: jest.fn(),
+    getByVoterId: jest.fn(),
+    create: jest.fn(),
+    update: jest.fn(),
+  };
+
+  const mockReq = {
+    user: { sub: 'USER_ID_123' },
+  } as any;
+
   beforeEach(async () => {
+    jest.clearAllMocks();
+
     const module: TestingModule = await Test.createTestingModule({
       controllers: [VotingRightsController],
       providers: [
-        {
-          provide: VotingRightsService,
-          useValue: {
-            create: jest.fn(),
-            update: jest.fn(),
-          },
-        },
+        { provide: VotingRightsService, useValue: mockService }
       ],
     }).compile();
 
@@ -26,62 +35,100 @@ describe('VotingRightsController', () => {
     service = module.get<VotingRightsService>(VotingRightsService);
   });
 
-  afterEach(() => jest.clearAllMocks());
+  // =======================================================================
+  // ✔ TEST getById
+  // =======================================================================
+  it('should return voting right by ID (SUCCESS)', async () => {
+    const data = { id: '1', shares: 10 };
+    mockService.getById.mockResolvedValue(data);
 
-  const createDto = { electionId: 'E001', voterId: 'V001' };
-  const updateDto = { status: 'active' };
-
-  it('should be defined', () => {
-    expect(controller).toBeDefined();
+    const result = await controller.getById('1');
+    expect(result.data).toEqual(data);
+    expect(result.message).toBe(MESSAGE.VOTING_RIGHT_GET_BY_ID_SUCCESS);
   });
 
-  // ✅ CREATE
-  it('should return BaseResponse.success when create is successful', async () => {
-    const mockData = { id: 'R001', ...createDto };
-    jest.spyOn(service, 'create').mockResolvedValue(mockData as any);
+  it('should throw error when getById fails', async () => {
+    mockService.getById.mockRejectedValue(new Error('ERR'));
 
-    const result = await controller.create(createDto as any);
-
-    expect(result).toEqual(
-      BaseResponse.success(mockData, 'Tạo quyền bầu cử thành công', 201),
-    );
-    expect(service.create).toHaveBeenCalledWith(createDto);
+    await expect(controller.getById('1')).rejects.toThrow(HttpException);
   });
 
-  it('should throw HttpException when service.create throws error', async () => {
-    jest.spyOn(service, 'create').mockRejectedValue(new Error('Database Error'));
+  // =======================================================================
+  // ✔ TEST getByElectionId
+  // =======================================================================
+  it('should return voting rights by electionId (SUCCESS)', async () => {
+    const data = [{ id: '1' }];
+    mockService.getByElectionId.mockResolvedValue(data);
 
-    try {
-      await controller.create(createDto as any);
-    } catch (error) {
-      expect(error).toBeInstanceOf(HttpException);
-      expect(error.getStatus()).toBe(HttpStatus.INTERNAL_SERVER_ERROR);
-      expect(error.response.message).toBe('Database Error');
-    }
+    const result = await controller.getByElectionId('E1');
+    expect(result.data).toEqual(data);
+    expect(result.message).toBe(MESSAGE.VOTING_RIGHT_GET_BY_ELECTION_SUCCESS);
   });
 
-  // ✅ UPDATE
-  it('should return BaseResponse.success when update is successful', async () => {
-    const mockData = { id: 'R001', ...updateDto };
-    jest.spyOn(service, 'update').mockResolvedValue(mockData as any);
+  it('should throw error when getByElectionId fails', async () => {
+    mockService.getByElectionId.mockRejectedValue(new Error('ERR'));
 
-    const result = await controller.update('R001', updateDto);
-
-    expect(result).toEqual(
-      BaseResponse.success(mockData, 'Cập nhật quyền bầu cử thành công', 200),
-    );
-    expect(service.update).toHaveBeenCalledWith('R001', updateDto);
+    await expect(controller.getByElectionId('E1')).rejects.toThrow(HttpException);
   });
 
-  it('should throw HttpException when service.update throws error', async () => {
-    jest.spyOn(service, 'update').mockRejectedValue(new Error('Update Error'));
+  // =======================================================================
+  // ✔ TEST getByVoterId
+  // =======================================================================
+  it('should return voting rights by voterId (SUCCESS)', async () => {
+    const data = [{ id: 'V1' }];
+    mockService.getByVoterId.mockResolvedValue(data);
 
-    try {
-      await controller.update('R001', updateDto);
-    } catch (error) {
-      expect(error).toBeInstanceOf(HttpException);
-      expect(error.getStatus()).toBe(HttpStatus.INTERNAL_SERVER_ERROR);
-      expect(error.response.message).toBe('Update Error');
-    }
+    const result = await controller.getByVoterId('V1');
+    expect(result.data).toEqual(data);
+    expect(result.message).toBe(MESSAGE.VOTING_RIGHT_GET_BY_VOTER_SUCCESS);
   });
+
+  it('should throw error when getByVoterId fails', async () => {
+    mockService.getByVoterId.mockRejectedValue(new Error('ERR'));
+
+    await expect(controller.getByVoterId('V1')).rejects.toThrow(HttpException);
+  });
+
+  // =======================================================================
+  // ✔ TEST create
+  // =======================================================================
+  it('should create voting right (SUCCESS)', async () => {
+    const dto = { shares: 10, votes: 10 };
+    const data = { id: 'NEW', ...dto };
+
+    mockService.create.mockResolvedValue(data);
+
+    const result = await controller.create(dto as any, mockReq);
+    expect(result.data).toEqual(data);
+    expect(result.message).toBe(MESSAGE.VOTING_RIGHT_CREATE_SUCCESS);
+    expect(service.create).toHaveBeenCalledWith(dto, mockReq.user.sub);
+  });
+
+  it('should throw error when create fails', async () => {
+    mockService.create.mockRejectedValue(new Error('ERR'));
+
+    await expect(controller.create({} as any, mockReq)).rejects.toThrow(HttpException);
+  });
+
+  // =======================================================================
+  // ✔ TEST update
+  // =======================================================================
+  it('should update voting right (SUCCESS)', async () => {
+    const dto = { shares: 20 };
+    const data = { id: 'U1', ...dto };
+
+    mockService.update.mockResolvedValue(data);
+
+    const result = await controller.update('U1', dto, mockReq);
+    expect(result.data).toEqual(data);
+    expect(result.message).toBe(MESSAGE.VOTING_RIGHT_UPDATE_SUCCESS);
+    expect(service.update).toHaveBeenCalledWith('U1', dto, mockReq.user.sub);
+  });
+
+  it('should throw error when update fails', async () => {
+    mockService.update.mockRejectedValue(new Error('ERR'));
+
+    await expect(controller.update('U1', {} as any, mockReq)).rejects.toThrow(HttpException);
+  });
+
 });

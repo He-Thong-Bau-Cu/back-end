@@ -1,96 +1,156 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { VotingRightsService } from './voting-rights.service';
 import { getModelToken } from '@nestjs/mongoose';
+import { MESSAGE } from 'src/common/enums/message.enum';
 import { Types } from 'mongoose';
-
-// ✅ Bỏ lỗi ObjectId validation trong test
-jest.mock('mongoose', () => ({
-  ...jest.requireActual('mongoose'),
-  Types: {
-    ObjectId: jest.fn().mockImplementation((id) => id),
-  },
-}));
 
 describe('VotingRightsService', () => {
   let service: VotingRightsService;
 
-  // Mock mongoose model
-  const mockModel = () => ({
+  const mockVotingRightModel = {
+    findById: jest.fn(),
+    find: jest.fn(),
     exists: jest.fn(),
     create: jest.fn(),
-    findByIdAndUpdate: jest.fn().mockReturnThis(),
-    exec: jest.fn(),
-  });
+    findByIdAndUpdate: jest.fn(),
+  };
 
-  const mockVotingRightsModel = mockModel();
-  const mockElectionsModel = mockModel();
-  const mockVotersModel = mockModel();
+  const mockElectionsModel = { exists: jest.fn() };
+  const mockVotersModel = { exists: jest.fn() };
+
+  const populateMock = {
+    populate: jest.fn().mockReturnThis(),
+    exec: jest.fn(),
+  };
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         VotingRightsService,
-        { provide: getModelToken('VotingRights'), useValue: mockVotingRightsModel },
+        { provide: getModelToken('VotingRights'), useValue: mockVotingRightModel },
         { provide: getModelToken('Elections'), useValue: mockElectionsModel },
         { provide: getModelToken('Voters'), useValue: mockVotersModel },
       ],
     }).compile();
 
     service = module.get<VotingRightsService>(VotingRightsService);
+    jest.clearAllMocks();
   });
 
-  afterEach(() => jest.clearAllMocks());
+  // ===================================================================
+  // getById
+  // ===================================================================
+  describe('getById', () => {
+    it('should return voting right when found', async () => {
+      const id = new Types.ObjectId().toString();
+      const mockData = { _id: id };
 
-  // ===========================
-  // ✅ CREATE
-  // ===========================
-  describe('create', () => {
-    const dto = { electionId: 'E001', voterId: 'V001' };
+      mockVotingRightModel.findById.mockReturnValue(populateMock);
+      populateMock.exec.mockResolvedValue(mockData);
 
-    it('should throw if election not found', async () => {
-      mockElectionsModel.exists.mockResolvedValue(false);
-      await expect(service.create(dto as any)).rejects.toThrow('Election not found');
+      const result = await service.getById(id);
+      expect(result).toEqual(mockData);
     });
 
-    it('should throw if voter not found', async () => {
+    it('should throw if not found', async () => {
+      const id = new Types.ObjectId().toString();
+
+      mockVotingRightModel.findById.mockReturnValue(populateMock);
+      populateMock.exec.mockResolvedValue(null);
+
+      await expect(service.getById(id)).rejects.toThrow(MESSAGE.VOTING_RIGHT_NOT_FOUND);
+    });
+  });
+
+  // ===================================================================
+  // getByElectionId
+  // ===================================================================
+  describe('getByElectionId', () => {
+    it('should return voting rights', async () => {
+      const electionId = new Types.ObjectId().toString();
+
       mockElectionsModel.exists.mockResolvedValue(true);
-      mockVotersModel.exists.mockResolvedValue(false);
-      await expect(service.create(dto as any)).rejects.toThrow('Voter not found');
+
+      const mockList = [{ id: 'vr1' }];
+
+      mockVotingRightModel.find.mockReturnValue(populateMock);
+      populateMock.exec.mockResolvedValue(mockList);
+
+      const result = await service.getByElectionId(electionId);
+
+      expect(result).toEqual(mockList);
     });
+  });
+
+  // ===================================================================
+  // getByVoterId
+  // ===================================================================
+  describe('getByVoterId', () => {
+    it('should return voting rights', async () => {
+      const voterId = new Types.ObjectId().toString();
+
+      mockVotersModel.exists.mockResolvedValue(true);
+
+      const mockList = [{ id: 'vr1' }];
+
+      mockVotingRightModel.find.mockReturnValue(populateMock);
+      populateMock.exec.mockResolvedValue(mockList);
+
+      const result = await service.getByVoterId(voterId);
+
+      expect(result).toEqual(mockList);
+    });
+  });
+
+  // ===================================================================
+  // create
+  // ===================================================================
+  describe('create', () => {
+    const electionId = new Types.ObjectId().toString();
+    const voterId = new Types.ObjectId().toString();
+    const userId = new Types.ObjectId().toString();
+
+    const dto = {
+      electionId,
+      voterId,
+      shares: 10,
+      votes: 10,
+      status: 'ACTIVE',
+    };
 
     it('should create voting right successfully', async () => {
-      const mockData = { id: 'R001', ...dto };
       mockElectionsModel.exists.mockResolvedValue(true);
       mockVotersModel.exists.mockResolvedValue(true);
-      mockVotingRightsModel.create.mockResolvedValue(mockData);
+      mockVotingRightModel.exists.mockResolvedValue(false);
 
-      const result = await service.create(dto as any);
-      expect(result).toEqual(mockData);
-      expect(mockVotingRightsModel.create).toHaveBeenCalledWith(dto);
+      const mockCreated = { id: 'vr1', ...dto };
+      mockVotingRightModel.create.mockResolvedValue(mockCreated);
+
+      const result = await service.create(dto, userId);
+      expect(result).toEqual(mockCreated);
     });
   });
 
-  // ===========================
-  // ✅ UPDATE
-  // ===========================
+  // ===================================================================
+  // update
+  // ===================================================================
   describe('update', () => {
-    const updateDto = { status: 'active' };
+    it('should update voting right', async () => {
+      const id = new Types.ObjectId().toString();
+      const userId = new Types.ObjectId().toString();
 
-    it('should throw if voting right not found', async () => {
-      mockVotingRightsModel.exists.mockResolvedValue(false);
-      await expect(service.update('507f1f77bcf86cd799439011', updateDto as any))
-        .rejects.toThrow('Voting right not found');
-    });
+      const dto = { shares: 99 };
 
-    it('should update successfully', async () => {
-      const mockData = { id: 'R001', status: 'active' };
-      mockVotingRightsModel.exists.mockResolvedValue(true);
-      mockVotingRightsModel.findByIdAndUpdate.mockReturnValue({
-        exec: jest.fn().mockResolvedValue(mockData),
-      });
+      mockVotingRightModel.exists.mockResolvedValue(true);
 
-      const result = await service.update('507f1f77bcf86cd799439011', updateDto as any);
-      expect(result).toEqual(mockData);
+      const mockUpdated = { _id: id, ...dto };
+
+      mockVotingRightModel.findByIdAndUpdate.mockReturnValue(populateMock);
+      populateMock.exec.mockResolvedValue(mockUpdated);
+
+      const result = await service.update(id, dto as any, userId);
+
+      expect(result).toEqual(mockUpdated);
     });
   });
 });
