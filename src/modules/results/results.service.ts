@@ -140,11 +140,13 @@ export class ResultsService {
 
       //Tìm người chiến thắng dựa trên phương thức bầu cử
       let results;
+      console.log("results: ", results);
 
       if (votingMethod.methodCode === 'CUMULATIVE') {
         results = await this.getWinnersCumulative(electionId);
       } else if (votingMethod.methodCode === 'YES_NO_ABSTAIN') {
         results = await this.getWinnersYesNo(electionId);
+        console.log("results 2: ", results);
       }
 
       //tạo file pdf kết quả
@@ -160,8 +162,8 @@ export class ResultsService {
         //tạo bản ghi kết quả
         await this.resultsModel.create({
           electionId: new Types.ObjectId(electionId),
-          entityId: results[0]._id,
-          votesCount: results[0].totalVotes,
+          entityId: results[0]?._id,
+          votesCount: results[0]?.totalVotes,
           isFinal: true,
           status: STATUS.SIGNED,
           createdBy: new Types.ObjectId(userId),
@@ -264,7 +266,7 @@ export class ResultsService {
           $project: {
             _id: 1,
             totalVotes: 1,
-            entityTitle: '$entity.title',
+            //entityTitle: '$entity.title',
             entityDescription: '$entity.description',
             entityMetaData: '$entity.metaData'
           }
@@ -361,7 +363,7 @@ export class ResultsService {
           $project: {
             _id: 1,
             totalVotes: { $add: ['$agree', '$disagree', '$abstain'] },
-            entityTitle: '$entity.title',
+            //entityTitle: '$entity.title',
             entityDescription: '$entity.description',
             entityMetaData: '$entity.metaData',
             agree: 1,
@@ -439,7 +441,7 @@ export class ResultsService {
 
           { text: 'Danh sách đối tượng / lựa chọn tham gia', style: 'sectionHeader' },
           {
-            ul: results.map(e => `${e.entityTitle}`)
+            ul: results.map(e => `${e?.entityTitle}`)
           },
           '\n\n',
 
@@ -450,10 +452,10 @@ export class ResultsService {
               body: [
                 ['Đối tượng', 'Tổng phiếu', 'Phần trăm', 'Trạng thái'],
                 ...results.map(r => ([
-                  r.entityTitle,
-                  r.totalVotes.toString(),
-                  `${r.percentage}%`,
-                  r._id === winner._id ? '🏆 Thắng' : '',
+                  r?.entityTitle,
+                  r?.totalVotes.toString(),
+                  `${r?.percentage}%`,
+                  r?._id === winner?._id ? '🏆 Thắng' : '',
                 ]))
               ]
             }
@@ -462,7 +464,7 @@ export class ResultsService {
           '\n\n',
           { text: 'Người chiến thắng', style: 'sectionHeader' },
           {
-            text: `${winner.entityTitle}\nSố phiếu: ${winner.totalVotes}\nTỷ lệ: ${winner.percentage}%`,
+            text: `${winner?.entityTitle}\nSố phiếu: ${winner?.totalVotes}\nTỷ lệ: ${winner?.percentage}%`,
             style: 'winnerBox'
           }
         ],
