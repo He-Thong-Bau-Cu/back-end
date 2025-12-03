@@ -1,101 +1,122 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ElectionEntitiesService } from './election-entities.service';
 import { getModelToken } from '@nestjs/mongoose';
-import { ElectionEntities } from 'src/database/schemas/electionEntities.schema';
-import { Elections } from 'src/database/schemas/elections.schema';
-import { ElectionTypes } from 'src/database/schemas/electionTypes.schema';
-import { ElectionsParticipants} from 'src/database/schemas/electionParticipants.schema';
-
+import { Types } from 'mongoose';
+import { MESSAGE } from 'src/common/enums/message.enum';
 
 describe('ElectionEntitiesService', () => {
   let service: ElectionEntitiesService;
 
-  const mockModel = () => ({
-    exists: jest.fn(),
+  const mockElectionEntityModel = {
     create: jest.fn(),
-    findByIdAndUpdate: jest.fn().mockReturnThis(),
-    exec: jest.fn(),
-  });  
+    exists: jest.fn(),
+    findByIdAndUpdate: jest.fn().mockReturnValue({
+      populate: jest.fn().mockReturnThis(),
+      exec: jest.fn(),
+    }),
+  };
 
-  const mockElectionModel = mockModel();
-  const mockElectionTypesModel = mockModel();
-  const mockElectionParticipantsModel = mockModel();
-  const mockElectionEntitiesModel = mockModel();
+  const mockElectionsModel = {
+    exists: jest.fn(),
+  };
+
+  const mockElectionTypesModel = {
+    exists: jest.fn(),
+  };
+
+  const mockParticipantsModel = {
+    exists: jest.fn(),
+  };
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         ElectionEntitiesService,
-        { provide: getModelToken(ElectionEntities.name), useValue: mockElectionEntitiesModel },
-        { provide: getModelToken(Elections.name), useValue: mockElectionModel },
-        { provide: getModelToken(ElectionTypes.name), useValue: mockElectionTypesModel },
-        { provide: getModelToken(ElectionsParticipants.name), useValue: mockElectionParticipantsModel },
+        { provide: getModelToken('ElectionEntities'), useValue: mockElectionEntityModel },
+        { provide: getModelToken('Elections'), useValue: mockElectionsModel },
+        { provide: getModelToken('ElectionTypes'), useValue: mockElectionTypesModel },
+        { provide: getModelToken('ElectionsParticipants'), useValue: mockParticipantsModel },
       ],
     }).compile();
 
     service = module.get<ElectionEntitiesService>(ElectionEntitiesService);
+    jest.clearAllMocks();
   });
 
-  afterEach(() => jest.clearAllMocks());
-
-  it('should be defined', () => {
-    expect(service).toBeDefined();
-  });
-
+  // ===================================================
+  // CREATE
+  // ===================================================
   describe('create', () => {
-    const dto = {
-      electionId: 'e1',
-      electionTypeId: 't1',
-      electionEntityId: 'ee1',
-    };
+    const userId = new Types.ObjectId().toHexString();
+    const electionId = new Types.ObjectId().toHexString();
+    const electionTypeId = new Types.ObjectId().toHexString();
+    const proposerId = new Types.ObjectId().toHexString();
 
     it('should throw if election not found', async () => {
-      mockElectionModel.exists.mockResolvedValue(null);
+      mockElectionsModel.exists.mockResolvedValue(false);
 
-      await expect(service.create(dto as any)).rejects.toThrow('Election not found');
+      await expect(
+        service.create({ electionId } as any, userId),
+      ).rejects.toThrow(MESSAGE.ELECTION_NOT_FOUND);
     });
 
     it('should throw if election type not found', async () => {
-      mockElectionModel.exists.mockResolvedValue(true);
-      mockElectionTypesModel.exists.mockResolvedValue(null);
+      mockElectionsModel.exists.mockResolvedValue(true);
+      mockElectionTypesModel.exists.mockResolvedValue(false);
 
-      await expect(service.create(dto as any)).rejects.toThrow('Election Type not found');
+      await expect(
+        service.create({ electionId, electionTypeId } as any, userId),
+      ).rejects.toThrow(MESSAGE.ELECTION_TYPE_NOT_FOUND);
     });
 
     it('should throw if no participants linked', async () => {
-      mockElectionModel.exists.mockResolvedValue(true);
+      mockElectionsModel.exists.mockResolvedValue(true);
       mockElectionTypesModel.exists.mockResolvedValue(true);
-      mockElectionParticipantsModel.exists.mockResolvedValue(false);
-    
-      await expect(service.create(dto as any)).rejects.toThrow('No participants linked to this election');
+      mockParticipantsModel.exists.mockResolvedValue(false);
+
+      await expect(
+        service.create({ electionId, electionTypeId, proposerId } as any, userId),
+      ).rejects.toThrow(MESSAGE.NO_PARTICIPANTS_LINKED);
     });
-    
 
     it('should create entity successfully', async () => {
-      mockElectionModel.exists.mockResolvedValue(true);
+      mockElectionsModel.exists.mockResolvedValue(true);
       mockElectionTypesModel.exists.mockResolvedValue(true);
-      mockElectionParticipantsModel.exists.mockResolvedValue(true); // ✅ phải là true
-    
-      const mockEntity = { _id: 'entity1', name: 'Hội đồng A' };
-      mockElectionEntitiesModel.create.mockResolvedValue(mockEntity);
-    
-      const result = await service.create(dto as any);
-    
-      expect(result).toEqual(mockEntity);
-      expect(mockElectionEntitiesModel.create).toHaveBeenCalledWith(dto);
-    });    
+      mockParticipantsModel.exists.mockResolvedValue(true);
+
+      const mockResult = {
+        _id: new Types.ObjectId(),
+        name: 'Entity A',
+      };
+
+      mockElectionEntityModel.create.mockResolvedValue(mockResult);
+
+      const result = await service.create(
+        { electionId, electionTypeId, proposerId } as any,
+        userId,
+      );
+
+      expect(result).toEqual(mockResult);
+    });
   });
 
+  // ===================================================
+  // UPDATE
+  // ===================================================
   describe('update', () => {
+    const id = new Types.ObjectId().toHexString();
+    const userId = new Types.ObjectId().toHexString();
+    const dto = { name: 'Updated Entity' };
+
     it('should update entity successfully', async () => {
-      const id = '64b6f2b1c9f2f1a2b3c4d5e6'; // ✅ hợp lệ
-      const dto = { name: 'Updated Name' };
+      mockElectionEntityModel.exists.mockResolvedValue(true);
+
       const updated = { _id: id, ...dto };
-    
-      mockElectionEntitiesModel.exec.mockResolvedValue(updated);
-    
-      const result = await service.update(id, dto as any);
+      mockElectionEntityModel.findByIdAndUpdate().exec.mockResolvedValue(updated);
+
+      const result = await service.update(id, dto as any, userId);
+
       expect(result).toEqual(updated);
-    });    
+    });
   });
 });

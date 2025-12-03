@@ -254,15 +254,6 @@ export class DelegationsController {
     return BaseResponse.success(resData, MESSAGE.SUCCESS, HttpStatus.OK);
   }
 
-  @ApiOperation({ summary: 'Lấy dữ liệu ủy quyền theo id của cuộc bầu cử' })
-  @ApiResponse({ status: 200, description: 'Lấy tổng hợp dữ liệu tất cả ủy quyền thành công' })
-  @ApiResponse({ status: 500, description: 'Dữ liệu không hợp lệ' })
-  @Get('election/:id')
-  async getDelegationByElectionId(@Param('id') id: string) {
-    const resData = await this.delegationsService.getDelegationByElectionId(id);
-    return BaseResponse.success(resData, MESSAGE.SUCCESS, HttpStatus.OK);
-  }
-
   @ApiOperation({ summary: 'Lấy chi tiết tổng hợp ủy quyền theo cuộc bầu cử' })
   @ApiResponse({ status: 200, description: 'Lấy tổng hợp dữ liệu ủy quyền thành công' })
   @ApiResponse({ status: 500, description: 'Dữ liệu không hợp lệ' })
