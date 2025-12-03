@@ -62,8 +62,11 @@ export class ReportsService {
     try {
       return await this.reportModel
         .find()
-        .populate('electionId')
+        .populate('electionId', "title startDate endDate status")
         .populate('reviewedBy', 'username fullName email position')
+        .populate('documentId', 'title type content fileUrl status')
+        .populate('createdBy', 'username fullName email position')
+        .populate('updatedBy', 'username fullName email position')
         .exec();
     } catch (error) {
       throw error;
