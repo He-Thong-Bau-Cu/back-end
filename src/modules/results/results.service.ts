@@ -11,7 +11,7 @@ import { BaseSearchDTO } from 'src/common/dto/base-search.dto';
 import { STATUS } from 'src/common/enums/status.enum';
 import { Ballots } from 'src/database/schemas/ballots.schema';
 import { VotingMethods } from 'src/database/schemas/votingMethods.schema';
-import path from 'path/win32';
+import path from 'path';
 import PdfPrinter from "pdfmake";
 import * as fs from "fs";
 import * as os from "os";
@@ -193,7 +193,7 @@ export class ResultsService {
           userId,
           signFile
         );
-        if (fileUpload) {
+        if (fileUpload && results != null && results?.length > 0) {
           //Tạo bản ghi file trong election documentId
           await this.electionDocumentsModel.create({
             electionId: new Types.ObjectId(electionId),
@@ -266,7 +266,7 @@ export class ResultsService {
           $project: {
             _id: 1,
             totalVotes: 1,
-            //entityTitle: '$entity.title',
+            entityTitle: '$entity.title',
             entityDescription: '$entity.description',
             entityMetaData: '$entity.metaData'
           }
@@ -276,6 +276,10 @@ export class ResultsService {
         },
 
       ]);
+
+      if (results.length === 0 || results === null) {
+        throw new Error("Phiếu bầu chưa có đối tượng nào được bầu");
+      }
 
       // Tính tổng của tất cả entity để tính %
       const sumVotes = results.reduce((acc, item) => acc + item.totalVotes, 0);
@@ -363,7 +367,7 @@ export class ResultsService {
           $project: {
             _id: 1,
             totalVotes: { $add: ['$agree', '$disagree', '$abstain'] },
-            //entityTitle: '$entity.title',
+            entityTitle: '$entity.title',
             entityDescription: '$entity.description',
             entityMetaData: '$entity.metaData',
             agree: 1,
@@ -376,6 +380,10 @@ export class ResultsService {
         }
       ]);
 
+      if (results.length === 0 || results === null) {
+        throw new Error("Phiếu bầu chưa có đối tượng nào được bầu");
+      }
+
       const finalResults = results.map(r => ({
         ...r,
         percentage: r.agree === 0
@@ -383,6 +391,7 @@ export class ResultsService {
           : Number(((r.agree / totalVotes) * 100).toFixed(2))
       }));
       return finalResults;
+
     } catch (error) {
       throw error;
     }

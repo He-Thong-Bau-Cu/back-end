@@ -373,12 +373,10 @@ export class ReportsService {
 
   private translateReportType(type: string): string {
     switch (type) {
-      case REPORT_TYPE.NORMAL:
-        return 'Bình thường';
-      case REPORT_TYPE.ABNORMAL:
-        return 'Bất thường';
-      case REPORT_TYPE.FINAL:
-        return 'Cuối cùng';
+      case REPORT_TYPE.AUDIT:
+        return 'Lưu trữ';
+      case REPORT_TYPE.VERIFICATION:
+        return 'Xác minh';
       default:
         return 'Khác';
     }
