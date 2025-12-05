@@ -255,6 +255,35 @@ export class MeetingAttendeesService {
       if (!participantExist) {
         throw new Error(MESSAGE.ELECTION_PARTICIPANT_NOT_FOUND);
       }
+
+      let ballotCreated: any = null;
+      if (attended) {
+        const participant = await this.electionParticipantsModel.findById(new Types.ObjectId(participantId)).lean();
+        if (!participant) {
+          throw new Error(MESSAGE.ELECTION_PARTICIPANT_NOT_FOUND);
+        }
+        const voter = await this.voterModels.findOne({
+          electionId: participant.electionId,
+          userId: participant.userId,
+        }).lean();
+        if (!voter) {
+          throw new Error("Không tìm thấy cử tri tương ứng với người tham dự cuộc họp để tạo phiếu bầu");
+        }
+        const existingBallot = await this.ballotsModel.findOne({
+          electionId: participant.electionId,
+          voterId: voter._id,
+        }).lean();
+        if (!existingBallot) {
+          ballotCreated = await this.ballotsModel.create({
+            electionId: participant.electionId,
+            voterId: voter._id,
+            status: STATUS.PENDING,
+            issuedAt: getCurrentDateVN(),
+            createdBy: userId ? new Types.ObjectId(userId) : null,
+          });
+        }
+      }
+
       const meetingAttendee = await this.meetingAttendeesModel.findOneAndUpdate(
         {
           meetingId: new Types.ObjectId(meetingId),
@@ -303,6 +332,7 @@ export class MeetingAttendeesService {
               notAttended: totalAttendees - attendedCount,
             },
             attendee: meetingAttendee,
+            ballotCreated,
           });
         }
       } catch (socketError) {

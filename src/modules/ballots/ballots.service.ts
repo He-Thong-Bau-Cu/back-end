@@ -16,7 +16,7 @@ import { Users } from 'src/database/schemas/users.schema';
 import { BaseSearchDTO } from 'src/common/dto/base-search.dto';
 import { paginate } from 'src/common/dto/paignation';
 import { NotificationService } from '../notification/notification.service';
-import path from 'path/win32';
+import * as path from 'path';
 import PdfPrinter from 'pdfmake';
 import * as fs from 'fs';
 import * as os from 'os';
@@ -32,7 +32,6 @@ import { getCurrentDateVN } from 'src/common/utils/format';
 @ApiBearerAuth('access-token')
 @Injectable()
 export class BallotsService {
-
   constructor(
     @InjectModel(Ballots.name)
     private readonly ballotsModel: Model<Ballots>,
@@ -54,7 +53,7 @@ export class BallotsService {
     private readonly signingService: SigningService,
     private readonly fileService: MinioService,
     private readonly redisService: RedisService,
-  ) { }
+  ) {}
 
   async getById(id: string) {
     try {
@@ -66,23 +65,23 @@ export class BallotsService {
 
       const ballot = await this.ballotsModel
         .findById(new Types.ObjectId(id))
-        .populate('electionId', 'title startDate endDate delegationStart delegationEnd status statusData decisionNumber decisionName')
+        .populate(
+          'electionId',
+          'title startDate endDate delegationStart delegationEnd status statusData decisionNumber decisionName',
+        )
         .populate({
           path: 'voterId',
           populate: [
             {
               path: 'userId',
-              select: "username fullName email position",
-            }
-          ]
+              select: 'username fullName email position',
+            },
+          ],
         })
         .populate({
           path: 'allocations.entityId',
-          populate: [
-            { path: "electionTypeId", select: "typeCode typeName description status" }
-          ]
-          ,
-          select: 'title description metaData fileUrl status proposerId'
+          populate: [{ path: 'electionTypeId', select: 'typeCode typeName description status' }],
+          select: 'title description metaData fileUrl status proposerId',
         })
         .populate('createdBy', 'username fullName email position')
         .populate('updatedBy', 'username fullName email position')
@@ -94,7 +93,6 @@ export class BallotsService {
     }
   }
 
-
   async getByElectionId(electionId: string) {
     try {
       //Check if the election is exist
@@ -105,23 +103,23 @@ export class BallotsService {
 
       const ballots = await this.ballotsModel
         .find({ electionId: new Types.ObjectId(electionId) })
-        .populate('electionId', 'title startDate endDate delegationStart delegationEnd status statusData decisionNumber decisionName')
+        .populate(
+          'electionId',
+          'title startDate endDate delegationStart delegationEnd status statusData decisionNumber decisionName',
+        )
         .populate({
           path: 'voterId',
           populate: [
             {
               path: 'userId',
-              select: "username fullName email position",
-            }
-          ]
+              select: 'username fullName email position',
+            },
+          ],
         })
         .populate({
           path: 'allocations.entityId',
-          populate: [
-            { path: "electionTypeId", select: "typeCode typeName description status" }
-          ]
-          ,
-          select: 'title description metaData fileUrl status proposerId'
+          populate: [{ path: 'electionTypeId', select: 'typeCode typeName description status' }],
+          select: 'title description metaData fileUrl status proposerId',
         })
         .populate('createdBy', 'username fullName email position')
         .populate('updatedBy', 'username fullName email position')
@@ -145,32 +143,31 @@ export class BallotsService {
         throw new Error(MESSAGE.VOTER_NOT_FOUND);
       }
 
-      const ballots = await this.ballotsModel.find({ voterId: new Types.ObjectId(voterId) })
+      const ballots = await this.ballotsModel
+        .find({ voterId: new Types.ObjectId(voterId) })
         .populate({
           path: 'electionId',
           populate: [
-            { path: "typeId", select: "typeName typeCode description status" },
-            { path: "votingMethodId", select: "methodName methodCode description status" },
-            { path: "thresholdId", select: "thresholdName thresholdCode value description status" },
+            { path: 'typeId', select: 'typeName typeCode description status' },
+            { path: 'votingMethodId', select: 'methodName methodCode description status' },
+            { path: 'thresholdId', select: 'thresholdName thresholdCode value description status' },
           ],
-          select: 'title startDate endDate delegationStart delegationEnd status statusData decisionNumber decisionName'
+          select:
+            'title startDate endDate delegationStart delegationEnd status statusData decisionNumber decisionName',
         })
         .populate({
           path: 'voterId',
           populate: [
             {
               path: 'userId',
-              select: "username fullName email position",
-            }
-          ]
+              select: 'username fullName email position',
+            },
+          ],
         })
         .populate({
           path: 'allocations.entityId',
-          populate: [
-            { path: "electionTypeId", select: "typeCode typeName description status" }
-          ]
-          ,
-          select: 'title description metaData fileUrl status proposerId'
+          populate: [{ path: 'electionTypeId', select: 'typeCode typeName description status' }],
+          select: 'title description metaData fileUrl status proposerId',
         })
         .populate('createdBy', 'username fullName email position')
         .populate('updatedBy', 'username fullName email position')
@@ -195,32 +192,31 @@ export class BallotsService {
         throw new Error(MESSAGE.VOTER_NOT_FOUND);
       }
 
-      const ballots = await this.ballotsModel.find({ voterId: new Types.ObjectId(voterId), status: STATUS.CAST })
+      const ballots = await this.ballotsModel
+        .find({ voterId: new Types.ObjectId(voterId), status: STATUS.CAST })
         .populate({
           path: 'electionId',
-          select: 'title startDate endDate delegationStart delegationEnd status statusData decisionNumber decisionName',
+          select:
+            'title startDate endDate delegationStart delegationEnd status statusData decisionNumber decisionName',
           populate: [
-            { path: "typeId", select: "typeName typeCode description status" },
-            { path: "votingMethodId", select: "methodName methodCode description status" },
-            { path: "thresholdId", select: "thresholdName thresholdCode value description status" },
-          ]
+            { path: 'typeId', select: 'typeName typeCode description status' },
+            { path: 'votingMethodId', select: 'methodName methodCode description status' },
+            { path: 'thresholdId', select: 'thresholdName thresholdCode value description status' },
+          ],
         })
         .populate({
           path: 'voterId',
           populate: [
             {
               path: 'userId',
-              select: "username fullName email position",
-            }
-          ]
+              select: 'username fullName email position',
+            },
+          ],
         })
         .populate({
           path: 'allocations.entityId',
-          populate: [
-            { path: "electionTypeId", select: "typeCode typeName description status" }
-          ]
-          ,
-          select: 'title description metaData fileUrl status proposerId'
+          populate: [{ path: 'electionTypeId', select: 'typeCode typeName description status' }],
+          select: 'title description metaData fileUrl status proposerId',
         })
         .populate('createdBy', 'username fullName email position')
         .populate('updatedBy', 'username fullName email position')
@@ -240,7 +236,9 @@ export class BallotsService {
   async create(createBallot: CreateBallotDto, userId: string) {
     try {
       //Check election exists
-      const electionExists = await this.electionsModel.findOne({ _id: new Types.ObjectId(createBallot.electionId) });
+      const electionExists = await this.electionsModel.findOne({
+        _id: new Types.ObjectId(createBallot.electionId),
+      });
       if (electionExists) {
         if (electionExists.status && electionExists.status !== STATUS.ACTIVE) {
           throw new Error(MESSAGE.ELECTION_IS_NOT_ACTIVE);
@@ -250,7 +248,9 @@ export class BallotsService {
       }
 
       //Check voter exists
-      const voterExists = await this.votersModel.findOne({ _id: new Types.ObjectId(createBallot.voterId) });
+      const voterExists = await this.votersModel.findOne({
+        _id: new Types.ObjectId(createBallot.voterId),
+      });
       if (voterExists) {
         if (voterExists.status && voterExists.status !== STATUS.ACTIVE) {
           throw new Error(MESSAGE.VOTER_IS_NOT_ACTIVE);
@@ -262,34 +262,38 @@ export class BallotsService {
       //Check ballots is exist
       const ballotExists = await this.ballotsModel.findOne({
         electionId: new Types.ObjectId(createBallot.electionId),
-        voterId: new Types.ObjectId(createBallot.voterId)
+        voterId: new Types.ObjectId(createBallot.voterId),
       });
       if (ballotExists) {
         throw new Error(MESSAGE.BALLOT_ALREADY_EXISTS);
       }
 
       //Check election voting method
-      const electionType = await this.electionTypesModel.findById(new Types.ObjectId(electionExists.typeId));
+      const electionType = await this.electionTypesModel.findById(
+        new Types.ObjectId(electionExists.typeId),
+      );
       if (!electionType) {
         throw new Error(MESSAGE.ELECTION_TYPE_NOT_FOUND);
       }
-      if (electionType.typeCode === "YES_NO_ABSTAIN") {
+      if (electionType.typeCode === 'YES_NO_ABSTAIN') {
         if (createBallot.allocations.length !== 1) {
-          throw new Error("This election allows only one choice.");
+          throw new Error('This election allows only one choice.');
         }
 
         if (createBallot.allocations[0].voteValue !== 1) {
-          throw new Error("You can only cast exactly 1 vote.");
+          throw new Error('You can only cast exactly 1 vote.');
         }
       }
 
-      if (electionType.typeCode === "CUMULATIVE") {
+      if (electionType.typeCode === 'CUMULATIVE') {
         for (const allocation of createBallot.allocations) {
           if (allocation.entityId == null || allocation.entityId === '') {
-            throw new Error("Entity ID is required");
+            throw new Error('Entity ID is required');
           } else {
             // Check if entityId exists in ElectionEntities
-            const entityExists = await this.electionEntitiesModel.findById(new Types.ObjectId(allocation.entityId));
+            const entityExists = await this.electionEntitiesModel.findById(
+              new Types.ObjectId(allocation.entityId),
+            );
             if (!entityExists) {
               throw new Error(`Entity with ID ${allocation.entityId} does not exist.`);
             }
@@ -303,7 +307,7 @@ export class BallotsService {
       //Check votingRight shares and count > 0
       const votingRight = await this.votingRightsModel.findOne({
         voterId: new Types.ObjectId(createBallot.voterId),
-        electionId: new Types.ObjectId(createBallot.electionId)
+        electionId: new Types.ObjectId(createBallot.electionId),
       });
       if (votingRight) {
         if (votingRight.shares <= 0 || votingRight.votes <= 0) {
@@ -321,12 +325,9 @@ export class BallotsService {
         if (totalVotes < 0 || isNaN(totalVotes)) {
           throw new Error(MESSAGE.BALLOT_VOTE_VALUE_GREATER_THAN_ZERO);
         }
-
       } else if (!votingRight) {
         throw new Error(MESSAGE.VOTING_RIGHT_NOT_FOUND);
       }
-
-
 
       const ballot = await this.ballotsModel.create({
         ...createBallot,
@@ -343,11 +344,12 @@ export class BallotsService {
   async update(id: string, updateBalllot: UpdateBallotDto, userId: string) {
     try {
       //Check if the ballot is exist
-      const ballotExist = await this.ballotsModel.exists({ _id: id });
-      if (!ballotExist) {
+      const ballot = await this.ballotsModel.findById(new Types.ObjectId(id));
+      if (!ballot) {
         throw new Error(MESSAGE.BALLOT_NOT_FOUND);
       }
 
+      const wasCast = ballot.status === STATUS.CAST;
       const updateData: any = {
         ...updateBalllot,
       };
@@ -364,29 +366,38 @@ export class BallotsService {
         updateData.updatedBy = new Types.ObjectId(userId);
       }
 
+      if (updateBalllot.status === STATUS.CAST && !wasCast) {
+        updateData.castAt = getCurrentDateVN();
+      }
 
-      const ballot = await this.ballotsModel
+      const updatedBallot = await this.ballotsModel
         .findByIdAndUpdate(new Types.ObjectId(id), updateData, { new: true })
-        .populate('electionId', 'title startDate endDate delegationStart delegationEnd status statusData decisionNumber decisionName')
+        .populate(
+          'electionId',
+          'title startDate endDate delegationStart delegationEnd status statusData decisionNumber decisionName',
+        )
         .populate({
           path: 'voterId',
           populate: [
             {
               path: 'userId',
-              select: "username fullName email position",
-            }
-          ]
+              select: 'username fullName email position',
+            },
+          ],
         })
         .populate({
           path: 'allocations.entityId',
-          populate: [
-            { path: "electionTypeId", select: "typeCode typeName description status" }
-          ]
-          ,
-          select: 'title description metaData fileUrl status proposerId'
+          populate: [{ path: 'electionTypeId', select: 'typeCode typeName description status' }],
+          select: 'title description metaData fileUrl status proposerId',
         })
         .exec();
-      return ballot;
+
+      // if (updatedBallot) {
+      //   // Phát socket cho quản lý cuộc họp và voter list
+      //   await this.emitBallotCastRealtime(updatedBallot.electionId as Types.ObjectId);
+      // }
+
+      return updatedBallot;
     } catch (error) {
       throw error;
     }
@@ -402,7 +413,9 @@ export class BallotsService {
       }
 
       //Check if the election is valid
-      const electionExist = await this.electionsModel.findById(new Types.ObjectId(ballotExist.electionId));
+      const electionExist = await this.electionsModel.findById(
+        new Types.ObjectId(ballotExist.electionId),
+      );
       if (!electionExist) {
         throw new Error(MESSAGE.ELECTION_NOT_FOUND);
       }
@@ -427,45 +440,47 @@ export class BallotsService {
         throw new Error('Ballot cannot be activated');
       }
 
-
-
-      const updateBallots = await this.ballotsModel.findByIdAndUpdate(new Types.ObjectId(id), {
-        status: STATUS.ACTIVE,
-        issuedAt: getCurrentDateVN(),
-        updatedBy: new Types.ObjectId(userId) ? new Types.ObjectId(userId) : null,
-      }, { new: true });
+      const updateBallots = await this.ballotsModel.findByIdAndUpdate(
+        new Types.ObjectId(id),
+        {
+          status: STATUS.ACTIVE,
+          issuedAt: getCurrentDateVN(),
+          updatedBy: new Types.ObjectId(userId) ? new Types.ObjectId(userId) : null,
+        },
+        { new: true },
+      );
       return updateBallots;
     } catch (error) {
       throw error;
     }
   }
 
-
   async getStatistics(electionId: string) {
     try {
       //Lấy tổng số phiếu của cuộc bầu cử
-      const ballots = await this.ballotsModel.countDocuments({ electionId: new Types.ObjectId(electionId) });
+      const ballots = await this.ballotsModel.countDocuments({
+        electionId: new Types.ObjectId(electionId),
+      });
 
       //Lấy tổng số phiếu đã bình chọn và chưa bình chonk => pending và active
-      const ballotStatus = await this.ballotsModel
-        .aggregate([
-          {
-            $match: {
-              electionId: new Types.ObjectId(electionId),
-              status: { $in: [STATUS.PENDING, STATUS.CAST] },
-            },
+      const ballotStatus = await this.ballotsModel.aggregate([
+        {
+          $match: {
+            electionId: new Types.ObjectId(electionId),
+            status: { $in: [STATUS.PENDING, STATUS.CAST] },
           },
-          {
-            $group: {
-              _id: '$status',
-              totalBallots: { $sum: 1 },
-            },
+        },
+        {
+          $group: {
+            _id: '$status',
+            totalBallots: { $sum: 1 },
           },
-        ]);
+        },
+      ]);
 
       let data = {
         total: ballots,
-        ballotStatus
+        ballotStatus,
       };
       await this.notificationService.transferDataRealTime(electionId, data);
 
@@ -478,7 +493,6 @@ export class BallotsService {
     }
   }
 
-
   async searchBallots(req: BaseSearchDTO) {
     try {
       const keyword = req.keyword || '';
@@ -488,13 +502,13 @@ export class BallotsService {
       //search elections theo keyword tiếng Việt
       const matchedElections = await this.electionsModel
         .find({
-          title: { $regex: keyword, $options: 'i' }
+          title: { $regex: keyword, $options: 'i' },
         })
         .collation({ locale: 'vi', strength: 1 })
         .lean();
 
       // lấy danh sách electionId match
-      const electionIds = matchedElections.map(e => e._id);
+      const electionIds = matchedElections.map((e) => e._id);
 
       // search voter info
       const matchedUsers = await this.usersModel
@@ -503,19 +517,17 @@ export class BallotsService {
             { fullName: { $regex: keyword, $options: 'i' } },
             { username: { $regex: keyword, $options: 'i' } },
             { email: { $regex: keyword, $options: 'i' } },
-          ]
+          ],
         })
         .collation({ locale: 'vi', strength: 1 })
         .lean();
 
-      const userIds = matchedUsers.map(u => u._id);
+      const userIds = matchedUsers.map((u) => u._id);
 
       // tìm voterId thuộc những user đó
-      const matchedVoters = await this.votersModel
-        .find({ userId: { $in: userIds } })
-        .lean();
+      const matchedVoters = await this.votersModel.find({ userId: { $in: userIds } }).lean();
 
-      const voterIds = matchedVoters.map(v => v._id);
+      const voterIds = matchedVoters.map((v) => v._id);
 
       // STEP 3: build query conditions
       const query: any = {};
@@ -529,15 +541,18 @@ export class BallotsService {
       }
 
       // tìm kiếm theo các trường khác nếu cần
-      const matchedBallots = await this.ballotsModel.find({
-        $or: [
-          { status: { $regex: keyword, $options: 'i' } },
-        ]
-      })
+      const matchedBallots = await this.ballotsModel
+        .find({
+          $or: [
+            { status: { $regex: keyword, $options: 'i' } },
+            { otpCode: { $regex: keyword, $options: 'i' } },
+            { signature: { $regex: keyword, $options: 'i' } },
+          ],
+        })
         .collation({ locale: 'vi', strength: 1 })
         .lean();
 
-      const matchedBallotIds = matchedBallots.map(b => b._id);
+      const matchedBallotIds = matchedBallots.map((b) => b._id);
 
       if (matchedBallotIds.length > 0) {
         query._id = { $in: matchedBallotIds };
@@ -546,21 +561,21 @@ export class BallotsService {
       // tìm ballots matching
       const ballots = await this.ballotsModel
         .find(query)
-        .populate('electionId', 'title startDate endDate delegationStart delegationEnd status statusData decisionNumber decisionName')
+        .populate(
+          'electionId',
+          'title startDate endDate delegationStart delegationEnd status statusData decisionNumber decisionName',
+        )
         .populate({
           path: 'voterId',
           populate: {
             path: 'userId',
-            select: "username fullName email position"
-          }
+            select: 'username fullName email position',
+          },
         })
         .populate({
           path: 'allocations.entityId',
-          populate: [
-            { path: "electionTypeId", select: "typeCode typeName description status" }
-          ]
-          ,
-          select: 'title description metaData fileUrl status proposerId'
+          populate: [{ path: 'electionTypeId', select: 'typeCode typeName description status' }],
+          select: 'title description metaData fileUrl status proposerId',
         })
         .populate('createdBy', 'username fullName email position')
         .populate('updatedBy', 'username fullName email position')
@@ -568,12 +583,10 @@ export class BallotsService {
         .lean();
 
       return paginate(ballots, page, limit);
-
     } catch (error) {
       throw error;
     }
   }
-
 
   async delete(id: string) {
     try {
@@ -598,6 +611,7 @@ export class BallotsService {
       if (!ballot) {
         throw new Error(MESSAGE.BALLOT_NOT_FOUND);
       }
+      const wasCast = ballot.status === STATUS.CAST;
 
       //Tạo file pdf của phiếu bầu
       const pdfPath = await this.generateBallotPDF(id);
@@ -625,6 +639,9 @@ export class BallotsService {
           });
         }
         this.notificationService.voterSign(ballot.voterId.toString(), ballot);
+        if (!wasCast) {
+          await this.emitBallotCastRealtime(ballot.electionId as Types.ObjectId);
+        }
         return fileUpload;
       } else {
         // 1. Nếu quá 5 lần → khóa phiếu
@@ -636,9 +653,30 @@ export class BallotsService {
         ballot.attempts += 1;
         throw new Error('Ký phiếu bầu thất bại');
       }
-
     } catch (error) {
       throw error;
+    }
+  }
+
+  private async emitBallotCastRealtime(electionId: Types.ObjectId) {
+    try {
+      const [totalBallots, castBallots] = await Promise.all([
+        this.ballotsModel.countDocuments({ electionId }),
+        this.ballotsModel.countDocuments({ electionId, status: STATUS.CAST }),
+      ]);
+
+      this.notificationService.transferDataRealTime(electionId.toString(), {
+        type: 'ballot-cast',
+        electionId: electionId.toString(),
+        summary: {
+          totalBallots,
+          castBallots,
+          pendingBallots: Math.max(totalBallots - castBallots, 0),
+        },
+        timestamp: getCurrentDateVN().toISOString(),
+      });
+    } catch (error) {
+      console.error('Error emitting ballot-cast realtime:', error?.message || error);
     }
   }
 
@@ -679,16 +717,15 @@ export class BallotsService {
       });
       if (!votingRight) console.log('Không tìm thấy quyền bầu cử của cử tri');
 
-      // -----------------------------------------
+      // ----------------------------------------
       const fonts = {
         Roboto: {
           normal: path.join(process.cwd(), 'src', 'fonts', 'Roboto-Regular.ttf'),
-          bold: path.join(process.cwd(), 'src', 'fonts', 'RobotoItalic.ttf'),
+          bold: path.join(process.cwd(), 'src', 'fonts', 'Roboto-Bold.ttf'),
         },
       };
 
       const printer = new PdfPrinter(fonts);
-
       const allocationTable = {
         table: {
           widths: ['*', '*', 'auto'],

@@ -28,6 +28,7 @@ import { SignatureModule } from '../signature/signature.module';
 import { MinioModule } from '../minio/minio.module';
 import { NotificationModule } from '../notification/notification.module';
 import { MailModule } from '../mail/mail.module';
+import { ResultsModule } from '../results/results.module';
 
 @Module({
   imports: [
@@ -53,6 +54,7 @@ import { MailModule } from '../mail/mail.module';
     MinioModule,
     NotificationModule,
     MailModule,
+    ResultsModule,
   ],
   providers: [ElectionsService],
   controllers: [ElectionsController],

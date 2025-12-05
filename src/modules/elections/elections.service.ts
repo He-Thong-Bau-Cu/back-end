@@ -42,6 +42,7 @@ import PdfPrinter from 'pdfmake';
 import * as path from 'path';
 import { NotificationService } from '../notification/notification.service';
 import { MailService } from '../mail/mail.service';
+import { ResultsService } from '../results/results.service';
 
 @Injectable()
 export class ElectionsService {
@@ -82,6 +83,7 @@ export class ElectionsService {
     private readonly fileService: MinioService,
     private readonly notificationService: NotificationService,
     private readonly mailService: MailService,
+    private readonly resultsService: ResultsService,
   ) {}
 
   async searchElections(req: SearchDTO) {
@@ -2174,30 +2176,27 @@ export class ElectionsService {
         throw new Error('Giai đoạn không hợp lệ');
       }
 
-      // Cập nhật stages để đánh dấu giai đoạn đã completed
       const stages = election.stages || {};
       stages[stage.toLowerCase()] = 'COMPLETED';
 
-      // Khi kết thúc giai đoạn bỏ phiếu (stage = voting), cập nhật tất cả ballots thành INACTIVE
-      // Thực hiện TRƯỚC khi update election để đảm bảo logic chạy đúng
       if (stage.toLowerCase() === 'voting') {
         try {
           const updateResult = await this.ballotsModel.updateMany(
             { electionId: new Types.ObjectId(electionId) },
             {
               $set: {
-                status: STATUS.INACTIVE,
+                status: STATUS.CAST,
                 updatedBy: userId ? new Types.ObjectId(userId) : null,
               }
             }
           );
+          await this.resultsService.autoCreateResultRecord(electionId);
           console.log(`[END VOTING STAGE] Đã cập nhật ${updateResult.modifiedCount} ballots của electionId ${electionId} thành INACTIVE`);
         } catch (error) {
           console.error('[END VOTING STAGE] Failed to update ballots status to INACTIVE:', error.message || error);
         }
       }
 
-      // Không động vào statusData, chỉ cập nhật stages
       const updatedElection = await this.electionsModel
         .findByIdAndUpdate(
           new Types.ObjectId(electionId),
