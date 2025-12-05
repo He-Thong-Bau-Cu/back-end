@@ -60,6 +60,8 @@ export enum STATUS {
   CONFIRMED = 'CONFIRMED',  //voter click vào mail
 
   CAST = 'CAST', //ballots was casted
+  NOT_CAST = 'NOT_CAST', //ballots was not casted
+  BLANK = 'BLANK', //ballots was blank
 
   // status of meeting
   SCHEDULED = 'SCHEDULED',
