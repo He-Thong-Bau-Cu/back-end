@@ -362,21 +362,11 @@ export class DelegateCardsService {
 
     const printer = new PdfPrinter(fonts);
 
-    let avatarBase64Final = "";
-
-    if (avatarBase64?.startsWith("http")) {
-      avatarBase64Final = await this.urlToBase64(avatarBase64) || "";
-    } else if (avatarBase64 && avatarBase64.startsWith("data:")) {
-      avatarBase64Final = avatarBase64;
-    }
-
-    const hasAvatar = !!avatarBase64Final;
-
     const docDefinition = {
-      pageSize: 'A5',
-      pageOrientation: 'landscape',
-      pageMargins: [18, 18, 18, 18],
-      background: function(currentPage, pageSize) {
+      pageSize: 'A4',
+      pageOrientation: 'portrait',
+      pageMargins: [20, 20, 20, 20],
+      background: function (currentPage, pageSize) {
         return [
           {
             canvas: [
@@ -385,7 +375,7 @@ export class DelegateCardsService {
                 x: 0,
                 y: 0,
                 w: pageSize.width,
-                h: pageSize.height,
+                h: 450,
                 r: 0,
                 color: '#f8f9fa'
               }
@@ -403,72 +393,37 @@ export class DelegateCardsService {
                   type: 'rect',
                   x: 0,
                   y: 0,
-                  w: 559.28,
-                  h: 60,
+                  w: 555.28,
+                  h: 70,
                   r: 8,
                   color: '#34d399'
                 }
               ]
             },
             {
-              columns: [
+              stack: [
                 {
-                  width: '*',
-                  stack: [
-                    {
-                      text: 'THẺ ĐẠI BIỂU',
-                      style: 'headerTitle',
-                      margin: [20, 12, 0, 4]
-                    },
-                    {
-                      text: 'Hệ thống bầu cử trực tuyến',
-                      style: 'headerSubtitle',
-                      margin: [20, 0, 0, 0]
-                    }
-                  ]
+                  text: 'THẺ ĐẠI BIỂU',
+                  style: 'headerTitle',
+                  margin: [25, 15, 0, 5]
                 },
-                hasAvatar
-                  ? {
-                    width: 70,
-                    stack: [
-                      {
-                        canvas: [
-                          {
-                            type: 'rect',
-                            x: 0,
-                            y: 0,
-                            w: 60,
-                            h: 65,
-                            r: 6,
-                            color: '#ffffff',
-                            lineColor: '#ffffff',
-                            lineWidth: 2
-                          }
-                        ],
-                        margin: [5, 5, 0, 0]
-                      },
-                      {
-                        image: avatarBase64Final,
-                        width: 50,
-                        height: 55,
-                        fit: [50, 55],
-                        margin: [5, -60, 5, 0]
-                      }
-                    ]
-                  }
-                  : { width: 0, text: '' }
+                {
+                  text: 'Hệ thống bầu cử trực tuyến',
+                  style: 'headerSubtitle',
+                  margin: [25, 0, 0, 0]
+                }
               ],
-              margin: [0, -60, 0, 0]
+              margin: [0, -70, 0, 0]
             }
           ],
-          margin: [0, 0, 0, 12]
+          margin: [0, 0, 0, 15]
         },
         // Body với 2 cột: Thông tin bên trái, QR code bên phải
         {
           columns: [
             // Cột trái: Thông tin và mã đại biểu
             {
-              width: 330,
+              width: 340,
               stack: [
                 {
                   canvas: [
@@ -476,8 +431,8 @@ export class DelegateCardsService {
                       type: 'rect',
                       x: 0,
                       y: 0,
-                      w: 330,
-                      h: 320,
+                      w: 340,
+                      h: 380,
                       r: 10,
                       color: '#ffffff',
                       lineColor: '#d1d5db',
@@ -489,7 +444,7 @@ export class DelegateCardsService {
                   stack: [
                     {
                       table: {
-                        widths: [110, '*'],
+                        widths: [120, '*'],
                         body: [
                           [
                             { text: 'Họ và tên:', style: 'label', fillColor: '#f9fafb' },
@@ -526,23 +481,23 @@ export class DelegateCardsService {
                         hLineColor: () => '#e5e7eb',
                         vLineColor: () => '#e5e7eb'
                       },
-                      margin: [15, 15, 15, 0]
+                      margin: [20, 20, 20, 0]
                     },
                     // Divider line - Sửa lại để hiển thị rõ ràng
                     {
                       canvas: [
                         {
                           type: 'line',
-                          x1: 15,
+                          x1: 20,
                           y1: 0,
-                          x2: 315,
+                          x2: 320,
                           y2: 0,
                           lineWidth: 1.5,
                           lineColor: '#d1d5db',
                           dash: { length: 6, space: 3 }
                         }
                       ],
-                      margin: [0, 15, 0, 15]
+                      margin: [0, 20, 0, 20]
                     },
                     // Mã đại biểu section
                     {
@@ -551,7 +506,7 @@ export class DelegateCardsService {
                           text: 'MÃ ĐẠI BIỂU',
                           style: 'codeLabel',
                           alignment: 'center',
-                          margin: [0, 0, 0, 10]
+                          margin: [0, 0, 0, 12]
                         },
                         {
                           canvas: [
@@ -560,7 +515,7 @@ export class DelegateCardsService {
                               x: 0,
                               y: 0,
                               w: 300,
-                              h: 45,
+                              h: 50,
                               r: 6,
                               color: '#d1fae5',
                               lineColor: '#34d399',
@@ -572,19 +527,19 @@ export class DelegateCardsService {
                           text: delegateCode || 'N/A',
                           style: 'codeValue',
                           alignment: 'center',
-                          margin: [15, -38, 15, 0]
+                          margin: [20, -42, 20, 0]
                         }
                       ],
-                      margin: [15, 0, 15, 15]
+                      margin: [20, 0, 20, 20]
                     }
                   ],
-                  margin: [0, -320, 0, 0]
+                  margin: [0, -380, 0, 0]
                 }
               ]
             },
             // Cột phải: QR Code
             {
-              width: 195,
+              width: 200,
               stack: [
                 {
                   canvas: [
@@ -592,8 +547,8 @@ export class DelegateCardsService {
                       type: 'rect',
                       x: 0,
                       y: 0,
-                      w: 195,
-                      h: 320,
+                      w: 200,
+                      h: 380,
                       r: 10,
                       color: '#ffffff',
                       lineColor: '#d1d5db',
@@ -607,13 +562,13 @@ export class DelegateCardsService {
                       text: 'MÃ QR XÁC THỰC',
                       style: 'qrLabel',
                       alignment: 'center',
-                      margin: [0, 25, 0, 20]
+                      margin: [0, 20, 0, 20]
                     },
                     {
                       columns: [
                         { width: '*', text: '' },
                         {
-                          width: 150,
+                          width: 180,
                           stack: [
                             {
                               canvas: [
@@ -621,8 +576,8 @@ export class DelegateCardsService {
                                   type: 'rect',
                                   x: 0,
                                   y: 0,
-                                  w: 150,
-                                  h: 150,
+                                  w: 180,
+                                  h: 180,
                                   r: 10,
                                   color: '#ffffff',
                                   lineColor: '#d1d5db',
@@ -632,10 +587,10 @@ export class DelegateCardsService {
                             },
                             {
                               image: qrBase64,
-                              width: 135,
-                              height: 135,
-                              fit: [135, 135],
-                              margin: [7.5, -142.5, 7.5, 0]
+                              width: 165,
+                              height: 165,
+                              fit: [165, 165],
+                              margin: [7.5, -172.5, 7.5, 0]
                             }
                           ]
                         },
@@ -643,7 +598,7 @@ export class DelegateCardsService {
                       ]
                     }
                   ],
-                  margin: [0, -320, 0, 0]
+                  margin: [0, -380, 0, 0]
                 }
               ]
             }
@@ -654,39 +609,39 @@ export class DelegateCardsService {
       ],
       styles: {
         headerTitle: {
-          fontSize: 24,
+          fontSize: 28,
           bold: true,
           color: '#ffffff',
           letterSpacing: 1.2
         },
         headerSubtitle: {
-          fontSize: 11,
+          fontSize: 12,
           color: '#d1fae5'
         },
         label: {
-          fontSize: 10,
+          fontSize: 11,
           color: '#6b7280',
           bold: false
         },
         value: {
-          fontSize: 11,
+          fontSize: 12,
           color: '#111827',
           bold: true
         },
         codeLabel: {
-          fontSize: 9,
+          fontSize: 10,
           color: '#6b7280',
           bold: false,
           letterSpacing: 0.8
         },
         codeValue: {
-          fontSize: 14,
+          fontSize: 16,
           color: '#059669',
           bold: true,
           letterSpacing: 2
         },
         qrLabel: {
-          fontSize: 10,
+          fontSize: 11,
           color: '#6b7280',
           bold: false,
           letterSpacing: 0.6

@@ -224,7 +224,7 @@ export class BoardControlService {
       : 0;
 
     const [totalVoters, castBallots, invalidBallots, results] = await Promise.all([
-      this.votersModel.countDocuments({ electionId: electionObjectId }),
+      this.votersModel.countDocuments({ electionId: electionObjectId, status: { $ne: STATUS.INACTIVE } }),
       this.ballotsModel.countDocuments({ electionId: electionObjectId, status: STATUS.CAST }),
       this.ballotsModel.countDocuments({ electionId: electionObjectId, status: STATUS.INVALID }),
       this.resultsModel
