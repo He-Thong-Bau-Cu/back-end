@@ -38,6 +38,9 @@ export enum FileType {
   //Signature reports
   SIGNED_REPORT = 'signed-reports',
 
+  // Verification report signed
+  REPORT_VERIFICATION_SIGN = 'report-verification-sign',
+
   // General
   TEMP = 'temp',
   UPLOAD = 'uploads',

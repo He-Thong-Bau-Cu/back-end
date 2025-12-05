@@ -14,12 +14,15 @@ import { Users, UserDocument } from 'src/database/schemas/users.schema';
 import { Meetings, MeetingsDocument } from 'src/database/schemas/meetings.schema';
 import { MeetingAttendees, MeetingAttendeesDocument } from 'src/database/schemas/meetingAttendees.schema';
 import { MESSAGE } from 'src/common/enums/message.enum';
-import { STATUS } from 'src/common/enums/status.enum';
+import { REPORT_TYPE, STATUS } from 'src/common/enums/status.enum';
 import { USER_ROLE } from 'src/common/enums/config.enum';
 import { createHash } from 'crypto';
 import PdfPrinter from 'pdfmake';
 import * as path from 'path';
 import { getCurrentDateVN } from 'src/common/utils/format';
+import { ElectionDocuments } from 'src/database/schemas/electionDocuments.schema';
+import { MinioService } from '../minio/minio.service';
+import { FileType } from 'src/common/enums/file-type.enum';
 
 @Injectable()
 export class BoardControlService {
@@ -48,6 +51,9 @@ export class BoardControlService {
     private readonly meetingsModel: Model<MeetingsDocument>,
     @InjectModel(MeetingAttendees.name)
     private readonly meetingAttendeesModel: Model<MeetingAttendeesDocument>,
+    @InjectModel(ElectionDocuments.name)
+    private readonly electionDocumentsModel: Model<ElectionDocuments>,
+    private readonly minioService: MinioService,
   ) { }
 
   private ensureObjectId(id: string): Types.ObjectId {
@@ -200,7 +206,11 @@ export class BoardControlService {
   async getVerificationReport(electionId: string) {
     const election = await this.getElectionOrThrow(electionId);
     const electionObjectId = this.ensureObjectId(electionId);
-    const verificationReport = await this.getOrCreateReport(electionObjectId, 'VERIFICATION');
+    const verificationReport = await this.getOrCreateReport(electionObjectId, REPORT_TYPE.VERIFICATION);
+    if (!verificationReport.summary) {
+      verificationReport.summary = `Báo cáo xác minh - ${election.title} - ${this.formatDate(getCurrentDateVN(), false)}`;
+      await verificationReport.save();
+    }
 
     const populatedReport = await this.reportsModel
       .findById(verificationReport._id)
@@ -537,6 +547,113 @@ export class BoardControlService {
       confirmedAt: auditReport.reviewedAt,
       confirmedBy: userIdObjectId,
     };
+  }
+
+  async rejectVerificationReport(electionId: string, userId: string | undefined, reason: string) {
+    if (!userId) {
+      throw new BadRequestException(MESSAGE.USER_NOT_FOUND);
+    }
+    const userIdObjectId = this.ensureObjectId(userId);
+    const electionObjectId = this.ensureObjectId(electionId);
+    const election = await this.getElectionOrThrow(electionId);
+
+    const verificationReport = await this.getOrCreateReport(electionObjectId, REPORT_TYPE.VERIFICATION);
+    verificationReport.status = STATUS.REJECTED;
+    verificationReport.description = reason || 'Xác minh bị từ chối';
+    verificationReport.reviewedBy = userIdObjectId;
+    verificationReport.reviewedAt = getCurrentDateVN();
+    if (!verificationReport.summary) {
+      verificationReport.summary = `Báo cáo xác minh - ${election.title} - ${this.formatDate(getCurrentDateVN(), false)}`;
+    }
+    await verificationReport.save();
+
+    // Tạo báo cáo bất thường
+    const abnormalReport = await this.reportsModel.create({
+      electionId: electionObjectId,
+      type: REPORT_TYPE.ABNORMAL,
+      status: STATUS.RESOLVED,
+      description: reason || 'Báo cáo bất thường (từ chối)',
+      summary: `Báo cáo bất thường - ${election.title} - ${this.formatDate(getCurrentDateVN(), false)}`,
+      reviewedBy: userIdObjectId,
+      reviewedAt: getCurrentDateVN(),
+    });
+
+    // Tạo pdf báo cáo bất thường
+    const abnormalPdf = await this.generateAbnormalReportPdf(election, reason);
+
+    // Upload pdf lên minio
+    const upload = await this.minioService.uploadSignedPdf(
+      FileType.SIGNED_REPORT,
+      userId,
+      abnormalPdf,
+    );
+
+    if (upload) {
+      const doc = await this.electionDocumentsModel.create({
+        electionId: electionObjectId,
+        preparedBy: userIdObjectId,
+        title: `Báo cáo bất thường - ${election.title}`,
+        type: FileType.SIGNED_REPORT,
+        fileUrl: upload.key,
+        createdBy: userIdObjectId,
+      });
+
+      abnormalReport.documentId = doc._id as Types.ObjectId;
+      await abnormalReport.save();
+    }
+
+    return { status: STATUS.REJECTED, reason, abnormalReportId: abnormalReport._id };
+  }
+
+  private async generateAbnormalReportPdf(election: any, reason: string) {
+    const fonts = {
+      Roboto: {
+        normal: path.join(process.cwd(), 'src', 'fonts', 'Roboto-Regular.ttf'),
+        bold: path.join(process.cwd(), 'src', 'fonts', 'Roboto-Bold.ttf'),
+      },
+    };
+    const printer = new PdfPrinter(fonts);
+    const now = getCurrentDateVN();
+
+    const docDefinition: any = {
+      pageSize: 'A4',
+      pageOrientation: 'portrait',
+      pageMargins: [40, 60, 40, 60],
+      content: [
+        { text: 'BÁO CÁO BẤT THƯỜNG', style: 'header', alignment: 'center', margin: [0, 0, 0, 20] },
+        {
+          table: {
+            widths: ['35%', '65%'],
+            body: [
+              ['Cuộc bầu cử', election?.title || '--'],
+              ['Quyết định', election?.decisionNumber || '--'],
+              ['Thời điểm', this.formatDate(now, true)],
+              ['Trạng thái', 'TỪ CHỐI'],
+            ],
+          },
+          layout: 'lightHorizontalLines',
+          margin: [0, 0, 0, 16],
+        },
+        { text: 'Lý do từ chối', style: 'subHeader', margin: [0, 0, 0, 8] },
+        { text: reason || 'Không cung cấp lý do', margin: [0, 0, 0, 12] },
+      ],
+      styles: {
+        header: { fontSize: 20, bold: true },
+        subHeader: { fontSize: 13, bold: true },
+      },
+      defaultStyle: {
+        fontSize: 11,
+      },
+    };
+
+    const pdfDoc = printer.createPdfKitDocument(docDefinition);
+    return await new Promise<Buffer>((resolve, reject) => {
+      const chunks: Buffer[] = [];
+      pdfDoc.on('data', (chunk) => chunks.push(chunk));
+      pdfDoc.on('end', () => resolve(Buffer.concat(chunks)));
+      pdfDoc.on('error', (err) => reject(err));
+      pdfDoc.end();
+    });
   }
 
   async getOrUpdateArchiveReport(electionId: string, reportData?: any) {

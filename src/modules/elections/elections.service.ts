@@ -577,6 +577,8 @@ export class ElectionsService {
         companyConfig?.configValue ||
         'CÔNG TY CỔ PHẦN PHÁT TRIỂN AVG';
 
+      const title = election.title || 'Quyết định triệu tập và Chương trình họp Đại hội đồng cổ đông';
+
       // 4. Lấy thông tin meeting
       const meeting = await this.meetingsModel
         .findOne({ electionId: new Types.ObjectId(electionId) })
@@ -595,6 +597,7 @@ export class ElectionsService {
         meeting,
         participants,
         companyName,
+        title
       );
 
       // 7. Ký PDF
@@ -816,6 +819,7 @@ export class ElectionsService {
     meeting: any,
     participants: any[],
     companyName: string,
+    title?: string
   ): Promise<Buffer> {
     try {
       const fonts = {
@@ -1016,7 +1020,7 @@ export class ElectionsService {
             margin: [0, 0, 0, 10],
           },
           {
-            text: 'Về việc triệu tập Đại hội đồng cổ đông bất thường năm 2023',
+            text: title || 'Về việc triệu tập Đại hội đồng cổ đông bất thường năm 2023',
             alignment: 'center',
             margin: [0, 0, 0, 10],
           },
@@ -1533,6 +1537,7 @@ export class ElectionsService {
                 {
                   position: (await this.userModel.findById(new Types.ObjectId(voterItem.userId)))?.position || 'Voter',
                   updatedBy: new Types.ObjectId(userId),
+                  status: STATUS.PENDING,
                 },
                 { new: true },
               );
@@ -1543,7 +1548,7 @@ export class ElectionsService {
                 userId: new Types.ObjectId(voterItem.userId),
                 roleId: voterRole._id,
                 position: userInfo?.position || 'Voter',
-                status: STATUS.ACTIVE,
+                status: STATUS.PENDING,
                 createdBy: new Types.ObjectId(userId),
               });
               newRecords.participantIds.push(createdParticipant._id as Types.ObjectId);

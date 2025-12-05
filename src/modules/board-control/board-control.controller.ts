@@ -117,6 +117,21 @@ export class BoardControlController {
     }
   }
 
+  @Post(':electionId/verification/reject')
+  @ApiOperation({ summary: 'Từ chối xác minh kết quả, tạo báo cáo bất thường' })
+  async rejectVerificationReport(
+    @Param('electionId') electionId: string,
+    @Body('reason') reason: string,
+    @Req() req: CustomRequest,
+  ) {
+    try {
+      const data = await this.boardControlService.rejectVerificationReport(electionId, req.user?.sub, reason);
+      return BaseResponse.success(data, 'Đã từ chối xác minh kết quả', HttpStatus.OK);
+    } catch (error) {
+      throw new HttpException({ message: error.message }, error.status || HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+  }
+
   @Get(':electionId/archive-report')
   @ApiOperation({ summary: 'Lấy hoặc tạo báo cáo lưu trữ' })
   async getArchiveReport(@Param('electionId') electionId: string) {
