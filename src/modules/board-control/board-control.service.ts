@@ -223,7 +223,7 @@ export class BoardControlService {
       })
       : 0;
 
-    const [totalVoters, castBallots, invalidBallots, results] = await Promise.all([
+    const [totalVoters, castBallots, invalidBallots, results, blankVotesCount] = await Promise.all([
       this.votersModel.countDocuments({ electionId: electionObjectId, status: { $ne: STATUS.INACTIVE } }),
       this.ballotsModel.countDocuments({ electionId: electionObjectId, status: STATUS.CAST }),
       this.ballotsModel.countDocuments({ electionId: electionObjectId, status: STATUS.INVALID }),
@@ -231,7 +231,9 @@ export class BoardControlService {
         .find({ electionId: electionObjectId })
         .populate('entityId', 'title')
         .lean(),
+      this.ballotsModel.countDocuments({ electionId: electionObjectId, status: STATUS.BLANK }),
     ]);
+    const totalVotesIncludingBlank = blankVotesCount + castBallots;
 
     const totalResultVotes = results.reduce((sum, item) => sum + (item.votesCount || 0), 0);
     const candidates = results.map((item) => ({
@@ -244,19 +246,27 @@ export class BoardControlService {
 
     const summaryCards = [
       { title: 'Tổng số Cử tri', value: totalVoters.toLocaleString('vi-VN') },
-      { title: 'Số phiếu đã vào', value: castBallots.toLocaleString('vi-VN') },
+      { title: 'Số phiếu đã vào', value: totalVotesIncludingBlank.toLocaleString('vi-VN') },
       {
         title: 'Tỷ lệ Tham gia',
-        value: totalVoters ? `${((castBallots / totalVoters) * 100).toFixed(1)}%` : '0%',
+        value: totalVoters ? `${((totalVotesIncludingBlank / totalVoters) * 100).toFixed(1)}%` : '0%',
       },
       {
         title: 'Phiếu Hợp lệ',
-        value: (castBallots - invalidBallots).toLocaleString('vi-VN'),
+        value: (totalVotesIncludingBlank).toLocaleString('vi-VN'),
         highlight: true,
+      },
+      {
+        title: 'Phiếu Trắng',
+        value: blankVotesCount.toLocaleString('vi-VN'),
+      },
+      {
+        title: 'Phiếu không hợp lệ',
+        value: invalidBallots.toLocaleString('vi-VN'),
       },
     ];
 
-    const checksumBase = `${electionId}:${castBallots}:${invalidBallots}:${totalVoters}`;
+    const checksumBase = `${electionId}:${castBallots}:${invalidBallots}:${totalVoters}:${blankVotesCount}`;
     const defaultChecksum = this.buildChecksum(checksumBase);
 
     let checksumBefore = defaultChecksum;

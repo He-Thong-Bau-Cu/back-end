@@ -2193,10 +2193,13 @@ export class ElectionsService {
       if (stage.toLowerCase() === 'voting') {
         try {
           const updateResult = await this.ballotsModel.updateMany(
-            { electionId: new Types.ObjectId(electionId) },
+            {
+              electionId: new Types.ObjectId(electionId),
+              status: STATUS.PENDING
+            },
             {
               $set: {
-                status: STATUS.CAST,
+                status: STATUS.LOCKED,
                 updatedBy: userId ? new Types.ObjectId(userId) : null,
               }
             }
