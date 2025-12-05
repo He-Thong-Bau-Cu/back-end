@@ -12,6 +12,7 @@ export enum MESSAGE {
   ELECTION_GET_BY_ID_SUCCESS = 'Lấy thông tin cuộc bầu cử thành công',
   ELECTION_SEARCH_SUCCESS = 'Lấy danh sách cuộc bầu cử thành công',
   ELECTION_DELETE_SUCCESS = 'Xóa cuộc bầu cử thành công',
+  ELECTION_NUMBER_ALREADY_EXISTS = 'Số quyết định đã tồn tại',
 
 
   // Election Documents

@@ -82,7 +82,7 @@ export class ElectionsService {
     private readonly fileService: MinioService,
     private readonly notificationService: NotificationService,
     private readonly mailService: MailService,
-  ) {}
+  ) { }
 
   async searchElections(req: SearchDTO) {
     try {
@@ -156,6 +156,16 @@ export class ElectionsService {
         });
         if (!thresholdExist) {
           throw new Error(MESSAGE.THRESHOLD_NOT_FOUND);
+        }
+      }
+
+      //Kiểm tra xem số quyết định đã tồn tại hay Chưa
+      if (createElection?.decisionNumber) {
+        const decisionNumberExist = await this.electionsModel.exists({
+          decisionNumber: createElection.decisionNumber,
+        });
+        if (decisionNumberExist) {
+          throw new Error(MESSAGE.ELECTION_NUMBER_ALREADY_EXISTS);
         }
       }
 
@@ -273,6 +283,7 @@ export class ElectionsService {
         const startDate = new Date(updateElection.startDate);
         const endDate = new Date(updateElection.endDate);
         const elections = await this.electionsModel.find({
+          _id: { $ne: new Types.ObjectId(id) },
           startDate: { $lte: endDate },
           endDate: { $gte: startDate },
         });
@@ -1885,7 +1896,7 @@ export class ElectionsService {
 
         // Nếu chưa có trong map, hoặc voter hiện tại có percentage mà voter trong map không có
         if (!uniqueVotersMap.has(userId) ||
-            (percentage !== null && uniqueVotersMap.get(userId).percentage === null)) {
+          (percentage !== null && uniqueVotersMap.get(userId).percentage === null)) {
           const voterObj: any = { ...voter };
           // Khi populate với lean(), userId sẽ là object, cần extract _id
           if (voter.userId) {

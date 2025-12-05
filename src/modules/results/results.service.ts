@@ -266,7 +266,7 @@ export class ResultsService {
           $project: {
             _id: 1,
             totalVotes: 1,
-            //entityTitle: '$entity.title',
+            entityTitle: '$entity.title',
             entityDescription: '$entity.description',
             entityMetaData: '$entity.metaData'
           }
@@ -363,7 +363,7 @@ export class ResultsService {
           $project: {
             _id: 1,
             totalVotes: { $add: ['$agree', '$disagree', '$abstain'] },
-            //entityTitle: '$entity.title',
+            entityTitle: '$entity.title',
             entityDescription: '$entity.description',
             entityMetaData: '$entity.metaData',
             agree: 1,

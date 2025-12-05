@@ -134,10 +134,10 @@ export enum SEVERITY {
 }
 
 export enum REPORT_TYPE {
-  NORMAL = 'NORMAL',
+  //NORMAL = 'NORMAL',
   ABNORMAL = 'ABNORMAL',
-  FINAL = 'FINAL',
+  //FINAL = 'FINAL',
   AUDIT = 'AUDIT',
   VERIFICATION = 'VERIFICATION',
-  OTHER = 'OTHER',
+  //OTHER = 'OTHER',
 }
