@@ -120,21 +120,23 @@ export class BoardControlService {
   }
 
   private formatDate(date?: Date | null, withTime = false) {
-    if (!date) {
-      return '--';
+    if (!date) return '--';
+
+    const d = new Date(date);
+
+    const day = String(d.getUTCDate()).padStart(2, '0');
+    const month = String(d.getUTCMonth() + 1).padStart(2, '0');
+    const year = d.getUTCFullYear();
+
+    if (!withTime) {
+      return `${day}/${month}/${year}`;
     }
-    const options: Intl.DateTimeFormatOptions = withTime
-      ? {
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit',
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric',
-        hour12: false,
-      }
-      : { day: '2-digit', month: '2-digit', year: 'numeric' };
-    return new Intl.DateTimeFormat('vi-VN', options).format(date);
+
+    const hour = String(d.getUTCHours()).padStart(2, '0');
+    const minute = String(d.getUTCMinutes()).padStart(2, '0');
+    const second = String(d.getUTCSeconds()).padStart(2, '0');
+
+    return `${day}/${month}/${year} ${hour}:${minute}:${second}`;
   }
 
   private buildChecksum(source: string) {
@@ -200,7 +202,6 @@ export class BoardControlService {
     const electionObjectId = this.ensureObjectId(electionId);
     const verificationReport = await this.getOrCreateReport(electionObjectId, 'VERIFICATION');
 
-    // Populate report để lấy đầy đủ thông tin
     const populatedReport = await this.reportsModel
       .findById(verificationReport._id)
       .populate('electionId', 'title decisionNumber decisionName status statusData startDate endDate delegationStart delegationEnd')
@@ -209,14 +210,12 @@ export class BoardControlService {
       .populate('updatedBy', 'username fullName email position')
       .lean();
 
-    // Lấy danh sách meetings của election để đếm check-in
     const meetings = await this.meetingsModel
       .find({ electionId: electionObjectId })
       .select('_id')
       .lean();
     const meetingIds = meetings.map(m => m._id);
 
-    // Đếm số người đã check-in (attended = true) từ MeetingAttendees
     const totalCheckin = meetingIds.length > 0
       ? await this.meetingAttendeesModel.countDocuments({
         meetingId: { $in: meetingIds },
@@ -260,7 +259,6 @@ export class BoardControlService {
     const checksumBase = `${electionId}:${castBallots}:${invalidBallots}:${totalVoters}`;
     const defaultChecksum = this.buildChecksum(checksumBase);
 
-    // Lấy checksum từ summary field của report (lưu dạng JSON string)
     let checksumBefore = defaultChecksum;
     let checksumAfter = defaultChecksum;
     let isConfirmed = false;
@@ -314,7 +312,6 @@ export class BoardControlService {
       summaryCards,
       verification,
       logs,
-      // Thêm các trường từ report
       report: populatedReport ? {
         _id: populatedReport._id,
         type: populatedReport.type,

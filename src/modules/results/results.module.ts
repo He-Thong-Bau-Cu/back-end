@@ -31,5 +31,6 @@ import { MailModule } from '../mail/mail.module';
   ],
   controllers: [ResultsController],
   providers: [ResultsService],
+  exports: [ResultsService],
 })
 export class ResultsModule { }

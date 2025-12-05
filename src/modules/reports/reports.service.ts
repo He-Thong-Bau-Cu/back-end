@@ -7,7 +7,7 @@ import { Reports, ReportsDocument } from 'src/database/schemas/reports.schema';
 import { Elections } from 'src/database/schemas/elections.schema';
 import { ElectionsParticipants } from 'src/database/schemas/electionParticipants.schema';
 import { MESSAGE } from 'src/common/enums/message.enum';
-import path from 'path/win32';
+import * as path from 'path';
 import PdfPrinter from 'pdfmake';
 import * as fs from 'fs';
 import * as os from 'os';
