@@ -788,6 +788,8 @@ export class ElectionsService {
         companyConfig?.configValue ||
         'CÔNG TY CỔ PHẦN PHÁT TRIỂN AVG';
 
+      const title = election.title || 'Quyết định triệu tập và Chương trình họp Đại hội đồng cổ đông';
+
       // 3. Lấy thông tin meeting
       const meeting = await this.meetingsModel
         .findOne({ electionId: new Types.ObjectId(electionId) })
@@ -806,6 +808,7 @@ export class ElectionsService {
         meeting,
         participants,
         companyName,
+          title
       );
 
       return pdfFile;
@@ -1477,6 +1480,21 @@ export class ElectionsService {
         const voterUserIds = voters.map((v: any) => new Types.ObjectId(v.userId));
 
         if (voterRole && voterUserIds.length > 0) {
+          await this.votingRightsModel.deleteMany({
+            electionId: new Types.ObjectId(electionId),
+            voterId: {
+              $in: await this.voterModel
+                .find({
+                  electionId: new Types.ObjectId(electionId),
+                  userId: { $nin: voterUserIds },
+                })
+                .distinct('_id'),
+            },
+          })
+          await this.voterModel.deleteMany({
+            electionId: new Types.ObjectId(electionId),
+            userId: { $nin: voterUserIds },
+          })
           await this.electionParticipantsModel.deleteMany({
             electionId: new Types.ObjectId(electionId),
             roleId: voterRole._id,
