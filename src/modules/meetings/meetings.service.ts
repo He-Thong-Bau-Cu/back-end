@@ -238,7 +238,7 @@ export class MeetingsService {
       // Get voted count (ballots with status = CAST)
       const votedCount = await this.ballotsModel.countDocuments({
         electionId: new Types.ObjectId(electionId),
-        status: STATUS.CAST,
+        status: { $in: [STATUS.CAST, STATUS.BLANK] },
       });
 
       // Calculate percentages

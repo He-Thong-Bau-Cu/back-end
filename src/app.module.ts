@@ -56,7 +56,7 @@ import { BoardControlModule } from './modules/board-control/board-control.module
     ThrottlerModule.forRoot([
       {
         ttl: 60000,
-        limit: 2000,
+        limit: 200000,
       },
     ]),
     DatabaseModule,

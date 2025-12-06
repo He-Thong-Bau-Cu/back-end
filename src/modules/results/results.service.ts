@@ -11,7 +11,7 @@ import { BaseSearchDTO } from 'src/common/dto/base-search.dto';
 import { STATUS } from 'src/common/enums/status.enum';
 import { Ballots } from 'src/database/schemas/ballots.schema';
 import { VotingMethods } from 'src/database/schemas/votingMethods.schema';
-import path from 'path/win32';
+import * as path from 'path';
 import PdfPrinter from "pdfmake";
 import * as fs from "fs";
 import * as os from "os";
