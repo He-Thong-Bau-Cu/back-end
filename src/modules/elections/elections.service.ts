@@ -43,6 +43,7 @@ import * as path from 'path';
 import { NotificationService } from '../notification/notification.service';
 import { MailService } from '../mail/mail.service';
 import { ResultsService } from '../results/results.service';
+import * as ExcelJS from 'exceljs';
 
 @Injectable()
 export class ElectionsService {
@@ -120,108 +121,15 @@ export class ElectionsService {
 
   async createElection(createElection: CreateElectionDto, userId: string) {
     try {
-      //Kiểm tra trong ngày đó đã có cuộc bầu cử nào chưa
-      if (createElection?.startDate && createElection?.endDate) {
-        const startDate = new Date(createElection.startDate);
-        const endDate = new Date(createElection.endDate);
-        const elections = await this.electionsModel.find({
-          startDate: { $lte: endDate },
-          endDate: { $gte: startDate },
-        });
-        if (elections.length > 0) {
-          throw new Error(MESSAGE.ELECTION_ALREADY_EXISTS);
-        }
-      }
-      //Kiểm tra electionType có tồn tại hay Không
-      if (createElection?.typeId) {
-        const electionTypeExist = await this.electionTypeModel.exists({
-          _id: new Types.ObjectId(createElection.typeId),
-        });
-        if (!electionTypeExist) {
-          throw new Error(MESSAGE.ELECTION_TYPE_NOT_FOUND);
-        }
-      }
-      //Kiểm tra voting method có tồn tại hay Không
-      if (createElection?.votingMethodId) {
-        const votingMethodExist = await this.votingMethodModel.exists({
-          _id: new Types.ObjectId(createElection.votingMethodId),
-        });
-        if (!votingMethodExist) {
-          throw new Error(MESSAGE.VOTING_METHOD_NOT_FOUND);
-        }
-      }
 
-      //Kiểm tra electionType có tồn tại hay Không
-      if (createElection?.thresholdId) {
-        const thresholdExist = await this.thresholdModel.exists({
-          _id: createElection.thresholdId,
-        });
-        if (!thresholdExist) {
-          throw new Error(MESSAGE.THRESHOLD_NOT_FOUND);
-        }
-      }
-
-      //Kiểm tra xem số quyết định đã tồn tại hay Chưa
-      if (createElection?.decisionNumber) {
-        const decisionNumberExist = await this.electionsModel.exists({
-          decisionNumber: createElection.decisionNumber,
-        });
-        if (decisionNumberExist) {
-          throw new Error(MESSAGE.ELECTION_NUMBER_ALREADY_EXISTS);
-        }
-      }
+      //Kiểm tra tiêu đề cuộc bầu cử đã tồn tại hay Không
+      await this.checkElectionExists(createElection);
+      //Kiểm tra các ID liên quan có tồn tại hay Không
+      await this.checkRelatedIds(createElection);
+      //Kiểm tra thời gian cuộc bầu cử có hợp lệ không
+      await this.checkDate(createElection);
 
       const createdAt = getCurrentDateVN();
-      if (createElection?.endDate && createElection?.startDate) {
-        //Kiểm tra ngày kết thúc phải lớn hơn ngày tạo ít nhất 20 ngày
-        const endDate = new Date(createElection?.endDate);
-        const minEnd = new Date(createdAt);
-        minEnd.setDate(minEnd.getDate() + 20);
-
-        if (endDate < minEnd) {
-          throw new Error('Ngày kết thúc phải lớn hơn ngày tạo ít nhất 20 ngày');
-        }
-
-        //Kiểm tra ngày bắt đầu cuộc bầu cử và ngày kết thúc cuộc bầu cử phải nằm trong cùng 1 Ngày
-        const startDate = new Date(createElection?.startDate);
-        if (startDate.toDateString() !== endDate.toDateString()) {
-          throw new Error('Ngày bắt đầu và ngày kết thúc cuộc bầu cử phải nằm trong cùng một ngày');
-        }
-        //  endDate > startDate (khác giờ)
-        if (endDate <= startDate) {
-          throw new Error('Giờ kết thúc phải lớn hơn giờ bắt đầu');
-        }
-      }
-      //Kiểm tra xem delegationEnd phải nhỏ hơn startDate ít nhất 10 Ngày
-      if (createElection?.delegationEnd && createElection?.startDate) {
-        const delegationEnd = new Date(createElection.delegationEnd);
-        const startDate = new Date(createElection.startDate);
-        const minStart = new Date(delegationEnd);
-        minStart.setDate(minStart.getDate() + 10);
-        if (startDate < minStart) {
-          throw new Error(
-            'Ngày kết thúc ủy quyền phải nhỏ hơn ngày bắt đầu cuộc bầu cử ít nhất 10 ngày',
-          );
-        }
-      }
-
-      //Kiểm tra delegationDate có hợp lệ không
-      if (createElection?.delegationStart && createElection?.delegationEnd) {
-        const delStart = new Date(createElection.delegationStart);
-        const delEnd = new Date(createElection.delegationEnd);
-
-        if (delEnd <= delStart) {
-          throw new BadRequestException('Ngày kết thúc ủy quyền phải sau ngày bắt đầu ủy quyền');
-        }
-        // Nếu có delegation, đảm bảo nằm trong phạm vi election
-        if (createElection?.startDate && createElection?.endDate) {
-          if (delStart < createdAt) {
-            throw new BadRequestException(
-              'Thời gian ủy quyền phải trong khoảng thời gian của cuộc bầu cử',
-            );
-          }
-        }
-      }
 
       const election = await this.electionsModel.create({
         ...createElection,
@@ -262,118 +170,20 @@ export class ElectionsService {
     }
   }
 
-  // async searchElectionDocumentsByElectionId(electionId: string) {
-  //   try {
-  //     const documents = await this.electionDocumentsModel
-  //       .find({ electionId: new Types.ObjectId(electionId) })
-  //       .populate('electionId')
-  //       .exec();
-  //     return documents;
-  //   } catch (error) {
-  //     throw error;
-  //   }
-  // }
-
   async updateElections(id: string, updateElection: UpdateElectionDto, userId: string) {
     try {
       //Kiểm tra nếu có timeline thì thời gian phải hợp lệ
       if (updateElection?.timeline) {
         isValidateTimeline(updateElection.timeline);
       }
-      //Kiểm tra trong ngày đó đã có cuộc bầu cử nào chưa
-      if (updateElection?.startDate && updateElection?.endDate) {
-        const startDate = new Date(updateElection.startDate);
-        const endDate = new Date(updateElection.endDate);
-        const elections = await this.electionsModel.find({
-          _id: { $ne: new Types.ObjectId(id) },
-          startDate: { $lte: endDate },
-          endDate: { $gte: startDate },
-        });
-        if (elections.length > 0) {
-          throw new Error(MESSAGE.ELECTION_ALREADY_EXISTS);
-        }
-      }
-      //Kiểm tra electionType có tồn tại hay Không
-      if (updateElection?.typeId) {
-        const electionTypeExist = await this.electionTypeModel.exists({
-          _id: new Types.ObjectId(updateElection.typeId),
-        });
-        if (!electionTypeExist) {
-          throw new Error(MESSAGE.ELECTION_TYPE_NOT_FOUND);
-        }
-      }
-      //Kiểm tra voting method có tồn tại hay Không
-      if (updateElection?.votingMethodId) {
-        const votingMethodExist = await this.votingMethodModel.exists({
-          _id: new Types.ObjectId(updateElection.votingMethodId),
-        });
-        if (!votingMethodExist) {
-          throw new Error(MESSAGE.VOTING_METHOD_NOT_FOUND);
-        }
-      }
+      //Kiểm tra tiêu đề cuộc bầu cử đã tồn tại hay Không
+      await this.checkElectionExistsInUpdate(updateElection, id);
+      //Kiểm tra các ID liên quan có tồn tại hay Không
+      await this.checkRelatedIdsInUpdate(updateElection);
+      //Kiểm tra thời gian cuộc bầu cử có hợp lệ không
+      await this.checkDateInUpdate(updateElection, id);
 
-      //Kiểm tra electionType có tồn tại hay Không
-      if (updateElection?.thresholdId) {
-        const thresholdExist = await this.thresholdModel.exists({
-          _id: new Types.ObjectId(updateElection.thresholdId),
-        });
-        if (!thresholdExist) {
-          throw new Error(MESSAGE.THRESHOLD_NOT_FOUND);
-        }
-      }
-
-      const createdAt = getCurrentDateVN();
-      if (updateElection?.endDate && updateElection?.startDate) {
-        //Kiểm tra ngày kết thúc phải lớn hơn ngày tạo ít nhất 20 ngày
-        const endDate = new Date(updateElection?.endDate);
-        const minEnd = new Date(createdAt);
-        minEnd.setDate(minEnd.getDate() + 20);
-
-        if (endDate < minEnd) {
-          throw new Error('Ngày kết thúc phải lớn hơn ngày tạo ít nhất 20 ngày');
-        }
-
-        //Kiểm tra ngày bắt đầu cuộc bầu cử và ngày kết thúc cuộc bầu cử phải nằm trong cùng 1 Ngày
-        const startDate = new Date(updateElection?.startDate);
-        if (startDate.toDateString() !== endDate.toDateString()) {
-          throw new Error('Ngày bắt đầu và ngày kết thúc cuộc bầu cử phải nằm trong cùng một ngày');
-        }
-        //  endDate > startDate (khác giờ)
-        if (endDate <= startDate) {
-          throw new Error('Giờ kết thúc phải lớn hơn giờ bắt đầu');
-        }
-      }
-      //Kiểm tra xem delegationEnd phải nhỏ hơn startDate ít nhất 10 Ngày
-      if (updateElection?.delegationEnd && updateElection?.startDate) {
-        const delegationEnd = new Date(updateElection.delegationEnd);
-        const startDate = new Date(updateElection.startDate);
-        const minStart = new Date(delegationEnd);
-        minStart.setDate(minStart.getDate() + 10);
-        if (startDate < minStart) {
-          throw new Error(
-            'Ngày kết thúc ủy quyền phải nhỏ hơn ngày bắt đầu cuộc bầu cử ít nhất 10 ngày',
-          );
-        }
-      }
-
-      //Kiểm tra delegationDate có hợp lệ không
-      if (updateElection?.delegationStart && updateElection?.delegationEnd) {
-        const delStart = new Date(updateElection.delegationStart);
-        const delEnd = new Date(updateElection.delegationEnd);
-
-        if (delEnd <= delStart) {
-          throw new BadRequestException('Ngày kết thúc ủy quyền phải sau ngày bắt đầu ủy quyền');
-        }
-        // Nếu có delegation, đảm bảo nằm trong phạm vi election
-        if (updateElection?.startDate && updateElection?.endDate) {
-          if (delStart < createdAt) {
-            throw new BadRequestException(
-              'Thời gian ủy quyền phải trong khoảng thời gian của cuộc bầu cử',
-            );
-          }
-        }
-      }
-
+      const updatedAt = getCurrentDateVN();
       const election = await this.electionsModel
         .findByIdAndUpdate(
           new Types.ObjectId(id),
@@ -391,6 +201,7 @@ export class ElectionsService {
             delegationStart: updateElection.delegationStart,
             delegationEnd: updateElection.delegationEnd,
             updatedBy: userId ? new Types.ObjectId(userId) : null,
+            updatedAt: updatedAt,
           },
           { new: true },
         )
@@ -413,37 +224,6 @@ export class ElectionsService {
       throw error;
     }
   }
-
-  // async createElectionDocuments(req: ElectionsDocumentDto) {
-  //   try {
-  //     const election = await this.electionDocumentsModel.create(req);
-  //     return election;
-  //   } catch (error) {
-  //     throw error;
-  //   }
-  // }
-
-  // async searchDocumentsByElectionId(electionId: string) {
-  //   try {
-  //     const documents = await this.electionDocumentsModel
-  //       .find({ electionId: new Types.ObjectId(electionId) })
-  //       .exec();
-  //     return documents;
-  //   } catch (error) {
-  //     throw error;
-  //   }
-  // }
-
-  // async deleteDocumentByElectionId(electionId: string) {
-  //   try {
-  //     const documents = await this.electionDocumentsModel
-  //       .deleteMany({ electionId: new Types.ObjectId(electionId) })
-  //       .exec();
-  //     return documents;
-  //   } catch (error) {
-  //     throw error;
-  //   }
-  // }
 
   async getElectionOrganizerByTime(startTime: Date, endTime: Date) {
     try {
@@ -2022,6 +1802,156 @@ export class ElectionsService {
     }
   }
 
+  async getVotersFromExcel(electionId: string) {
+    try {
+      // 1. Kiểm tra election có tồn tại không
+      const electionExist = await this.electionsModel.exists({ _id: electionId });
+      if (!electionExist) {
+        throw new NotFoundException(MESSAGE.ELECTION_NOT_FOUND);
+      }
+
+      // 2. Tìm document có type "voters-import-excel" cho election này
+      const excelDocument = await this.electionDocumentsModel
+        .findOne({
+          electionId: new Types.ObjectId(electionId),
+          type: 'voters-import-excel',
+        })
+        .lean()
+        .exec();
+
+      if (!excelDocument || !excelDocument.fileUrl) {
+        throw new NotFoundException('Không tìm thấy file Excel chứa danh sách cử tri import');
+      }
+
+      // 3. Download file Excel từ MinIO
+      const fileBuffer = await this.fileService.getFileBufferByKey(excelDocument.fileUrl);
+
+      if (!fileBuffer || fileBuffer.length === 0) {
+        throw new BadRequestException('File Excel không tồn tại hoặc đã bị xóa');
+      }
+
+      // 4. Parse file Excel
+      const workbook = new ExcelJS.Workbook();
+      await workbook.xlsx.load(fileBuffer as unknown as ExcelJS.Buffer);
+      const worksheet = workbook.worksheets[0];
+
+      if (!worksheet) {
+        throw new BadRequestException('File Excel không chứa dữ liệu');
+      }
+
+      // 5. Lấy header (dòng đầu tiên)
+      const headerRow = worksheet.getRow(1);
+      const headers: string[] = [];
+      headerRow.eachCell({ includeEmpty: false }, (cell) => {
+        headers.push(String(cell.value || '').toLowerCase().trim());
+      });
+
+      // Tìm index của các cột
+      const fullnameIndex = headers.findIndex(
+        (h) =>
+          h.includes('fullname') ||
+          h.includes('họ và tên') ||
+          h.includes('họ tên') ||
+          h.includes('tên'),
+      );
+      const emailIndex = headers.findIndex((h) => h.includes('email') || h.includes('mail'));
+      const phoneIndex = headers.findIndex(
+        (h) =>
+          h.includes('phone') ||
+          h.includes('sđt') ||
+          h.includes('sdt') ||
+          h.includes('điện thoại'),
+      );
+      const citizenIdIndex = headers.findIndex(
+        (h) =>
+          h.includes('citizenid') ||
+          h.includes('citizen id') ||
+          h.includes('cmnd') ||
+          h.includes('cccd') ||
+          h.includes('căn cước'),
+      );
+      const sharesIndex = headers.findIndex(
+        (h) =>
+          h.includes('shares') ||
+          h.includes('cổ phần') ||
+          h.includes('percentage') ||
+          h.includes('% cổ phần') ||
+          h.includes('%'),
+      );
+
+      if (fullnameIndex === -1 || emailIndex === -1 || sharesIndex === -1) {
+        throw new BadRequestException(
+          'File Excel thiếu các cột bắt buộc: FullName, Email, Shares',
+        );
+      }
+
+      // 6. Parse dữ liệu từ dòng thứ 2 trở đi
+      const voters: any[] = [];
+
+      for (let rowNumber = 2; rowNumber <= worksheet.rowCount; rowNumber++) {
+        const row = worksheet.getRow(rowNumber);
+
+        // Kiểm tra dòng trống
+        let isEmpty = true;
+        row.eachCell({ includeEmpty: false }, () => {
+          isEmpty = false;
+        });
+        if (isEmpty) continue;
+
+        const fullname = String(row.getCell(fullnameIndex + 1).value || '').trim();
+        const email = String(row.getCell(emailIndex + 1).value || '').trim();
+        const phone =
+          phoneIndex !== -1
+            ? String(row.getCell(phoneIndex + 1).value || '').trim()
+            : '';
+        const citizenId =
+          citizenIdIndex !== -1
+            ? String(row.getCell(citizenIdIndex + 1).value || '').trim()
+            : '';
+        const sharesValue = row.getCell(sharesIndex + 1).value;
+        const shares = sharesValue ? Number(sharesValue) : null;
+
+        // Bỏ qua dòng không có đủ thông tin bắt buộc
+        if (!fullname || !email || shares === null || isNaN(shares)) {
+          continue;
+        }
+
+        voters.push({
+          rowIndex: rowNumber,
+          fullName: fullname,
+          email: email,
+          phone: phone || null,
+          citizenId: citizenId || null,
+          percentage: shares,
+        });
+      }
+
+      if (voters.length === 0) {
+        throw new BadRequestException('File Excel không có dữ liệu hợp lệ');
+      }
+
+      return {
+        success: true,
+        document: {
+          _id: excelDocument._id,
+          title: excelDocument.title,
+          fileUrl: excelDocument.fileUrl,
+          createdAt: excelDocument.createdAt,
+        },
+        voters: voters,
+        total: voters.length,
+      };
+    } catch (error) {
+      if (error instanceof NotFoundException || error instanceof BadRequestException) {
+        throw error;
+      }
+      console.error('Error getting voters from Excel:', error);
+      throw new BadRequestException(
+        `Lỗi khi đọc file Excel: ${error.message || 'Unknown error'}`,
+      );
+    }
+  }
+
   async endVotingStage(electionId: string, userId: string) {
     try {
       return await this.endStage(electionId, 'voting', userId);
@@ -2052,8 +1982,6 @@ export class ElectionsService {
 
       const timeline = election.timeline || {};
       timeline[stageInfo.timelineKey] = getCurrentDateVN();
-      console.log('timeline[stageInfo.timelineKey]', timeline[stageInfo.timelineKey]);
-      console.log('time now', getCurrentDateVN());
 
       // Cập nhật stages để lưu trạng thái giai đoạn
       const stages = election.stages || {};
@@ -2307,4 +2235,244 @@ export class ElectionsService {
       throw error;
     }
   }
+
+  private async checkElectionExists(createElection: CreateElectionDto) {
+    const { title, decisionNumber, decisionName } = createElection;
+    const titleExist = await this.electionsModel.exists({
+      title: title,
+    });
+    if (titleExist) {
+      throw new Error(MESSAGE.ELECTION_TITLE_ALREADY_EXISTS);
+    }
+    const decisionNumberExist = await this.electionsModel.exists({
+      decisionNumber: decisionNumber,
+    });
+    if (decisionNumberExist) {
+      throw new Error(MESSAGE.ELECTION_NUMBER_ALREADY_EXISTS);
+    }
+    const decisionNameExist = await this.electionsModel.exists({
+      decisionName: decisionName,
+    });
+    if (decisionNameExist) {
+      throw new Error(MESSAGE.ELECTION_NAME_ALREADY_EXISTS);
+    }
+    return true;
+  }
+
+  private async checkRelatedIds(createElection: CreateElectionDto) {
+    const { typeId, votingMethodId, thresholdId } = createElection;
+    //Kiểm tra electionType có tồn tại hay Không
+    if (typeId) {
+      const electionTypeExist = await this.electionTypeModel.exists({
+        _id: new Types.ObjectId(typeId),
+      });
+      if (!electionTypeExist) {
+        throw new Error(MESSAGE.ELECTION_TYPE_NOT_FOUND);
+      }
+    }
+
+    //Kiểm tra voting method có tồn tại hay Không
+    if (votingMethodId) {
+      const votingMethodExist = await this.votingMethodModel.exists({
+        _id: new Types.ObjectId(votingMethodId),
+      });
+      if (!votingMethodExist) {
+        throw new Error(MESSAGE.VOTING_METHOD_NOT_FOUND);
+      }
+    }
+
+    //Kiểm tra threshold có tồn tại hay Không
+    if (thresholdId) {
+      const thresholdExist = await this.thresholdModel.exists({
+        _id: new Types.ObjectId(thresholdId),
+      });
+      if (!thresholdExist) {
+        throw new Error(MESSAGE.THRESHOLD_NOT_FOUND);
+      }
+    }
+    return true;
+  }
+
+  private async checkDate(createElection: CreateElectionDto) {
+    const { startDate, endDate, delegationStart, delegationEnd } = createElection;
+
+    // 1. Check trùng cuộc bầu cử theo ngày
+    if (startDate && endDate) {
+      const start = new Date(startDate);
+      const end = new Date(endDate);
+
+      const elections = await this.electionsModel.find({
+        startDate: { $lte: end },
+        endDate: { $gte: start },
+      });
+
+      if (elections.length > 0) {
+        throw new Error(MESSAGE.ELECTION_ALREADY_EXISTS);
+      }
+    }
+
+
+    // 2. Ngày bắt đầu ≥ ngày tạo + 20 ngày
+    if (startDate) {
+      const createdAt = getCurrentDateVN();
+      const start = new Date(startDate);
+
+      const minStart = new Date(createdAt);
+      minStart.setDate(minStart.getDate() + 20);
+
+      if (start < minStart) {
+        throw new Error("Ngày bắt đầu cuộc bầu cử phải lớn hơn ngày tạo ít nhất 20 ngày");
+      }
+    }
+
+
+    // 3. Delegation: delEnd > delStart
+    if (delegationStart && delegationEnd) {
+      const delStart = new Date(delegationStart);
+      const delEnd = new Date(delegationEnd);
+
+      if (delEnd <= delStart) {
+        throw new BadRequestException(
+          "Ngày kết thúc ủy quyền phải sau ngày bắt đầu ủy quyền"
+        );
+      }
+    }
+
+    // 4. DelegationEnd ≤ startDate - 10 ngày
+    if (delegationEnd && startDate) {
+      const delEnd = new Date(delegationEnd);
+      const start = new Date(startDate);
+
+      const minStart = new Date(delEnd);
+      minStart.setDate(minStart.getDate() + 10);
+
+      if (start < minStart) {
+        throw new Error(
+          "Ngày kết thúc ủy quyền phải nhỏ hơn ngày bắt đầu bầu cử ít nhất 10 ngày"
+        );
+      }
+    }
+
+    // 5. DelegationStart phải trước startDate
+    if (delegationStart && startDate) {
+      if (new Date(delegationStart) >= new Date(startDate)) {
+        throw new Error("Ngày bắt đầu ủy quyền phải nhỏ hơn ngày bắt đầu cuộc bầu cử");
+      }
+    }
+  }
+  private async checkElectionExistsInUpdate(updateElection: UpdateElectionDto, id: string) {
+    const { title, decisionNumber, decisionName } = updateElection;
+
+    //kiểm tra electionId có tồn tại không
+    const electionExist = await this.electionsModel.exists({ _id: id });
+    if (!electionExist) {
+      throw new Error(MESSAGE.ELECTION_NOT_FOUND);
+    }
+
+    if (title) {
+      const exist = await this.electionsModel.exists({
+        title,
+        _id: { $ne: id },
+      });
+      if (exist) throw new Error(MESSAGE.ELECTION_TITLE_ALREADY_EXISTS);
+    }
+
+    if (decisionNumber) {
+      const exist = await this.electionsModel.exists({
+        decisionNumber,
+        _id: { $ne: id },
+      });
+      if (exist) throw new Error(MESSAGE.ELECTION_NUMBER_ALREADY_EXISTS);
+    }
+
+    if (decisionName) {
+      const exist = await this.electionsModel.exists({
+        decisionName,
+        _id: { $ne: id },
+      });
+      if (exist) throw new Error(MESSAGE.ELECTION_NAME_ALREADY_EXISTS);
+    }
+  }
+  private async checkDateInUpdate(updateElection: UpdateElectionDto, id: string) {
+    const { startDate, endDate, delegationStart, delegationEnd } = updateElection;
+
+    // 1. Kiểm tra trùng ngày election khác
+    if (startDate && endDate) {
+      const start = new Date(startDate);
+      const end = new Date(endDate);
+
+      const elections = await this.electionsModel.find({
+        _id: { $ne: id }, //tìm trong electionsModel nhưng loại trừ id hiện tại
+        startDate: { $lte: end },
+        endDate: { $gte: start },
+      });
+
+      if (elections.length > 0) {
+        throw new Error(MESSAGE.ELECTION_ALREADY_EXISTS);
+      }
+    }
+
+    // 3. Delegation: delEnd > delStart
+    if (delegationStart && delegationEnd) {
+      const delStart = new Date(delegationStart);
+      const delEnd = new Date(delegationEnd);
+      if (delEnd <= delStart) {
+        throw new BadRequestException("Ngày kết thúc ủy quyền phải sau ngày bắt đầu ủy quyền");
+      }
+    }
+
+    // 4. DelegationEnd ≤ startDate - 10 ngày
+    if (delegationEnd && startDate) {
+      const delEnd = new Date(delegationEnd);
+      const start = new Date(startDate);
+
+      const minStart = new Date(delEnd);
+      minStart.setDate(minStart.getDate() + 10);
+
+      if (start < minStart) {
+        throw new Error("Ngày kết thúc ủy quyền phải nhỏ hơn ngày bắt đầu bầu cử ít nhất 10 ngày");
+      }
+    }
+
+    // 5. DelegationStart < startDate
+    if (delegationStart && startDate) {
+      if (new Date(delegationStart) >= new Date(startDate)) {
+        throw new Error("Ngày bắt đầu ủy quyền phải nhỏ hơn ngày bắt đầu cuộc bầu cử");
+      }
+    }
+  }
+  private async checkRelatedIdsInUpdate(updateElection: UpdateElectionDto) {
+    const { typeId, votingMethodId, thresholdId } = updateElection;
+    //Kiểm tra electionType có tồn tại hay Không
+    if (typeId) {
+      const electionTypeExist = await this.electionTypeModel.exists({
+        _id: new Types.ObjectId(typeId),
+      });
+      if (!electionTypeExist) {
+        throw new Error(MESSAGE.ELECTION_TYPE_NOT_FOUND);
+      }
+    }
+
+    //Kiểm tra voting method có tồn tại hay Không
+    if (votingMethodId) {
+      const votingMethodExist = await this.votingMethodModel.exists({
+        _id: new Types.ObjectId(votingMethodId),
+      });
+      if (!votingMethodExist) {
+        throw new Error(MESSAGE.VOTING_METHOD_NOT_FOUND);
+      }
+    }
+
+    //Kiểm tra threshold có tồn tại hay Không
+    if (thresholdId) {
+      const thresholdExist = await this.thresholdModel.exists({
+        _id: new Types.ObjectId(thresholdId),
+      });
+      if (!thresholdExist) {
+        throw new Error(MESSAGE.THRESHOLD_NOT_FOUND);
+      }
+    }
+    return true;
+  }
+
 }

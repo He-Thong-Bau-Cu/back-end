@@ -27,15 +27,15 @@ export class ElectionDocumentsService {
       if (!election) {
         throw new Error(MESSAGE.ELECTION_NOT_FOUND);
       }
-      //check if the preparedBy exists
-      const preparedBy = await this.electionsParticipantsModel.exists({ _id: createElectionDocument.preparedBy });
-      if (!preparedBy) {
-        throw new Error(MESSAGE.ELECTION_PARTICIPANT_NOT_FOUND);
-      }
+      // //check if the preparedBy exists
+      // const preparedBy = await this.electionsParticipantsModel.exists({ _id: createElectionDocument.preparedBy });
+      // if (!preparedBy) {
+      //   throw new Error(MESSAGE.ELECTION_PARTICIPANT_NOT_FOUND);
+      // }
       const electionDocument = await this.electionDocumentsModel.create({
         ...createElectionDocument,
         electionId: new Types.ObjectId(createElectionDocument.electionId),
-        preparedBy: new Types.ObjectId(createElectionDocument.preparedBy),
+        preparedBy: new Types.ObjectId(userId),
         createdBy: new Types.ObjectId(userId) || null,
       });
       return electionDocument;

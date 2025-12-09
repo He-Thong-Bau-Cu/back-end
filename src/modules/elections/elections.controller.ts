@@ -32,7 +32,7 @@ import { FileInterceptor } from '@nestjs/platform-express';
 @ApiTags('Elections')
 @Controller('elections')
 export class ElectionsController {
-  constructor(private readonly electionsService: ElectionsService) {}
+  constructor(private readonly electionsService: ElectionsService) { }
 
   @Post(METHOD.SEARCH)
   @ApiOperation({ summary: 'Tìm kiếm danh sách kỳ bầu cử' })
@@ -59,6 +59,25 @@ export class ElectionsController {
     try {
       const resData = await this.electionsService.getDraftData(id);
       return BaseResponse.success(resData, 'Lấy dữ liệu election thành công', HttpStatus.OK);
+    } catch (error) {
+      throw new HttpException({ message: error.message }, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+  }
+
+  @Get(':id/voters-from-excel')
+  @ApiOperation({ summary: 'Lấy danh sách cử tri từ file Excel đã import' })
+  @ApiParam({ name: 'id', description: 'ID của cuộc bầu cử', type: String })
+  @ApiResponse({ status: 200, description: 'Lấy danh sách cử tri từ Excel thành công' })
+  @ApiResponse({ status: 404, description: 'Không tìm thấy file Excel hoặc cuộc bầu cử' })
+  @ApiResponse({ status: 500, description: 'Lỗi server' })
+  async getVotersFromExcel(@Param('id') id: string): Promise<BaseResponse> {
+    try {
+      const resData = await this.electionsService.getVotersFromExcel(id);
+      return BaseResponse.success(
+        resData,
+        'Lấy danh sách cử tri từ Excel thành công',
+        HttpStatus.OK,
+      );
     } catch (error) {
       throw new HttpException({ message: error.message }, HttpStatus.INTERNAL_SERVER_ERROR);
     }

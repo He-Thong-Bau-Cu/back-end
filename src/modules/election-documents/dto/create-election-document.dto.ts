@@ -10,11 +10,11 @@ export class CreateElectionDocumentDto {
     @IsString()
     electionId: string
 
-    @ApiProperty({
-        description: "ID của người chuẩn bị",
-        example: "60d21b4667d0d8992e610c85"
-    })
-    @IsNotEmpty()
+    // @ApiProperty({
+    //     description: "ID của người chuẩn bị",
+    //     example: "60d21b4667d0d8992e610c85"
+    // })
+    @IsOptional()
     @IsString()
     preparedBy: string
 
@@ -49,6 +49,10 @@ export class CreateElectionDocumentDto {
     @IsOptional()
     @IsString()
     status: string
+
+    @IsOptional()
+    @IsString()
+    type: string
 
     @ApiPropertyOptional({
         description: "Ghi chú",

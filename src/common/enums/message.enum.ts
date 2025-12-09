@@ -13,6 +13,8 @@ export enum MESSAGE {
   ELECTION_SEARCH_SUCCESS = 'Lấy danh sách cuộc bầu cử thành công',
   ELECTION_DELETE_SUCCESS = 'Xóa cuộc bầu cử thành công',
   ELECTION_NUMBER_ALREADY_EXISTS = 'Số quyết định đã tồn tại',
+  ELECTION_NAME_ALREADY_EXISTS = 'Tên quyết định đã tồn tại',
+  ELECTION_TITLE_ALREADY_EXISTS = 'Tiêu đề cuộc bầu cử đã tồn tại',
 
 
   // Election Documents
