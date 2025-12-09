@@ -420,7 +420,7 @@ export class ElectionsService {
         // Tạo document mới
         const electionDocument = new this.electionDocumentsModel({
           electionId: new Types.ObjectId(electionId),
-          preparedBy: electionParticipant?._id || null,
+          preparedBy: new Types.ObjectId(userId) || null,
           title: 'Quyết định triệu tập và Chương trình họp Đại hội đồng cổ đông',
           type: FileType.SIGNED_DOCUMENT,
           fileUrl: fileUpload.key,
@@ -588,7 +588,7 @@ export class ElectionsService {
         meeting,
         participants,
         companyName,
-          title
+        title
       );
 
       return pdfFile;
@@ -1923,6 +1923,7 @@ export class ElectionsService {
           phone: phone || null,
           citizenId: citizenId || null,
           percentage: shares,
+          isImportedFromExcel: true,
         });
       }
 
