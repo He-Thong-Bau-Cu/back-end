@@ -53,7 +53,7 @@ export class BallotsService {
     private readonly signingService: SigningService,
     private readonly fileService: MinioService,
     private readonly redisService: RedisService,
-  ) {}
+  ) { }
 
   async getById(id: string) {
     try {
@@ -611,6 +611,9 @@ export class BallotsService {
       if (!ballot) {
         throw new Error(MESSAGE.BALLOT_NOT_FOUND);
       }
+      if (ballot.status === STATUS.LOCKED) {
+        throw new Error('Phiếu bầu đã bị khóa. Vui lòng liên hệ quản trị viên để được hỗ trợ');
+      }
       const wasCast = ballot.status === STATUS.CAST;
 
       //Tạo file pdf của phiếu bầu
@@ -879,7 +882,7 @@ export class BallotsService {
 
       //Kiểm tra số lần nhập otp
       if (ballot.attempts >= 5) {
-        throw new Error('Bạn đã nhập sai OTP quá 5 lần, vui lòng yêu cầu mã OTP mới!');
+        throw new Error('Bạn đã nhập sai OTP quá 5 lần. Vui lòng liên hệ quản trị viên để được hỗ trợ!');
       }
 
       // Đánh dấu OTP đã được verify bằng cách lưu flag vào Redis

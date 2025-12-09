@@ -43,6 +43,7 @@ import * as path from 'path';
 import { NotificationService } from '../notification/notification.service';
 import { MailService } from '../mail/mail.service';
 import { ResultsService } from '../results/results.service';
+import * as ExcelJS from 'exceljs';
 
 @Injectable()
 export class ElectionsService {
@@ -1775,6 +1776,156 @@ export class ElectionsService {
       return response;
     } catch (error) {
       throw error;
+    }
+  }
+
+  async getVotersFromExcel(electionId: string) {
+    try {
+      // 1. Kiểm tra election có tồn tại không
+      const electionExist = await this.electionsModel.exists({ _id: electionId });
+      if (!electionExist) {
+        throw new NotFoundException(MESSAGE.ELECTION_NOT_FOUND);
+      }
+
+      // 2. Tìm document có type "voters-import-excel" cho election này
+      const excelDocument = await this.electionDocumentsModel
+        .findOne({
+          electionId: new Types.ObjectId(electionId),
+          type: 'voters-import-excel',
+        })
+        .lean()
+        .exec();
+
+      if (!excelDocument || !excelDocument.fileUrl) {
+        throw new NotFoundException('Không tìm thấy file Excel chứa danh sách cử tri import');
+      }
+
+      // 3. Download file Excel từ MinIO
+      const fileBuffer = await this.fileService.getFileBufferByKey(excelDocument.fileUrl);
+
+      if (!fileBuffer || fileBuffer.length === 0) {
+        throw new BadRequestException('File Excel không tồn tại hoặc đã bị xóa');
+      }
+
+      // 4. Parse file Excel
+      const workbook = new ExcelJS.Workbook();
+      await workbook.xlsx.load(fileBuffer as unknown as ExcelJS.Buffer);
+      const worksheet = workbook.worksheets[0];
+
+      if (!worksheet) {
+        throw new BadRequestException('File Excel không chứa dữ liệu');
+      }
+
+      // 5. Lấy header (dòng đầu tiên)
+      const headerRow = worksheet.getRow(1);
+      const headers: string[] = [];
+      headerRow.eachCell({ includeEmpty: false }, (cell) => {
+        headers.push(String(cell.value || '').toLowerCase().trim());
+      });
+
+      // Tìm index của các cột
+      const fullnameIndex = headers.findIndex(
+        (h) =>
+          h.includes('fullname') ||
+          h.includes('họ và tên') ||
+          h.includes('họ tên') ||
+          h.includes('tên'),
+      );
+      const emailIndex = headers.findIndex((h) => h.includes('email') || h.includes('mail'));
+      const phoneIndex = headers.findIndex(
+        (h) =>
+          h.includes('phone') ||
+          h.includes('sđt') ||
+          h.includes('sdt') ||
+          h.includes('điện thoại'),
+      );
+      const citizenIdIndex = headers.findIndex(
+        (h) =>
+          h.includes('citizenid') ||
+          h.includes('citizen id') ||
+          h.includes('cmnd') ||
+          h.includes('cccd') ||
+          h.includes('căn cước'),
+      );
+      const sharesIndex = headers.findIndex(
+        (h) =>
+          h.includes('shares') ||
+          h.includes('cổ phần') ||
+          h.includes('percentage') ||
+          h.includes('% cổ phần') ||
+          h.includes('%'),
+      );
+
+      if (fullnameIndex === -1 || emailIndex === -1 || sharesIndex === -1) {
+        throw new BadRequestException(
+          'File Excel thiếu các cột bắt buộc: FullName, Email, Shares',
+        );
+      }
+
+      // 6. Parse dữ liệu từ dòng thứ 2 trở đi
+      const voters: any[] = [];
+
+      for (let rowNumber = 2; rowNumber <= worksheet.rowCount; rowNumber++) {
+        const row = worksheet.getRow(rowNumber);
+
+        // Kiểm tra dòng trống
+        let isEmpty = true;
+        row.eachCell({ includeEmpty: false }, () => {
+          isEmpty = false;
+        });
+        if (isEmpty) continue;
+
+        const fullname = String(row.getCell(fullnameIndex + 1).value || '').trim();
+        const email = String(row.getCell(emailIndex + 1).value || '').trim();
+        const phone =
+          phoneIndex !== -1
+            ? String(row.getCell(phoneIndex + 1).value || '').trim()
+            : '';
+        const citizenId =
+          citizenIdIndex !== -1
+            ? String(row.getCell(citizenIdIndex + 1).value || '').trim()
+            : '';
+        const sharesValue = row.getCell(sharesIndex + 1).value;
+        const shares = sharesValue ? Number(sharesValue) : null;
+
+        // Bỏ qua dòng không có đủ thông tin bắt buộc
+        if (!fullname || !email || shares === null || isNaN(shares)) {
+          continue;
+        }
+
+        voters.push({
+          rowIndex: rowNumber,
+          fullName: fullname,
+          email: email,
+          phone: phone || null,
+          citizenId: citizenId || null,
+          percentage: shares,
+        });
+      }
+
+      if (voters.length === 0) {
+        throw new BadRequestException('File Excel không có dữ liệu hợp lệ');
+      }
+
+      return {
+        success: true,
+        document: {
+          _id: excelDocument._id,
+          title: excelDocument.title,
+          fileUrl: excelDocument.fileUrl,
+          createdAt: excelDocument.createdAt,
+        },
+        voters: voters,
+        total: voters.length,
+      };
+    } catch (error) {
+      if (error instanceof NotFoundException || error instanceof BadRequestException) {
+        throw error;
+      }
+      console.error('Error getting voters from Excel:', error);
+      throw new BadRequestException(
+        `Lỗi khi đọc file Excel: ${error.message || 'Unknown error'}`,
+      );
     }
   }
 

@@ -38,6 +38,9 @@ export enum FileType {
   //Signature reports
   SIGNED_REPORT = 'signed-reports',
 
+  //Import voters form excel
+  VOTERS_IMPORT_EXCEL = 'voters-import-excel',
+
   // General
   TEMP = 'temp',
   UPLOAD = 'uploads',

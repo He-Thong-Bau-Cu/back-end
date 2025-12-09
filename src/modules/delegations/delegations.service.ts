@@ -1821,7 +1821,7 @@ export class DelegationsService {
           signFile,
         );
 
-        const electionDocument = new this.documentModel({
+        const electionDocument: any = new this.documentModel({
           electionId: new Types.ObjectId(delegation.electionId),
           preparedBy: delegator?._id || null,
           title: 'Kí file',
@@ -1831,7 +1831,7 @@ export class DelegationsService {
           createdAt: getCurrentDateVN(),
         });
         await electionDocument.save();
-        delegation.documentId = electionDocument.id;
+        delegation.documentId = new Types.ObjectId(electionDocument._id);
         delegation.status = STATUS.PENDING;
         await delegation.save();
         return delegation;
