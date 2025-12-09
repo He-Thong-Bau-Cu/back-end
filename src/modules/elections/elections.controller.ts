@@ -21,6 +21,7 @@ import { ElectionsService } from './elections.service';
 import { METHOD } from 'src/common/enums/method.enum';
 import { ElectionsDocumentDto } from './dto/electionsDocument.dto';
 import { CreateElectionDto } from './dto/create-elections-dto';
+import { CreateElectionRequestDto } from './dto/create-election-request.dto';
 import { SearchDTO } from 'src/common/dto/search.dto';
 import { UpdateElectionDto } from './dto/update-elections-dto';
 import { CustomRequest } from 'src/common/middleware/auth.middleware';
@@ -41,7 +42,7 @@ export class ElectionsController {
     description: 'Danh sách kỳ bầu cử trả về thành công.',
   })
   @ApiResponse({ status: 500, description: 'Lỗi server' })
-  async searchElections(@Body() req: SearchDTO): Promise<BaseResponse> {
+  async searchElections(@Body() req: SearchDTO & { electionId?: string }): Promise<BaseResponse> {
     try {
       const resData = await this.electionsService.searchElections(req);
       return BaseResponse.success(resData, MESSAGE.ELECTION_SEARCH_SUCCESS, HttpStatus.OK);
@@ -187,16 +188,48 @@ export class ElectionsController {
     }
   }
 
+  @Post('user-request')
+  @ApiOperation({ summary: 'Tạo yêu cầu cuộc bầu cử mới từ user (đề xuất cho chủ tịch hội đồng quản trị duyệt)' })
+  @ApiResponse({ status: 201, description: 'Tạo yêu cầu cuộc bầu cử thành công' })
+  @ApiResponse({ status: 500, description: 'Lỗi server' })
+  async createElectionRequest(
+    @Req() req: CustomRequest,
+    @Body() createElectionRequest: CreateElectionRequestDto,
+  ): Promise<BaseResponse> {
+    try {
+      const resData = await this.electionsService.createElectionRequest(createElectionRequest, req.user.sub);
+      return BaseResponse.success(resData, 'Tạo yêu cầu cuộc bầu cử thành công', HttpStatus.CREATED);
+    } catch (error) {
+      throw new HttpException({ message: error.message }, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+  }
+
   @Post('user-organizer')
-  @ApiOperation({ summary: 'Lấy danh sách user để phân quyền cho cuộc bầu cử' })
+  @ApiOperation({ summary: 'Lấy danh sách user để phân quyền cho cuộc bầu cử (không có trong bảng voter)' })
   @ApiResponse({ status: 200, description: 'Thành công' })
   @ApiResponse({ status: 500, description: 'Lỗi server' })
-  async getElectionOrganizer(@Body() req: ElectionDto): Promise<BaseResponse> {
+  async getElectionOrganizer(): Promise<BaseResponse> {
     try {
       const resData = await this.electionsService.getElectionOrganizerByTime(
-        req.startDate,
-        req.endDate,
+        new Date(),
+        new Date(),
       );
+      return BaseResponse.success(resData, MESSAGE.SUCCESS, HttpStatus.OK);
+    } catch (error) {
+      throw new HttpException({ message: error.message }, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+  }
+
+  @Post('my-requests')
+  @ApiOperation({ summary: 'Lấy danh sách yêu cầu tạo cuộc bầu cử của user (theo createBy và isUserCreate = true)' })
+  @ApiResponse({ status: 200, description: 'Thành công' })
+  @ApiResponse({ status: 500, description: 'Lỗi server' })
+  async getMyElectionRequests(
+    @Req() req: CustomRequest,
+    @Body() searchDto: SearchDTO,
+  ): Promise<BaseResponse> {
+    try {
+      const resData = await this.electionsService.getMyElectionRequests(req.user.sub, searchDto);
       return BaseResponse.success(resData, MESSAGE.SUCCESS, HttpStatus.OK);
     } catch (error) {
       throw new HttpException({ message: error.message }, HttpStatus.INTERNAL_SERVER_ERROR);
@@ -279,6 +312,47 @@ export class ElectionsController {
       return BaseResponse.success(
         resData,
         'Từ chối cuộc bầu cử thành công!',
+        HttpStatus.OK,
+      );
+    } catch (error) {
+      throw new HttpException({ message: error.message }, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+  }
+
+  @Post('requests-for-approval')
+  @ApiOperation({ summary: 'Lấy danh sách yêu cầu cuộc bầu cử cần phê duyệt (isUserBasicCreate = true). Có thể truyền electionId để lấy theo cuộc bầu cử cụ thể' })
+  @ApiResponse({ status: 200, description: 'Thành công' })
+  @ApiResponse({ status: 500, description: 'Lỗi server' })
+  async getElectionRequestsForApproval(
+    @Body() searchDto: SearchDTO & { electionId?: string },
+  ): Promise<BaseResponse> {
+    try {
+      const { electionId, ...searchParams } = searchDto;
+      const resData = await this.electionsService.getElectionRequestsForApproval(searchParams, electionId);
+      return BaseResponse.success(resData, MESSAGE.SUCCESS, HttpStatus.OK);
+    } catch (error) {
+      throw new HttpException({ message: error.message }, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+  }
+
+  @Post('approve-request')
+  @ApiOperation({ summary: 'Duyệt yêu cầu cuộc bầu cử từ user (chuyển statusData thành WAIT_ENTER_DATA)' })
+  @ApiResponse({ status: 200, description: 'Duyệt thành công' })
+  @ApiResponse({ status: 500, description: 'Lỗi server' })
+  async approveElectionRequest(
+    @Req() req: CustomRequest,
+    @Body() body: { electionId: string; secretaryId?: string; boardOfControlId?: string },
+  ): Promise<BaseResponse> {
+    try {
+      const resData = await this.electionsService.approveElectionRequest(
+        body.electionId,
+        req.user.sub,
+        body.secretaryId,
+        body.boardOfControlId,
+      );
+      return BaseResponse.success(
+        resData,
+        'Duyệt yêu cầu cuộc bầu cử thành công!',
         HttpStatus.OK,
       );
     } catch (error) {

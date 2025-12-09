@@ -693,6 +693,16 @@ export class DelegationsService {
                 },
               }
               : {}),
+            // Nếu có electionId, chỉ lấy delegations của election đó và filter isUserBasicCreate = true
+            ...(req.electionId
+              ? {
+                'election._id': new Types.ObjectId(req.electionId),
+                'election.isUserBasicCreate': true,
+              }
+              : {
+                // Nếu không có electionId (system preside), không lấy những cái có isUserBasicCreate = true
+                'election.isUserBasicCreate': { $ne: true },
+              }),
           },
         },
         {

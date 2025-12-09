@@ -68,6 +68,15 @@ export class Elections extends BaseSchema {
 
   @Prop({ default: null })
   rejectReason: string;
+
+  @Prop({ default: false })
+  createByUser: boolean;
+
+  @Prop({ default: false })
+  isUserCreate: boolean;
+
+  @Prop({ default: false })
+  isUserBasicCreate: boolean;
 }
 
 export const ElectionsSchema = SchemaFactory.createForClass(Elections);

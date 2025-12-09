@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, HttpException, HttpStatus, Put, Req, Res, UseInterceptors, UploadedFile } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, HttpException, HttpStatus, Put, Req, Res, UseInterceptors, UploadedFile, Query } from '@nestjs/common';
 import { ReportsService } from './reports.service';
 import { CreateReportDto } from './dto/create-report.dto';
 import { UpdateReportDto } from './dto/update-report.dto';
@@ -38,9 +38,9 @@ export class ReportsController {
   @ApiOperation({ summary: 'Lấy danh sách báo cáo' })
   @ApiResponse({ status: 200, description: 'Lấy danh sách báo cáo thành công' })
   @ApiResponse({ status: 500, description: 'Lỗi server' })
-  async findAll(): Promise<BaseResponse> {
+  async findAll(@Query('electionId') electionId?: string): Promise<BaseResponse> {
     try {
-      const resData = await this.reportsService.findAll();
+      const resData = await this.reportsService.findAll(electionId);
       return BaseResponse.success(resData, MESSAGE.REPORT_GET_ALL_SUCCESS, HttpStatus.OK);
     } catch (error) {
       throw new HttpException(

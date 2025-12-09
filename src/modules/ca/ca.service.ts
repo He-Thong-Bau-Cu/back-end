@@ -7,6 +7,12 @@ import { PassThrough } from 'stream';
 import archiver from 'archiver';
 import { MailService } from '../mail/mail.service';
 import { getCurrentDateVN } from 'src/common/utils/format';
+import { execSync } from 'child_process';
+import { InjectModel } from '@nestjs/mongoose';
+import { UserDocument, Users } from 'src/database/schemas/users.schema';
+import { Model, Types } from 'mongoose';
+import { MinioService } from '../minio/minio.service';
+import { FileType } from 'src/common/enums/file-type.enum';
 
 const CERTS_DIR = path.join(process.cwd(), 'certs');
 
@@ -16,7 +22,10 @@ export class CaService {
   rootCertPath = path.join(CERTS_DIR, 'rootCA-crt.pem');
 
   constructor(
-    private readonly mailService: MailService
+    private readonly mailService: MailService,
+    @InjectModel(Users.name)
+    private readonly usersModel: Model<UserDocument>,
+    private readonly uploadService: MinioService
   ) {
     if (!fs.existsSync(CERTS_DIR)) fs.mkdirSync(CERTS_DIR, { recursive: true });
   }
@@ -32,9 +41,7 @@ export class CaService {
     cert.serialNumber = Date.now().toString();
     cert.validity.notBefore = getCurrentDateVN();
     cert.validity.notAfter = getCurrentDateVN();
-    cert.validity.notAfter.setFullYear(
-        cert.validity.notBefore.getFullYear() + 10,
-    );
+    cert.validity.notAfter.setFullYear(cert.validity.notBefore.getFullYear() + 10);
 
     const attrs = [
       { name: 'commonName', value: 'SEP490_G52' },
@@ -61,85 +68,106 @@ export class CaService {
     cert.sign(keys.privateKey, forge.md.sha256.create());
 
     // write to files (PEM)
-    fs.writeFileSync(
-        this.rootKeyPath,
-        forge.pki.privateKeyToPem(keys.privateKey),
-        { mode: 0o600 },
-    );
+    fs.writeFileSync(this.rootKeyPath, forge.pki.privateKeyToPem(keys.privateKey), { mode: 0o600 });
     fs.writeFileSync(this.rootCertPath, forge.pki.certificateToPem(cert));
 
     return { created: true, message: 'Root CA created' };
   }
 
-  async issueSigner(signerInfo: SignerInfo, password: string) {
-    // load root
-    const rootKeyPem = fs.readFileSync(this.rootKeyPath, 'utf8');
-    const rootCertPem = fs.readFileSync(this.rootCertPath, 'utf8');
-    const rootKey = forge.pki.privateKeyFromPem(rootKeyPem);
-    const rootCert = forge.pki.certificateFromPem(rootCertPem);
+  async issueSigner(signerInfo: SignerInfo, password: string, userId?: string) {
+    console.log(userId)
+    const user = await this.usersModel.findById(new Types.ObjectId(userId));
+    if(!user){
+      throw new Error('Không tìm thấy người dùng!!!');
+    }
+    const id = `${signerInfo.commonName.replace(/\s+/g, '_')}_${Date.now()}`;
+    const userDir = path.join(CERTS_DIR, id);
+    fs.mkdirSync(userDir, { recursive: true });
 
-    const keys = forge.pki.rsa.generateKeyPair(2048);
-    const csr = forge.pki.createCertificationRequest();
-    csr.publicKey = keys.publicKey;
-    csr.setSubject([
-      { name: 'commonName', value: signerInfo.commonName },
-      { name: 'organizationName', value: signerInfo.organizationName },
-      { name: 'countryName', value: signerInfo.countryName },
-      { name: 'stateOrProvinceName', value: signerInfo.stateOrProvinceName },
-      { name: 'localityName', value: signerInfo.localityName },
-      { name: 'emailAddress', value: signerInfo.emailAddress },
-    ]);
-    csr.sign(keys.privateKey, forge.md.sha256.create());
+    // Các file tạm
+    const keyPath = path.join(userDir, 'signer.key');
+    const csrPath = path.join(userDir, 'signer.csr');
+    const certPath = path.join(userDir, 'signer.crt');
+    const p12Path = path.join(userDir, 'signer.p12');
+    const chainPath = path.join(userDir, 'chain.pem');
 
-    const cert = forge.pki.createCertificate();
-    cert.serialNumber = Date.now().toString();
-    cert.validity.notBefore = getCurrentDateVN();
-    cert.validity.notAfter = getCurrentDateVN();
-    cert.validity.notAfter.setFullYear(
-        cert.validity.notBefore.getFullYear() + 2,
+    // 1. Copy RootCA vào thư mục
+    const rootKeyPath = path.join(userDir, 'rootCA.key');
+    const rootCertPath = path.join(userDir, 'rootCA.crt');
+    fs.copyFileSync(this.rootKeyPath, rootKeyPath);
+    fs.copyFileSync(this.rootCertPath, rootCertPath);
+
+    // 2. Generate private key
+    execSync(`openssl genrsa -out ${keyPath} 2048`);
+
+    // 3. CSR config
+    const csrConf = `
+      [req]
+      prompt = no
+      distinguished_name = dn
+
+      [dn]
+      C=${signerInfo.countryName || 'VN'}
+      ST=${signerInfo.stateOrProvinceName || 'HN'}
+      L=${signerInfo.localityName || 'Hanoi'}
+      O=${signerInfo.organizationName}
+      OU=Digital Signer
+      CN=${signerInfo.commonName}
+      emailAddress=${signerInfo.emailAddress}
+      `;
+
+    const csrConfPath = path.join(userDir, 'csr.conf');
+    fs.writeFileSync(csrConfPath, csrConf);
+
+    // 4. Generate CSR
+    execSync(`openssl req -new -key ${keyPath} -out ${csrPath} -config ${csrConfPath}`);
+
+    // 5. Sign cert using RootCA
+    execSync(
+      `openssl x509 -req -in ${csrPath} -CA ${rootCertPath} -CAkey ${rootKeyPath} -CAcreateserial -out ${certPath} -days 730 -sha256`,
     );
-    cert.publicKey = csr.publicKey;
-    cert.setSubject(csr.subject.attributes);
-    cert.setIssuer(rootCert.subject.attributes);
-    cert.setExtensions([
-      { name: 'basicConstraints', cA: false },
-      {
-        name: 'keyUsage',
-        digitalSignature: true,
-        nonRepudiation: true,
-        keyEncipherment: true,
-      },
-      { name: 'subjectKeyIdentifier' },
-    ]);
-    cert.sign(rootKey, forge.md.sha256.create());
 
-    const signerKeyPem = forge.pki.privateKeyToPem(keys.privateKey);
-    const signerCertPem = forge.pki.certificateToPem(cert);
-    const chain = [signerCertPem, rootCertPem].join('\n');
+    // 6. Create chain.pem
+    const chainPem = `
+${fs.readFileSync(certPath)}
+${fs.readFileSync(rootCertPath)}
+`;
+    fs.writeFileSync(chainPath, chainPem);
 
-    const newPkcs12Asn1 = forge.pkcs12.toPkcs12Asn1(
-        keys.privateKey,
-        [cert],
-        password,
-        { friendlyName: signerInfo.commonName, algorithm: '3des' },
+    // 7. Create PKCS#12 (ổn định tuyệt đối)
+    execSync(
+      `openssl pkcs12 -export -inkey ${keyPath} -in ${certPath} -certfile ${rootCertPath} -out ${p12Path} -passout pass:${password}`,
     );
-    const p12Der = forge.asn1.toDer(newPkcs12Asn1).getBytes();
-    const p12Buffer = Buffer.from(p12Der, 'binary');
 
-    const baseName = `${signerInfo.commonName.replace(/\s+/g, '_')}_${Date.now()}`;
-    const p12Path = path.join(CERTS_DIR, `${baseName}.p12`);
+    // 8. Gói ZIP
     const zipBuffer = await this.createZipBuffer({
-      [`${baseName}.p12`]: p12Buffer,
-      [`${baseName}.key.pem`]: signerKeyPem,
-      [`${baseName}.crt.pem`]: signerCertPem,
-      [`${baseName}.chain.pem`]: chain,
+      [`${id}.p12`]: fs.readFileSync(p12Path),
+      [`${id}.key.pem`]: fs.readFileSync(keyPath, 'utf8'),
+      [`${id}.crt.pem`]: fs.readFileSync(certPath, 'utf8'),
+      [`${id}.chain.pem`]: chainPem,
     });
 
-    await this.mailService.sendCaTemplate(signerInfo.emailAddress, zipBuffer, `${baseName}.zip`, signerInfo.commonName);
+    // 9. Gửi mail
+    await this.mailService.sendCaTemplate(
+      signerInfo.emailAddress,
+      zipBuffer,
+      `${id}.zip`,
+      signerInfo.commonName,
+    );
 
-    return {
-      signerInfo
-    };
+    // Upload p12 lên MinIO và lưu key vào user.signCa, bật cờ issueCa
+    const upload = await this.uploadService.uploadSignedPdf(
+      FileType.CA,
+      (user as any)._id.toString(),
+      fs.readFileSync(p12Path),
+    );
+    if (upload?.key) {
+      user.signCa = upload.key;
+      user.issueCa = true;
+      await user.save();
+    }
+
+    return { signerInfo, signCa: user.signCa };
   }
 
   listSigners() {

@@ -12,6 +12,7 @@ import { VotingMethods } from 'src/database/schemas/votingMethods.schema';
 import { Thresholds } from 'src/database/schemas/thresholds.schema';
 import { Users } from 'src/database/schemas/users.schema';
 import { CreateElectionDto } from './dto/create-elections-dto';
+import { CreateElectionRequestDto } from './dto/create-election-request.dto';
 import { UpdateElectionDto } from './dto/update-elections-dto';
 import { SearchElectionsDto } from './dto/search-dto';
 import { SearchDTO } from 'src/common/dto/search.dto';
@@ -87,7 +88,7 @@ export class ElectionsService {
     private readonly resultsService: ResultsService,
   ) { }
 
-  async searchElections(req: SearchDTO) {
+  async searchElections(req: SearchDTO & { electionId?: string }) {
     try {
       const query: any = {};
       if (req.textSearch) {
@@ -104,6 +105,14 @@ export class ElectionsService {
       }
       if (req.status) {
         query.status = req.status;
+      }
+      // Nếu có electionId, chỉ lấy election đó và filter isUserBasicCreate = true
+      if (req.electionId) {
+        query._id = new Types.ObjectId(req.electionId);
+        query.isUserBasicCreate = true;
+      } else {
+        // Nếu không có electionId (system preside), không lấy những cái có isUserBasicCreate = true
+        query.isUserBasicCreate = { $ne: true };
       }
 
       const elections = await this.electionsModel
@@ -144,6 +153,148 @@ export class ElectionsService {
         createdAt: createdAt,
       });
       return election;
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  async createElectionRequest(createElectionRequest: CreateElectionRequestDto, userId: string) {
+    try {
+      //Kiểm tra trong ngày đó đã có cuộc bầu cử nào chưa
+      if (createElectionRequest?.startDate && createElectionRequest?.endDate) {
+        const startDate = new Date(createElectionRequest.startDate);
+        const endDate = new Date(createElectionRequest.endDate);
+        const elections = await this.electionsModel.find({
+          startDate: { $lte: endDate },
+          endDate: { $gte: startDate },
+        });
+        if (elections.length > 0) {
+          throw new Error(MESSAGE.ELECTION_ALREADY_EXISTS);
+        }
+      }
+
+      //Kiểm tra xem số quyết định đã tồn tại hay Chưa
+      if (createElectionRequest?.decisionNumber) {
+        const decisionNumberExist = await this.electionsModel.exists({
+          decisionNumber: createElectionRequest.decisionNumber,
+        });
+        if (decisionNumberExist) {
+          throw new Error(MESSAGE.ELECTION_NUMBER_ALREADY_EXISTS);
+        }
+      }
+
+      const createdAt = getCurrentDateVN();
+      if (createElectionRequest?.endDate && createElectionRequest?.startDate) {
+        // Kiểm tra ngày bắt đầu không được trong quá khứ
+        const startDate = new Date(createElectionRequest?.startDate);
+        if (startDate < createdAt) {
+          throw new Error('Ngày bắt đầu không được trong quá khứ');
+        }
+
+        // Kiểm tra endDate phải sau startDate
+        const endDate = new Date(createElectionRequest?.endDate);
+        if (endDate <= startDate) {
+          throw new Error('Ngày kết thúc phải sau ngày bắt đầu');
+        }
+      } else if (createElectionRequest?.startDate) {
+        // Nếu chỉ có startDate, kiểm tra không được trong quá khứ
+        const startDate = new Date(createElectionRequest?.startDate);
+        if (startDate < createdAt) {
+          throw new Error('Ngày bắt đầu không được trong quá khứ');
+        }
+      }
+
+      // Kiểm tra participants phải có ít nhất 1 người
+      if (!createElectionRequest.participants || createElectionRequest.participants.length === 0) {
+        throw new Error('Vui lòng chọn ít nhất một thành viên tổ chức (thư ký hoặc chủ tọa)');
+      }
+
+      // Tạo election với statusData = REQUEST_FROM_USER và isUserCreate = true
+      // status = INACTIVE vì chưa được duyệt, chưa active
+      const election = await this.electionsModel.create({
+        title: createElectionRequest.title,
+        decisionNumber: createElectionRequest.decisionNumber,
+        decisionName: createElectionRequest.decisionName,
+        startDate: createElectionRequest.startDate || null,
+        endDate: createElectionRequest.endDate || null,
+        status: STATUS.INACTIVE, // Chưa active vì chưa được duyệt
+        statusData: STATUS.REQUEST_FROM_USER,
+        isUserCreate: true,
+        isUserBasicCreate: true,
+        createdBy: userId ? new Types.ObjectId(userId) : null,
+        createdAt: createdAt,
+      });
+
+      // Tạo electionParticipant
+      for (const participant of createElectionRequest.participants) {
+        // Kiểm tra userId có tồn tại không
+        const userExists = await this.userModel.exists({ _id: participant.userId });
+        if (!userExists) {
+          throw new NotFoundException(MESSAGE.USER_NOT_FOUND);
+        }
+
+        // Kiểm tra roleId có tồn tại không
+        const roleExists = await this.rolesModel.exists({ _id: participant.roleId });
+        if (!roleExists) {
+          throw new NotFoundException(MESSAGE.ROLE_NOT_FOUND);
+        }
+
+        // Kiểm tra user đã trong cuộc bầu cử chưa
+        const participantsExist = await this.electionParticipantsModel.findOne({
+          electionId: election._id,
+          userId: new Types.ObjectId(participant.userId),
+        });
+        if (participantsExist) {
+          throw new Error(MESSAGE.ELECTION_PARTICIPANT_ALREADY_EXIST);
+        }
+
+        // Tạo participant
+        await this.electionParticipantsModel.create({
+          electionId: election._id,
+          userId: new Types.ObjectId(participant.userId),
+          roleId: new Types.ObjectId(participant.roleId),
+          position: participant.position,
+          status: STATUS.PENDING,
+          createdBy: userId ? new Types.ObjectId(userId) : null,
+        });
+      }
+
+      return election;
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  async getMyElectionRequests(userId: string, req: SearchDTO) {
+    try {
+      const query: any = {
+        createdBy: new Types.ObjectId(userId),
+        isUserBasicCreate: true,
+      };
+
+      if (req.textSearch) {
+        query.$or = [
+          { title: { $regex: req.textSearch, $options: 'i' } },
+          { decisionName: { $regex: req.textSearch, $options: 'i' } },
+          { decisionNumber: { $regex: req.textSearch, $options: 'i' } },
+        ];
+      }
+
+      if (req.statusData) {
+        query.statusData = req.statusData;
+      }
+
+      const elections = await this.electionsModel
+        .find(query)
+        .populate('typeId')
+        .populate('votingMethodId')
+        .populate('thresholdId')
+        .populate('createdBy', 'username fullName email position')
+        .populate('updatedBy', 'username fullName email position')
+        .sort({ createdAt: -1 })
+        .exec();
+
+      return paginate(elections, req.page, req.limit);
     } catch (error) {
       throw error;
     }
@@ -227,28 +378,7 @@ export class ElectionsService {
 
   async getElectionOrganizerByTime(startTime: Date, endTime: Date) {
     try {
-      // 1. Lấy các election trong khoảng thời gian
-      const elections = await this.electionsModel
-        .find({
-          startDate: { $lt: endTime },
-          endDate: { $gt: startTime },
-        })
-        .exec();
-
-      const electionIds = elections.map((e) => e._id);
-
-      // 2. Lấy tất cả participant trong các election này
-      const electionParticipants = await this.electionParticipantsModel
-        .find({
-          electionId: { $in: electionIds },
-        })
-        .populate('userId')
-        .exec();
-
-      // 3. Lấy danh sách user bận
-      const busyUserIds = electionParticipants.map((item) => item.userId._id);
-
-      // 4. Lấy role ADMIN và PRESIDE
+      // 1. Lấy role ADMIN và PRESIDE để loại bỏ
       const roles = await this.rolesModel
         .find({
           $or: [{ roleCode: USER_ROLE.ADMIN }, { roleCode: USER_ROLE.PRESIDE }],
@@ -256,32 +386,17 @@ export class ElectionsService {
         .exec();
       const roleIds = roles.map((role) => role._id);
 
-      // 5. Lấy user có sẵn
-      let availableUsers = await this.userModel
-        .find({
-          _id: { $nin: busyUserIds },
-          roleId: { $nin: roleIds },
-        })
-        .exec();
-
-      const roleFilter = await this.rolesModel.findOne({ roleCode: USER_ROLE.VOTER }).exec();
-      if (!roleFilter) {
-        throw new Error('Không tìm thấy role VOTER');
-      }
-
-      // 6. Lọc thêm user không có trong voters và không phải participant role VOTER
+      // 2. Lấy tất cả user trong bảng voter
       const voterUsers = await this.voterModel.find({}).exec();
       const voterUserIds = voterUsers.map((v) => String(v.userId));
 
-      const voterParticipants = await this.electionParticipantsModel
-        .find({ roleId: roleFilter._id }) // nếu roleId là ObjectId của role VOTER, sửa tương ứng
+      // 3. Lấy user không có trong bảng voter và không phải ADMIN/PRESIDE
+      const availableUsers = await this.userModel
+        .find({
+          _id: { $nin: voterUserIds.map((id) => new Types.ObjectId(id)) },
+          roleId: { $nin: roleIds },
+        })
         .exec();
-      const voterParticipantIds = voterParticipants.map((p) => String(p.userId));
-
-      availableUsers = availableUsers.filter(
-        (u) =>
-          !voterUserIds.includes(String(u._id)) && !voterParticipantIds.includes(String(u._id)),
-      );
 
       return availableUsers;
     } catch (error) {
@@ -298,9 +413,9 @@ export class ElectionsService {
         throw new NotFoundException(MESSAGE.ELECTION_NOT_FOUND);
       }
 
-      // 2. Kiểm tra statusData phải là WAIT_APPROVAL
-      if (election.statusData !== STATUS.WAIT_APPROVAL) {
-        throw new BadRequestException('Chỉ có thể từ chối khi trạng thái là chờ duyệt chủ tọa!');
+      // 2. Kiểm tra statusData phải là WAIT_APPROVAL hoặc REQUEST_FROM_USER
+      if (election.statusData !== STATUS.WAIT_APPROVAL && election.statusData !== STATUS.REQUEST_FROM_USER) {
+        throw new BadRequestException('Chỉ có thể từ chối khi trạng thái là chờ duyệt chủ tọa hoặc yêu cầu từ user!');
       }
 
       // 3. Cập nhật statusData thành REJECTED và lưu lý do từ chối
@@ -309,10 +424,9 @@ export class ElectionsService {
       await election.save();
 
       // 4. Gửi thông báo cho người tạo election (nếu có)
-      if (election.updatedBy) {
-        // Có thể thêm notification service ở đây nếu cần
+      if (election.createdBy) {
         await this.notificationService.notifyUser(
-          String(election.updatedBy),
+          String(election.createdBy),
           `Cuộc bầu cử "${election.title}" đã bị từ chối. Lý do: ${rejectReason}`,
         );
       }
@@ -2232,6 +2346,221 @@ export class ElectionsService {
       const calculatedVotes = (shares / 100) * totalCommonShares;
       const votes = Math.round(calculatedVotes);
       return votes;
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  // Lấy danh sách election requests cần phê duyệt (isUserBasicCreate = true)
+  // Nếu có electionId thì chỉ lấy các election requests của cuộc bầu cử đó
+  async getElectionRequestsForApproval(req: SearchDTO, electionId?: string) {
+    try {
+      const query: any = {
+        isUserBasicCreate: true,
+      };
+
+      // Nếu có electionId, chỉ lấy các election requests của cuộc bầu cử đó
+      if (electionId) {
+        query._id = new Types.ObjectId(electionId);
+      }
+
+      if (req.textSearch) {
+        query.$or = [
+          { title: { $regex: req.textSearch, $options: 'i' } },
+          { decisionName: { $regex: req.textSearch, $options: 'i' } },
+          { decisionNumber: { $regex: req.textSearch, $options: 'i' } },
+        ];
+      }
+
+      const elections = await this.electionsModel
+        .find(query)
+        .populate('typeId')
+        .populate('votingMethodId')
+        .populate('thresholdId')
+        .populate('createdBy', 'username fullName email position')
+        .populate('updatedBy', 'username fullName email position')
+        .sort({ createdAt: -1 })
+        .exec();
+
+      // Lấy thông tin participants cho mỗi election
+      const electionsWithParticipants = await Promise.all(
+        elections.map(async (election) => {
+          const participants = await this.electionParticipantsModel
+            .find({ electionId: election._id })
+            .populate('userId', 'fullName email')
+            .populate('roleId', 'roleName roleCode')
+            .exec();
+
+          return {
+            ...election.toObject(),
+            participants,
+          };
+        })
+      );
+
+      return paginate(electionsWithParticipants, req.page, req.limit);
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  // Duyệt election request (chuyển statusData thành WAIT_ENTER_DATA, có thể chỉ định thư ký/ban kiểm soát)
+  async approveElectionRequest(
+    electionId: string,
+    userId: string,
+    secretaryId?: string,
+    boardOfControlId?: string,
+  ) {
+    try {
+      // 1. Kiểm tra election có tồn tại không
+      const election = await this.electionsModel
+        .findById(new Types.ObjectId(electionId))
+        .exec();
+
+      if (!election) {
+        throw new NotFoundException(MESSAGE.ELECTION_NOT_FOUND);
+      }
+
+      // 2. Kiểm tra statusData phải là REQUEST_FROM_USER hoặc REJECTED
+      if (election.statusData !== STATUS.REQUEST_FROM_USER && election.statusData !== STATUS.REJECTED) {
+        throw new BadRequestException('Chỉ có thể duyệt khi trạng thái là yêu cầu từ user hoặc đã từ chối!');
+      }
+
+      // 3. Lấy roleId cho thư ký và ban kiểm soát
+      const secretaryRole = await this.rolesModel
+        .findOne({ roleCode: USER_ROLE.PRESIDE_SECRETARY })
+        .exec();
+      const boardOfControlRole = await this.rolesModel
+        .findOne({ roleCode: USER_ROLE.BOARD_OF_CONTROL })
+        .exec();
+      const presideRole = await this.rolesModel
+        .findOne({ roleCode: USER_ROLE.PRESIDE })
+        .exec();
+
+      if (!secretaryRole || !boardOfControlRole || !presideRole) {
+        throw new BadRequestException('Không tìm thấy role cần thiết!');
+      }
+
+      // 4. Kiểm tra và tạo/cập nhật participants nếu được chỉ định
+      if (secretaryId) {
+        const existingSecretary = await this.electionParticipantsModel
+          .findOne({
+            electionId: new Types.ObjectId(electionId),
+            roleId: secretaryRole._id,
+          })
+          .exec();
+
+        if (existingSecretary) {
+          // Cập nhật participant thư ký
+          existingSecretary.userId = new Types.ObjectId(secretaryId);
+          existingSecretary.status = STATUS.ACTIVE;
+          await existingSecretary.save();
+        } else {
+          // Tạo mới participant thư ký
+          await this.electionParticipantsModel.create({
+            electionId: new Types.ObjectId(electionId),
+            userId: new Types.ObjectId(secretaryId),
+            roleId: secretaryRole._id,
+            position: 'Thư ký chủ tọa',
+            status: STATUS.ACTIVE,
+            createdBy: new Types.ObjectId(userId),
+          });
+        }
+      }
+
+      if (boardOfControlId) {
+        const existingBoardOfControl = await this.electionParticipantsModel
+          .findOne({
+            electionId: new Types.ObjectId(electionId),
+            roleId: boardOfControlRole._id,
+          })
+          .exec();
+
+        if (existingBoardOfControl) {
+          // Cập nhật participant ban kiểm soát
+          existingBoardOfControl.userId = new Types.ObjectId(boardOfControlId);
+          existingBoardOfControl.status = STATUS.ACTIVE;
+          await existingBoardOfControl.save();
+        } else {
+          // Tạo mới participant ban kiểm soát
+          await this.electionParticipantsModel.create({
+            electionId: new Types.ObjectId(electionId),
+            userId: new Types.ObjectId(boardOfControlId),
+            roleId: boardOfControlRole._id,
+            position: 'Ban kiểm soát',
+            status: STATUS.ACTIVE,
+            createdBy: new Types.ObjectId(userId),
+          });
+        }
+      }
+
+      // 5. Tạo participant cho người tạo (chủ tọa) nếu chưa có
+      const existingCreator = await this.electionParticipantsModel
+        .findOne({
+          electionId: new Types.ObjectId(electionId),
+          userId: election.createdBy,
+          roleId: presideRole._id,
+        })
+        .exec();
+
+      if (!existingCreator && election.createdBy) {
+        await this.electionParticipantsModel.create({
+          electionId: new Types.ObjectId(electionId),
+          userId: election.createdBy,
+          roleId: presideRole._id,
+          position: 'Chủ tọa',
+          status: STATUS.ACTIVE,
+          createdBy: new Types.ObjectId(userId),
+        });
+      }
+
+      // 6. Cập nhật tất cả participants thành ACTIVE
+      await this.electionParticipantsModel.updateMany(
+        { electionId: new Types.ObjectId(electionId) },
+        { $set: { status: STATUS.ACTIVE } },
+      );
+
+      // 7. Cập nhật statusData thành WAIT_ENTER_DATA
+      election.statusData = STATUS.WAIT_ENTER_DATA;
+      election.updatedBy = new Types.ObjectId(userId);
+      await election.save();
+
+      // 8. Gửi thông báo cho người tạo election
+      if (election.createdBy) {
+        await this.notificationService.notifyUser(
+          String(election.createdBy),
+          `Cuộc bầu cử "${election.title}" đã được duyệt và chuyển sang giai đoạn nhập dữ liệu!`,
+        );
+      }
+
+      // 9. Gửi email thông báo cho tất cả participants
+      try {
+        const participantsWithDetails = await this.electionParticipantsModel
+          .find({ electionId: new Types.ObjectId(electionId) })
+          .populate('userId', 'email fullName')
+          .populate('roleId', 'roleName')
+          .exec();
+
+        for (const participant of participantsWithDetails) {
+          const user = participant.userId as any;
+          const role = participant.roleId as any;
+
+          if (user && user.email && role) {
+            await this.mailService.sendElectionApprovalEmail(
+              user.email,
+              user.fullName || 'Thành viên',
+              election.title,
+              role.roleName || 'Thành viên',
+              election.startDate || undefined,
+              undefined,
+            );
+          }
+        }
+      } catch (emailError) {
+        console.error('Error sending approval emails:', emailError);
+      }
+
+      return election;
     } catch (error) {
       throw error;
     }

@@ -161,19 +161,21 @@ export class ElectionParticipantsService {
         throw new NotFoundException(MESSAGE.ELECTION_PARTICIPANT_NOT_FOUND);
       }
       const mapData = await Promise.all(
-        electionParticipants.map(async (item) => {
+        electionParticipants.map(async (item, index) => {
+          console.log(electionParticipants.length)
+          console.log(index + 1)
+          console.log(item._id, (index + 1))
+
           const rolePermission = await this.rolePermissionModel
             .findOne({ roleId: item.roleId._id })
             .populate('permissionIds', 'url')
             .exec();
 
-          console.log(item)
           const voters = await this.votersModel.findOne({
             electionId: item.electionId._id,
             userId: item.userId._id,
           });
 
-          // Lấy meeting status cho election này
           let meetingStatus: string = 'UNDEFINED';
           try {
             const meeting = await this.meetingsModel
@@ -192,7 +194,7 @@ export class ElectionParticipantsService {
 
           const permissionElections =
             (rolePermission?.permissionIds as any[])?.map((p) => p.url) || [];
-
+            console.log(item._id, (index + 1))
           return {
             ...item,
             permissionElections: permissionElections || [],
@@ -344,6 +346,73 @@ export class ElectionParticipantsService {
           { path: 'updatedBy', select: 'fullName username email phone position' },
         ])
         .exec();
+      return updatedParticipant;
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  async updateParticipantByPreside(
+    id: string,
+    newUserId: string,
+    userId: string
+  ) {
+    try {
+      // Kiểm tra participant có tồn tại không
+      const participant = await this.electionParticipantsModel.findById(new Types.ObjectId(id)).exec();
+      if (!participant) {
+        throw new NotFoundException(MESSAGE.ELECTION_PARTICIPANT_NOT_FOUND);
+      }
+
+      // Kiểm tra election có tồn tại không và có phải là REQUEST_FROM_USER không
+      const election = await this.electionsModel.findById(participant.electionId).exec();
+      if (!election) {
+        throw new NotFoundException(MESSAGE.ELECTION_NOT_FOUND);
+      }
+
+      if (election.statusData !== STATUS.REQUEST_FROM_USER) {
+        throw new Error('Chỉ có thể đổi người khi trạng thái là REQUEST_FROM_USER');
+      }
+
+      // Kiểm tra newUserId có tồn tại không
+      const userExists = await this.usersModel.exists({ _id: newUserId });
+      if (!userExists) {
+        throw new NotFoundException(MESSAGE.USER_NOT_FOUND);
+      }
+
+      // Kiểm tra user mới đã trong cuộc bầu cử chưa
+      const participantsExist = await this.electionParticipantsModel.findOne({
+        electionId: participant.electionId,
+        userId: new Types.ObjectId(newUserId),
+        _id: { $ne: new Types.ObjectId(id) },
+      });
+      if (participantsExist) {
+        throw new Error(MESSAGE.ELECTION_PARTICIPANT_ALREADY_EXIST);
+      }
+
+      // Cập nhật userId
+      const updatedParticipant = await this.electionParticipantsModel
+        .findByIdAndUpdate(
+          new Types.ObjectId(id),
+          {
+            userId: new Types.ObjectId(newUserId),
+            updatedBy: userId ? new Types.ObjectId(userId) : null,
+          },
+          { new: true },
+        )
+        .populate([
+          {
+            path: 'electionId',
+            select:
+              'title startDate endDate delegationStart delegationEnd status statusData decisionNumber decisionName',
+          },
+          { path: 'roleId' },
+          { path: 'userId', select: 'fullName username email phone position department' },
+          { path: 'createdBy', select: 'fullName username email phone position' },
+          { path: 'updatedBy', select: 'fullName username email phone position' },
+        ])
+        .exec();
+
       return updatedParticipant;
     } catch (error) {
       throw error;
