@@ -358,8 +358,6 @@ export class MeetingAttendeesService {
       if (!participantExist) {
         throw new Error(MESSAGE.ELECTION_PARTICIPANT_NOT_FOUND);
       }
-      console.log("meeting: ", meetingExist);
-      console.log("participantExist: ", participantExist);
 
       //Tìm voter tương ứng với participantId và electionId
       const voter = await this.voterModels.findOne({
@@ -369,7 +367,6 @@ export class MeetingAttendeesService {
       if (!voter) {
         throw new Error("Không tìm thấy cử tri tương ứng với người tham dự cuộc họp để tạo phiếu bầu");
       }
-
 
       const meetingAttendee = await this.meetingAttendeesModel.findOneAndUpdate(
         {

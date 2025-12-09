@@ -14,6 +14,8 @@ import { Roles, RolesSchema } from 'src/database/schemas/roles.schema';
 import { Users, UsersSchema } from 'src/database/schemas/users.schema';
 import { Meetings, MeetingsSchema } from 'src/database/schemas/meetings.schema';
 import { MeetingAttendees, MeetingAttendeesSchema } from 'src/database/schemas/meetingAttendees.schema';
+import { ElectionDocuments, ElectionDocumentSchema } from 'src/database/schemas/electionDocuments.schema';
+import { MinioModule } from '../minio/minio.module';
 
 @Module({
   imports: [
@@ -30,7 +32,9 @@ import { MeetingAttendees, MeetingAttendeesSchema } from 'src/database/schemas/m
       { name: Users.name, schema: UsersSchema },
       { name: Meetings.name, schema: MeetingsSchema },
       { name: MeetingAttendees.name, schema: MeetingAttendeesSchema },
+      { name: ElectionDocuments.name, schema: ElectionDocumentSchema },
     ]),
+    MinioModule,
   ],
   controllers: [BoardControlController],
   providers: [BoardControlService],

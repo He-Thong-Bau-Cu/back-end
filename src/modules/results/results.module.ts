@@ -13,6 +13,7 @@ import { SignatureModule } from '../signature/signature.module';
 import { ElectionDocuments, ElectionDocumentSchema } from 'src/database/schemas/electionDocuments.schema';
 import { ElectionsParticipants, ElectionsParticipantsSchema } from 'src/database/schemas/electionParticipants.schema';
 import { MailModule } from '../mail/mail.module';
+import { Reports, ReportsSchema } from 'src/database/schemas/reports.schema';
 
 @Module({
   imports: [
@@ -24,6 +25,7 @@ import { MailModule } from '../mail/mail.module';
       { name: VotingMethods.name, schema: VotingMethodsSchema },
       { name: ElectionDocuments.name, schema: ElectionDocumentSchema },
       { name: ElectionsParticipants.name, schema: ElectionsParticipantsSchema },
+      { name: Reports.name, schema: ReportsSchema },
     ]),
     SignatureModule,
     MinioModule,

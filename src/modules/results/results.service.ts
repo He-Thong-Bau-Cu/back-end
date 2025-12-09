@@ -11,7 +11,7 @@ import { BaseSearchDTO } from 'src/common/dto/base-search.dto';
 import { STATUS } from 'src/common/enums/status.enum';
 import { Ballots } from 'src/database/schemas/ballots.schema';
 import { VotingMethods } from 'src/database/schemas/votingMethods.schema';
-import path from 'path/win32';
+import * as path from 'path';
 import PdfPrinter from "pdfmake";
 import * as fs from "fs";
 import * as os from "os";
@@ -23,6 +23,7 @@ import { SigningService } from '../signature/signature.service';
 import { ElectionDocuments } from 'src/database/schemas/electionDocuments.schema';
 import { ElectionsParticipants } from 'src/database/schemas/electionParticipants.schema';
 import { MailService } from '../mail/mail.service';
+import { Reports } from 'src/database/schemas/reports.schema';
 
 @Injectable()
 export class ResultsService {
@@ -41,6 +42,8 @@ export class ResultsService {
     private readonly electionDocumentsModel: Model<ElectionDocuments>,
     @InjectModel(ElectionsParticipants.name)
     private readonly electionsParticipantsModel: Model<ElectionsParticipants>,
+    @InjectModel(Reports.name)
+    private readonly reportsModel: Model<Reports>,
     private readonly signingService: SigningService,
     private readonly minioService: MinioService,
     private readonly mailService: MailService,
@@ -159,34 +162,6 @@ export class ResultsService {
       );
 
       if (signFile) {
-        //tạo bản ghi kết quả
-        await this.resultsModel.create({
-          electionId: new Types.ObjectId(electionId),
-          entityId: results[0]?._id,
-          votesCount: results[0]?.totalVotes,
-          isFinal: true,
-          status: STATUS.SIGNED,
-          createdBy: new Types.ObjectId(userId),
-        });
-
-        //Gửi mail tới các thành viên về kết quả 
-        const electionParticipants = await this.electionsParticipantsModel.find({
-          electionId: new Types.ObjectId(electionId),
-          status: STATUS.ACTIVE
-        }).populate('userId', 'email fullName').exec();
-
-        await Promise.all(electionParticipants.map(participant => {
-          const user = participant.userId as any;
-          this.mailService.sendMailResult(
-            user.email,
-            user.fullName,
-            electionExist.title,
-            pdfPath,
-          )
-        }));
-
-
-
         //upload file đã ký lên minio
         const fileUpload = await this.minioService.uploadSignedPdf(
           FileType.ELECTION_RESULT,
@@ -200,10 +175,63 @@ export class ResultsService {
             preparedBy: new Types.ObjectId(userId),
             title: `Kết quả bầu cử - ${electionExist.title}`,
             type: FileType.ELECTION_RESULT,
-            fileUrl: fileUpload.url,
+            fileUrl: fileUpload.key,
             createdBy: new Types.ObjectId(userId),
           });
+
+          // Cập nhật tất cả kết quả của cuộc bầu cử sang SIGNED
+          await this.resultsModel.updateMany(
+            { electionId: new Types.ObjectId(electionId) },
+            { $set: { status: STATUS.SIGNED } }
+          );
         }
+        // -----------------------------
+        // 2. Ký báo cáo VERIFICATION và lưu ElectionDocument
+        // -----------------------------
+        const verificationReport = await this.reportsModel.findOne({
+          electionId: new Types.ObjectId(electionId),
+          type: 'VERIFICATION',
+        });
+
+        if (verificationReport) {
+          // Tạo pdf đơn giản cho báo cáo xác minh
+          const verificationPdf = await this.generateVerificationPdf(electionExist.title, verificationReport);
+
+          // Ký pdf báo cáo xác minh
+          const signedVerification = await this.signingService.signPdfWithP12(
+            verificationPdf,
+            p12File.buffer,
+            password
+          );
+
+          // Upload file đã ký lên minio
+          const verificationUpload = await this.minioService.uploadSignedPdf(
+            FileType.REPORT_VERIFICATION_SIGN,
+            userId,
+            signedVerification
+          );
+
+          if (verificationUpload) {
+            // Lưu ElectionDocument
+            const verificationDoc = await this.electionDocumentsModel.create({
+              electionId: new Types.ObjectId(electionId),
+              preparedBy: new Types.ObjectId(userId),
+              title: `Báo cáo xác minh - ${electionExist.title}`,
+              type: FileType.REPORT_VERIFICATION_SIGN,
+              fileUrl: verificationUpload.key,
+              fileKey: (verificationUpload as any).key || null,
+              createdBy: new Types.ObjectId(userId),
+            });
+
+            // Cập nhật report: status RESOLVED + gán documentId
+            verificationReport.status = STATUS.RESOLVED;
+            verificationReport.documentId = verificationDoc._id as Types.ObjectId;
+            verificationReport.reviewedBy = new Types.ObjectId(userId);
+            verificationReport.reviewedAt = new Date();
+            await verificationReport.save();
+          }
+        }
+
         return fileUpload;
       } else {
         throw new Error("Ký số không thành công");
@@ -211,6 +239,68 @@ export class ResultsService {
     } catch (error) {
       throw error;
     }
+  }
+
+  private async generateVerificationPdf(electionTitle: string, report: any) {
+    const printer = new PdfPrinter({
+      Roboto: {
+        normal: path.join(process.cwd(), 'src/fonts/Roboto-Regular.ttf'),
+        bold: path.join(process.cwd(), 'src/fonts/Roboto-Bold.ttf'),
+        italics: path.join(process.cwd(), 'src/fonts/Roboto-Italic.ttf'),
+        bolditalics: path.join(process.cwd(), 'src/fonts/Roboto-BoldItalic.ttf'),
+      }
+    });
+
+    const summary = report?.summary ? (() => {
+      try {
+        return JSON.parse(report.summary);
+      } catch {
+        return {};
+      }
+    })() : {};
+
+    const docDefinition: any = {
+      content: [
+        { text: 'BÁO CÁO XÁC MINH', style: 'header' },
+        { text: electionTitle, style: 'title' },
+        '\n',
+        { text: 'Thông tin báo cáo', style: 'sectionHeader' },
+        {
+          table: {
+            widths: ['35%', '65%'],
+            body: [
+              ['Mã báo cáo', report?._id?.toString() || '--'],
+              ['Trạng thái', report?.status || STATUS.PENDING],
+              ['Ngày xác minh', new Date().toLocaleString('vi-VN')],
+              ['Checksum trước', summary.checksumBefore || '--'],
+              ['Checksum sau', summary.checksumAfter || '--'],
+            ],
+          },
+          layout: 'lightHorizontalLines',
+          margin: [0, 5, 0, 15],
+        },
+        { text: 'Ghi chú', style: 'sectionHeader' },
+        { text: report?.description || 'Không có', margin: [0, 4, 0, 0] },
+      ],
+      styles: {
+        header: { fontSize: 22, bold: true, alignment: 'center' },
+        title: { fontSize: 18, bold: true, alignment: 'center', margin: [0, 6, 0, 12] },
+        sectionHeader: { fontSize: 14, bold: true, margin: [0, 12, 0, 6] },
+      },
+      defaultStyle: { fontSize: 11 },
+    };
+
+    const pdfDoc = printer.createPdfKitDocument(docDefinition);
+    const tempDir = os.tmpdir();
+    const tempPath = path.join(tempDir, `verification-${Date.now()}.pdf`);
+
+    return await new Promise<Buffer>((resolve, reject) => {
+      const chunks: any[] = [];
+      pdfDoc.on('data', (chunk) => chunks.push(chunk));
+      pdfDoc.on('end', () => resolve(Buffer.concat(chunks)));
+      pdfDoc.on('error', (err) => reject(err));
+      pdfDoc.end();
+    });
   }
 
   async update(id: string, updateResultDto: UpdateResultDto, userId: string) {
