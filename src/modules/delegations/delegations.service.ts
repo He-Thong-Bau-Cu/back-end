@@ -101,7 +101,7 @@ export class DelegationsService {
         .populate('delegatorId', 'username fullName email position')
         .populate('delegateId', 'username fullName email position')
         .populate('confirmedBy', 'username fullName email position')
-        .populate('documentId', 'title file_url status')
+        .populate('documentId')
         .populate('createdBy', 'username fullName email position')
         .populate('updatedBy', 'username fullName email position')
         .exec();

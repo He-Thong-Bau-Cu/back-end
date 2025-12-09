@@ -8,6 +8,7 @@ import { Elections } from 'src/database/schemas/elections.schema';
 import { ElectionsParticipants } from 'src/database/schemas/electionParticipants.schema';
 import { MESSAGE } from 'src/common/enums/message.enum';
 import { paginate } from 'src/common/dto/paignation';
+import { FileType } from 'src/common/enums/file-type.enum';
 
 @Injectable()
 export class ElectionDocumentsService {
@@ -55,7 +56,7 @@ export class ElectionDocumentsService {
       const electionDocument = await this.electionDocumentsModel
         .findById(new Types.ObjectId(id))
         .populate('electionId', 'title startDate endDate delegationStart delegationEnd status statusData decisionNumber decisionName')
-        .populate('preparedBy')
+        .populate('preparedBy', 'username fullName email position') // Populate với User fields
         .populate('createdBy', 'username fullName email position')
         .populate('updatedBy', 'username fullName email position')
         .exec();
@@ -78,7 +79,7 @@ export class ElectionDocumentsService {
       const electionDocuments = await this.electionDocumentsModel
         .find({ electionId: new Types.ObjectId(electionId) })
         .populate('electionId')
-        .populate('preparedBy')
+        .populate('preparedBy', 'username fullName email position') // Populate với User fields
         .populate('createdBy', 'username fullName email position')
         .populate('updatedBy', 'username fullName email position')
         .exec();
@@ -95,14 +96,28 @@ export class ElectionDocumentsService {
       if (!documentExist) {
         throw new Error(MESSAGE.ELECTION_DOCUMENT_NOT_FOUND);
       }
+
+      // Loại bỏ electionId và preparedBy khỏi updateData để xử lý riêng
+      // preparedBy luôn là userId (người đang update), không cho phép thay đổi từ DTO
+      const { electionId, preparedBy, ...restUpdateData } = updateElectionDocument;
+
+      // Chỉ update những field được truyền vào, không set null cho field không được truyền
+      const updateData: any = {
+        ...restUpdateData,
+        updatedBy: new Types.ObjectId(userId) || null,
+      };
+
+      // Chỉ update electionId nếu được truyền vào
+      if (electionId !== undefined) {
+        updateData.electionId = electionId
+          ? new Types.ObjectId(electionId)
+          : null;
+      }
+
       const electionDocument = await this.electionDocumentsModel
-        .findByIdAndUpdate(new Types.ObjectId(id), {
-          ...updateElectionDocument,
-          electionId: updateElectionDocument.electionId ? new Types.ObjectId(updateElectionDocument.electionId) : null,
-          preparedBy: updateElectionDocument.preparedBy ? new Types.ObjectId(updateElectionDocument.preparedBy) : null,
-        }, { new: true })
+        .findByIdAndUpdate(new Types.ObjectId(id), updateData, { new: true })
         .populate('electionId', 'title startDate endDate delegationStart delegationEnd status statusData decisionNumber decisionName')
-        .populate('preparedBy')
+        .populate('preparedBy', 'username fullName email position') // Populate với User fields
         .populate('createdBy', 'username fullName email position')
         .populate('updatedBy', 'username fullName email position')
         .exec();
@@ -116,12 +131,32 @@ export class ElectionDocumentsService {
       const electionDocuments = await this.electionDocumentsModel
         .find({ createdBy: new Types.ObjectId(userId) })
         .populate('electionId', 'title startDate endDate delegationStart delegationEnd status statusData decisionNumber decisionName')
-        .populate('preparedBy')
+        .populate('preparedBy', 'username fullName email position') // Populate với User fields
         .populate('createdBy', 'username fullName email position')
         .populate('updatedBy', 'username fullName email position')
         .exec();
       return paginate(electionDocuments);
     } catch (error) {
+      throw error;
+    }
+  }
+
+  //Lấy danh sách document theo electionId và type: "voters-import-excel"
+  async getByElectionIdAndType(electionId: string) {
+    try {
+      const electionDocuments = await this.electionDocumentsModel
+        .findOne({
+          electionId: new Types.ObjectId(electionId),
+          type: FileType.VOTERS_IMPORT_EXCEL
+        })
+        .populate('electionId')
+        .populate('preparedBy', 'username fullName email position') // Populate với User fields
+        .populate('createdBy', 'username fullName email position')
+        .populate('updatedBy', 'username fullName email position')
+        .exec();
+      return electionDocuments;
+    }
+    catch (error) {
       throw error;
     }
   }

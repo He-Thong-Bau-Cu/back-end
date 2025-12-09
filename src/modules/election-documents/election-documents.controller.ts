@@ -107,4 +107,22 @@ export class ElectionDocumentsController {
     }
   }
 
+  @Get('election/:electionId/type/voters-import-excel')
+  @ApiOperation({ summary: "Lấy danh sách document theo electionId và type: 'voters-import-excel'" })
+  @ApiResponse({ status: 200, description: "Lấy danh sách document theo electionId và type: 'voters-import-excel' thành công" })
+  @ApiResponse({ status: 400, description: "Dữ liệu không hợp lệ" })
+  @ApiResponse({ status: 500, description: "Lỗi server" })
+  @HttpCode(HttpStatus.OK)
+  async getByElectionIdAndType(@Param('electionId') electionId: string): Promise<BaseResponse> {
+    try {
+      const resData = await this.electionDocumentsService.getByElectionIdAndType(electionId);
+      return BaseResponse.success(resData, "Lấy danh sách document của file excel chưa danh sách cử tri thành công.", HttpStatus.OK);
+    } catch (error) {
+      throw new HttpException(
+        { message: error.message },
+        HttpStatus.INTERNAL_SERVER_ERROR
+      )
+    }
+  }
+
 }
