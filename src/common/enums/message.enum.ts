@@ -5,7 +5,7 @@ export enum MESSAGE {
   // Election
   ELECTION_NOT_FOUND = 'Không tìm thấy cuộc bầu cử',
   ELECTION_IS_NOT_ACTIVE = 'Cuộc bầu cử không hoạt động',
-  ELECTION_ALREADY_EXISTS = 'Cuộc bầu cử đã tồn tại với tiêu đề và ngày bắt đầu này',
+  ELECTION_ALREADY_EXISTS = 'Cuộc bầu cử đã tồn tại.',
   ELECTION_DATE_INVALID = 'Ngày kết thúc phải sau ngày bắt đầu',
   ELECTION_CREATE_SUCCESS = 'Tạo cuộc bầu cử thành công',
   ELECTION_UPDATE_SUCCESS = 'Cập nhật cuộc bầu cử thành công',
