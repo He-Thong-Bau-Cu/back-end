@@ -2297,22 +2297,6 @@ export class ElectionsService {
   private async checkDate(createElection: CreateElectionDto) {
     const { startDate, endDate, delegationStart, delegationEnd } = createElection;
 
-    // 1. Check trùng cuộc bầu cử theo ngày
-    if (startDate && endDate) {
-      const start = new Date(startDate);
-      const end = new Date(endDate);
-
-      const elections = await this.electionsModel.find({
-        startDate: { $lte: end },
-        endDate: { $gte: start },
-      });
-
-      if (elections.length > 0) {
-        throw new Error(MESSAGE.ELECTION_ALREADY_EXISTS);
-      }
-    }
-
-
     // 2. Ngày bắt đầu ≥ ngày tạo + 20 ngày
     if (startDate) {
       const createdAt = getCurrentDateVN();
@@ -2397,21 +2381,6 @@ export class ElectionsService {
   private async checkDateInUpdate(updateElection: UpdateElectionDto, id: string) {
     const { startDate, endDate, delegationStart, delegationEnd } = updateElection;
 
-    // 1. Kiểm tra trùng ngày election khác
-    if (startDate && endDate) {
-      const start = new Date(startDate);
-      const end = new Date(endDate);
-
-      const elections = await this.electionsModel.find({
-        _id: { $ne: id }, //tìm trong electionsModel nhưng loại trừ id hiện tại
-        startDate: { $lte: end },
-        endDate: { $gte: start },
-      });
-
-      if (elections.length > 0) {
-        throw new Error(MESSAGE.ELECTION_ALREADY_EXISTS);
-      }
-    }
 
     // 3. Delegation: delEnd > delStart
     if (delegationStart && delegationEnd) {
