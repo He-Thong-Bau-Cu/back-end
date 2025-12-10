@@ -22,5 +22,6 @@ import { Roles, RolesSchema } from 'src/database/schemas/roles.schema';
   ],
   controllers: [VotersController],
   providers: [VotersService],
+  exports: [VotersService],
 })
 export class VotersModule { }

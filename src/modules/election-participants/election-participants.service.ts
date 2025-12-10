@@ -15,6 +15,7 @@ import {
   RolePermissionsDocument,
 } from 'src/database/schemas/rolePermissions.schema';
 import { Voters, VotersDocument } from 'src/database/schemas/voters.schema';
+import { VotingRights, VotingRightsDocument } from 'src/database/schemas/votingRights.schema';
 import { Permissions, PermissionsDocument } from 'src/database/schemas/permissions.schema';
 import { STATUS } from 'src/common/enums/status.enum';
 import { Meetings } from 'src/database/schemas/meetings.schema';
@@ -34,6 +35,8 @@ export class ElectionParticipantsService {
     private readonly rolePermissionModel: Model<RolePermissionsDocument>,
     @InjectModel(Voters.name)
     private readonly votersModel: Model<VotersDocument>,
+    @InjectModel(VotingRights.name)
+    private readonly votingRightsModel: Model<VotingRightsDocument>,
     @InjectModel(Permissions.name)
     private readonly permissionsModel: Model<PermissionsDocument>,
     @InjectModel(Meetings.name)
@@ -69,6 +72,7 @@ export class ElectionParticipantsService {
           { path: 'createdBy', select: 'fullName username email phone position' },
           { path: 'updatedBy', select: 'fullName username email phone position' },
         ])
+        .lean()
         .exec();
 
       return participants;

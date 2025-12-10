@@ -144,5 +144,10 @@ export class BulkSaveDraftDto {
   @IsNotEmpty()
   @IsBoolean()
   isSubmitForApproval: boolean;
+
+  @ApiProperty({ description: "Có tài liệu không" })
+  @IsNotEmpty()
+  @IsBoolean()
+  hasDocuments: boolean;
 }
 

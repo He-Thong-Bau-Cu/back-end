@@ -52,7 +52,13 @@ export class VotingRightsService {
       const votingRights = await this.votingRightModel
         .find({ electionId: new Types.ObjectId(electionId) })
         .populate('electionId')
-        .populate('voterId')
+        .populate({
+          path: 'voterId',
+          populate: {
+            path: 'userId',
+            select: 'fullName username email phone position department'
+          }
+        })
         .populate('createdBy', 'username fullName email position')
         .populate('updatedBy', 'username fullName email position')
         .exec();
@@ -92,7 +98,7 @@ export class VotingRightsService {
     }
   }
 
-  async create(createVotingRightDto: CreateVotingRightDto, userId:string) {
+  async create(createVotingRightDto: CreateVotingRightDto, userId: string) {
     try {
       //Check if the election exists
       const electionExists = await this.electionsModel.exists({ _id: createVotingRightDto.electionId });
@@ -126,7 +132,7 @@ export class VotingRightsService {
     }
   }
 
-  async update(id: string, updateVotingRightDto: UpdateVotingRightDto, userId:string) {
+  async update(id: string, updateVotingRightDto: UpdateVotingRightDto, userId: string) {
     try {
       //Check if the voting right exists
       const votingRightExists = await this.votingRightModel.exists({ _id: id });

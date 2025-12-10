@@ -29,6 +29,8 @@ import { MinioModule } from '../minio/minio.module';
 import { NotificationModule } from '../notification/notification.module';
 import { MailModule } from '../mail/mail.module';
 import { ResultsModule } from '../results/results.module';
+import { VotersModule } from '../voters/voters.module';
+import { UsersModule } from '../users/users.module';
 
 @Module({
   imports: [
@@ -55,6 +57,8 @@ import { ResultsModule } from '../results/results.module';
     NotificationModule,
     MailModule,
     ResultsModule,
+    VotersModule,
+    UsersModule,
   ],
   providers: [ElectionsService],
   controllers: [ElectionsController],
