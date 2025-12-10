@@ -27,6 +27,24 @@ export class StatisticsController {
     }
   }
 
+  @Get('preside/elections/:electionId')
+  @ApiOperation({ summary: 'Lấy thông tin thống kê cho chủ tịch theo electionId' })
+  @ApiResponse({ status: 200, description: 'Lấy thông tin thống kê cho chủ tịch thành công' })
+  @ApiResponse({ status: 500, description: 'Lỗi server' })
+  async getDashboardPresideByElectionId(
+    @Param('electionId') electionId: string,
+  ): Promise<BaseResponse> {
+    try {
+      const resData = await this.statisticsService.getDashboardPresideByElectionId(electionId);
+      return BaseResponse.success(resData, MESSAGE.STATISTICS_GET_DASHBOARD_PRESIDENT_SUCCESS, HttpStatus.OK);
+    } catch (error) {
+      throw new HttpException(
+        { message: error.message },
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
   @Get('preside/recent-participation')
   @ApiOperation({ summary: 'Lấy tỷ lệ tham gia của các cuộc bầu cử gần nhất' })
   @ApiResponse({ status: 200, description: 'Lấy tỷ lệ tham gia thành công' })

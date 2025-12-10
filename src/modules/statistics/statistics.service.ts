@@ -101,55 +101,117 @@ export class StatisticsService {
     }
   }
 
+  async getDashboardPresideByElectionId(electionId: string) {
+    try {
+      const electionObjectId = new Types.ObjectId(electionId);
+
+      // Kiểm tra election có tồn tại không
+      const election = await this.electionsModel.findById(electionObjectId).exec();
+      if (!election) {
+        throw new Error(MESSAGE.ELECTION_NOT_FOUND);
+      }
+
+      // Tổng số kỳ bầu cử (chỉ tính election này, nên = 1)
+      const totalElections = 1;
+
+      // Tổng số cử tri trong election này
+      const totalVoters = await this.votersModel.countDocuments({
+        electionId: electionObjectId,
+      });
+
+      // Quyết định chờ duyệt (chỉ tính election này)
+      const pendingApprovals = await this.electionsModel.countDocuments({
+        _id: electionObjectId,
+        statusData: STATUS.WAIT_APPROVAL,
+      });
+
+      // Lấy tổng số hoạt động trong tháng (có thể filter theo electionId nếu có trong systemLog)
+      let totalActivitiesThisMonth: number | null = null;
+      try {
+        const now = getCurrentDateVN();
+        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
+        const startOfNextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1, 0, 0, 0, 0);
+        // Nếu systemLog có electionId thì filter, nếu không thì lấy tất cả
+        totalActivitiesThisMonth = await this.systemLogModel.countDocuments({
+          createdAt: { $gte: startOfMonth, $lt: startOfNextMonth },
+        });
+      } catch (error) {
+        totalActivitiesThisMonth = null;
+      }
+
+      // Tỷ lệ tham gia bầu cử (chỉ tính trong election này)
+      let participationRate = 0;
+      try {
+        const voterRole = await this.rolesModel.findOne({ roleCode: USER_ROLE.VOTER });
+        if (voterRole) {
+          const participationActive = await this.participantsModel.countDocuments({
+            electionId: electionObjectId,
+            status: STATUS.ACTIVE,
+            roleId: voterRole._id
+          });
+          const totalParticipants = await this.participantsModel.countDocuments({
+            electionId: electionObjectId,
+            roleId: voterRole._id
+          });
+          participationRate = totalParticipants > 0
+            ? (participationActive / totalParticipants) * 100
+            : 0;
+        }
+      } catch (error) {
+        participationRate = 0;
+      }
+
+      return {
+        totalElections,
+        totalVoters,
+        pendingApprovals,
+        totalActivitiesThisMonth,
+        participationRate,
+      };
+    } catch (error) {
+      throw error;
+    }
+  }
+
   async getRecentParticipation() {
     try {
-      // Lấy 5 cuộc bầu cử gần nhất đã kết thúc
+      // Lấy 5 cuộc bầu cử gần nhất (không filter theo status để luôn có data)
       const elections = await this.electionsModel
-        .find({ status: STATUS.CLOSED })
-        .sort({ endDate: -1 })
+        .find({ status: { $ne: STATUS.DELETED } }) // Lấy tất cả trừ DELETED
+        .sort({ createdAt: -1 }) // Sắp xếp theo ngày tạo mới nhất
         .limit(5)
         .lean();
 
       const result: any = [];
 
       for (const election of elections) {
-
+        // Đếm tổng số participants trong election này (đơn giản hơn)
         const totalParticipants = await this.participantsModel.countDocuments({
           electionId: election._id,
         });
 
-        // Đếm số người tham gia
-        let voterActiveCount = 0;
+        // Đếm số voters (participants có role là VOTER)
         const voterRole = await this.rolesModel.findOne({ roleCode: USER_ROLE.VOTER });
-        const participantAsVoters = await this.participantsModel.find({
-          electionId: election._id,
-          roleId: voterRole?._id,
-        });
-        for (const participant of participantAsVoters) {
-          const meetingAttendee = await this.meetingAttendeeModel.findOne({
-            electionId: election._id,
-            participantId: participant._id,
-          });
-          if (meetingAttendee?.attended == true) {
-            voterActiveCount++;
-          }
-        }
-        // if (voterRole) {
-        //   voterActiveCount = await this.participantsModel.countDocuments({
-        //     roleId: voterRole._id,
-        //   });
-        // }
-
-        const rate =
-          totalParticipants === 0
-            ? 0
-            : Math.round((voterActiveCount / totalParticipants) * 100);
+        const totalVoters = voterRole
+          ? await this.participantsModel.countDocuments({
+              electionId: election._id,
+              roleId: voterRole._id,
+            })
+          : 0;
 
         result.push({
-          title: election.title,
-          rateAttendance: rate,
-          totalVotersAttended: voterActiveCount,
-          totalParticipants
+          title: election.title || election.decisionName || 'Chưa có tên',
+          totalParticipants: totalParticipants,
+          totalVoters: totalVoters,
+        });
+      }
+
+      // Nếu không có election nào, trả về data mẫu để luôn có biểu đồ
+      if (result.length === 0) {
+        result.push({
+          title: 'Chưa có cuộc bầu cử',
+          totalParticipants: 0,
+          totalVoters: 0,
         });
       }
 

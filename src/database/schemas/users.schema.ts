@@ -55,6 +55,15 @@ export class Users extends BaseSchema {
 
   @Prop({ default: null })
   twoFaSecret: string;
+
+  @Prop({ default: null })
+  signCa: string;
+
+  @Prop({default: false})
+  issueCa: boolean;
+
+  @Prop({default: false})
+  chairmanOfTheBoardOfDirectors: boolean;
 }
 
 export const UsersSchema = SchemaFactory.createForClass(Users);

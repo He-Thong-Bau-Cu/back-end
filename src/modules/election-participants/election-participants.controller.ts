@@ -6,6 +6,7 @@ import { BaseResponse } from 'src/common/dto/base-response.dto';
 import { MESSAGE } from 'src/common/enums/message.enum';
 import { CustomRequest } from 'src/common/middleware/auth.middleware';
 import { UpdateElectionParticipantDto } from './dto/update-election-participant.dto';
+import { UpdateParticipantByPresideDto } from './dto/update-participant-by-preside.dto';
 
 @ApiBearerAuth('access-token')
 @Controller('election-participants')
@@ -157,5 +158,24 @@ export class ElectionParticipantsController {
     }
   }
 
+  @Put(':id/update-by-preside')
+  @ApiOperation({ summary: 'Chủ tọa đổi người tham gia cuộc bầu cử (chỉ đổi userId)' })
+  @ApiResponse({ status: 200, description: 'Đổi người tham gia thành công' })
+  @ApiResponse({ status: 400, description: 'Dữ liệu không hợp lệ.' })
+  @ApiResponse({ status: 500, description: 'Lỗi server' })
+  async updateByPreside(
+    @Param('id') id: string,
+    @Body() updateDto: UpdateParticipantByPresideDto,
+    @Req() req: CustomRequest): Promise<BaseResponse> {
+    try {
+      const resData = await this.electionParticipantsService.updateParticipantByPreside(id, updateDto.newUserId, req.user.sub);
+      return BaseResponse.success(resData, 'Đổi người tham gia thành công', HttpStatus.OK);
+    } catch (error) {
+      throw new HttpException(
+        { message: error.message },
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      )
+    }
+  }
 
 }

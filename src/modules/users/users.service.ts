@@ -275,6 +275,7 @@ export class UsersService implements OnModuleInit {
         isTempPassword: true,
         status: STATUS.ACTIVE,
         image: req.image,
+        chairmanOfTheBoardOfDirectors: req.chairmanOfTheBoardOfDirectors ?? false,
       });
       await newUser.save();
       await this.mailService.sendMail(req.email, req.fullName, username, password);
@@ -316,6 +317,13 @@ export class UsersService implements OnModuleInit {
 
       if (checkValidUser) {
         throw new Error('Gmail hoặc số điện thoại đã tồn tại !');
+      }
+
+      if(req.chairmanOfTheBoardOfDirectors){
+        const checkChairmanOfTheBoardOfDirectors = await this.userModel.findOne({ chairmanOfTheBoardOfDirectors: true }).exec();
+        if(checkChairmanOfTheBoardOfDirectors){
+          throw new Error('Đã có chủ tịch hội đồng quản trị trong hệ thống !');
+        }
       }
 
       const username = await this.generateUserName(req.fullName);
@@ -382,6 +390,16 @@ export class UsersService implements OnModuleInit {
           _id: { $ne: new Types.ObjectId(userId) },
         })
         .exec();
+
+      if(req.chairmanOfTheBoardOfDirectors){
+        const checkChairmanOfTheBoardOfDirectors = await this.userModel.findOne({
+          chairmanOfTheBoardOfDirectors: true,
+          _id: { $ne: new Types.ObjectId(userId) },
+         }).exec();
+        if(checkChairmanOfTheBoardOfDirectors){
+          throw new Error('Đã có chủ tịch hội đồng quản trị trong hệ thống !');
+        }
+      }
       if (checkCitizenId.length > 0) {
         throw new Error('Số căn cước công dân đã tồn tại !');
       }
@@ -409,11 +427,14 @@ export class UsersService implements OnModuleInit {
       const userData = await this.userModel
         .findById(
           new Types.ObjectId(userId),
-          '_id username isTempPassword fullName dateOfBirth citizenId email phone address roleId position department image',
+          '_id username isTempPassword fullName dateOfBirth citizenId email phone address roleId position department image signCa issueCa chairmanOfTheBoardOfDirectors',
         )
         .exec();
       if (!userData) {
         throw new Error('Người dùng không tồn tại !');
+      }
+      if(userData.chairmanOfTheBoardOfDirectors === null || userData.chairmanOfTheBoardOfDirectors === undefined || userData.chairmanOfTheBoardOfDirectors === false){
+        userData.chairmanOfTheBoardOfDirectors = false;
       }
       return userData;
     } catch (error) {

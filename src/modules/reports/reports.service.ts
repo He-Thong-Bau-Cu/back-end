@@ -58,16 +58,50 @@ export class ReportsService {
     }
   }
 
-  async findAll() {
+  async findAll(electionId?: string) {
     try {
-      return await this.reportModel
-        .find()
-        .populate('electionId', "title startDate endDate status")
-        .populate('reviewedBy', 'username fullName email position')
-        .populate('documentId', 'title type content fileUrl status')
-        .populate('createdBy', 'username fullName email position')
-        .populate('updatedBy', 'username fullName email position')
-        .exec();
+      // Nếu có electionId, chỉ lấy reports của election đó và filter isUserBasicCreate = true
+      if (electionId) {
+        // Kiểm tra election có isUserBasicCreate = true không
+        const election = await this.electionsModel.findOne({
+          _id: new Types.ObjectId(electionId),
+          isUserBasicCreate: true,
+        });
+
+        if (!election) {
+          return []; // Nếu election không có isUserBasicCreate = true, trả về rỗng
+        }
+
+        return await this.reportModel
+          .find({ electionId: new Types.ObjectId(electionId) })
+          .populate('electionId', "title startDate endDate status isUserBasicCreate")
+          .populate('reviewedBy', 'username fullName email position')
+          .populate('documentId', 'title type content fileUrl status')
+          .populate('createdBy', 'username fullName email position')
+          .populate('updatedBy', 'username fullName email position')
+          .exec();
+      } else {
+        // Nếu không có electionId (system preside), không lấy những cái có isUserBasicCreate = true
+        // Lấy tất cả elections có isUserBasicCreate != true
+        const elections = await this.electionsModel.find({
+          isUserBasicCreate: { $ne: true },
+        }).select('_id').lean();
+
+        const electionIds = elections.map(e => e._id);
+
+        if (electionIds.length === 0) {
+          return []; // Nếu không có election nào, trả về rỗng
+        }
+
+        return await this.reportModel
+          .find({ electionId: { $in: electionIds } })
+          .populate('electionId', "title startDate endDate status isUserBasicCreate")
+          .populate('reviewedBy', 'username fullName email position')
+          .populate('documentId', 'title type content fileUrl status')
+          .populate('createdBy', 'username fullName email position')
+          .populate('updatedBy', 'username fullName email position')
+          .exec();
+      }
     } catch (error) {
       throw error;
     }

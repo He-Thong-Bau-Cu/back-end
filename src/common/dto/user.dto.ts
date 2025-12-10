@@ -108,4 +108,11 @@ export class UserDto extends BaseRequest {
     @IsOptional()
     @IsString()
     image?: string;
+
+    @ApiPropertyOptional({
+        description: 'Là chủ tịch hội đồng quản trị',
+        example: false,
+    })
+    @IsOptional()
+    chairmanOfTheBoardOfDirectors?: boolean;
 }
