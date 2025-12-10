@@ -44,6 +44,11 @@ import { NotificationService } from '../notification/notification.service';
 import { MailService } from '../mail/mail.service';
 import { ResultsService } from '../results/results.service';
 import * as ExcelJS from 'exceljs';
+import { VotersService } from '../voters/voters.service';
+import { CreateVoterDto } from '../voters/dto/create-voter.dto';
+import { CreateUserDto } from '../users/dto/create-user.dto';
+import { UserDto } from 'src/common/dto/user.dto';
+import { UsersService } from '../users/users.service';
 
 @Injectable()
 export class ElectionsService {
@@ -85,6 +90,8 @@ export class ElectionsService {
     private readonly notificationService: NotificationService,
     private readonly mailService: MailService,
     private readonly resultsService: ResultsService,
+    private readonly votersService: VotersService,
+    private readonly usersService: UsersService,
   ) { }
 
   async searchElections(req: SearchDTO) {
@@ -323,6 +330,108 @@ export class ElectionsService {
     }
   }
 
+  async rejectElectionByBKS(electionId: string, rejectReason: string, userId: string) {
+    try {
+      // 1. Kiểm tra election có tồn tại không
+      const election = await this.electionsModel.findById(new Types.ObjectId(electionId)).exec();
+
+      if (!election) {
+        throw new NotFoundException(MESSAGE.ELECTION_NOT_FOUND);
+      }
+
+      // 2. Kiểm tra statusData phải là WAIT_APPROVAL
+      if (election.statusData !== STATUS.WAIT_BKS_CONFIRMED) {
+        throw new BadRequestException('Chỉ có thể từ chối khi trạng thái là chờ duyệt bởi Ban Kiểm Soát!');
+      }
+
+      // 3. Cập nhật statusData thành REJECTED và lưu lý do từ chối
+      election.statusData = STATUS.REJECTED;
+      election.rejectReason = rejectReason;
+      election.updatedBy = new Types.ObjectId(userId);
+      await election.save();
+
+      // 4. Gửi thông báo cho người tạo election (nếu có)
+      if (election.updatedBy) {
+        // Có thể thêm notification service ở đây nếu cần
+        await this.notificationService.notifyUser(
+          String(election.updatedBy),
+          `Cuộc bầu cử "${election.title}" đã bị từ chối. Lý do: ${rejectReason}`,
+        );
+      }
+
+      return election;
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  async approveByBKS(
+    electionId: string,
+    userId: string,
+  ) {
+    try {
+      // 1. Kiểm tra election có tồn tại không
+      const election = await this.electionsModel
+        .findById(new Types.ObjectId(electionId))
+        .populate('typeId')
+        .populate('votingMethodId')
+        .populate('thresholdId')
+        .populate('createdBy', 'username fullName email position')
+        .exec();
+
+      if (!election) {
+        throw new NotFoundException(MESSAGE.ELECTION_NOT_FOUND);
+      }
+
+      // 2. Kiểm tra statusData phải là WAIT_APROVAL
+      if (election.statusData !== STATUS.WAIT_BKS_CONFIRMED) {
+        throw new BadRequestException('Chỉ có thể ký duyệt khi trạng thái là chờ duyệt bởi Ban Kiểm Soát!');
+      }
+
+
+      // 10. Cập nhật status election
+      const updateElection = await this.electionsModel.updateOne(
+        { _id: new Types.ObjectId(electionId) },
+        {
+          $set: {
+            statusData: STATUS.WAIT_APPROVAL
+            , updatedBy: new Types.ObjectId(userId)
+          }
+        },
+      );
+
+      // 17. Gửi thông báo socket đến thư kí sau khi duyệt
+      try {
+        //Tìm role là thư kí
+        const secretaryRole = await this.rolesModel.findOne({ roleCode: USER_ROLE.PRESIDE_SECRETARY }).exec();
+        if (secretaryRole) {
+          const secretaryParticipant = await this.electionParticipantsModel
+            .findOne({
+              electionId: new Types.ObjectId(electionId),
+              roleId: secretaryRole._id,
+            })
+            .exec();
+          if (secretaryParticipant) {
+            const secretary = secretaryParticipant.userId as any;
+            if (secretary && secretary._id) {
+              await this.notificationService.notifyUser(
+                String(secretary._id),
+                `Cuộc bầu cử "${election.title}" đã được Ban Kiểm Soát duyệt thành công!`,
+              );
+            }
+          }
+        }
+      } catch (socketError) {
+        // Log lỗi nhưng không throw để không ảnh hưởng đến quá trình duyệt
+        console.error('Error sending socket notifications:', socketError);
+      }
+
+      return updateElection;
+    } catch (error) {
+      throw error;
+    }
+  }
+
   async approveAndSign(
     p12File: Express.Multer.File,
     electionId: string,
@@ -358,6 +467,140 @@ export class ElectionsService {
         'CÔNG TY CỔ PHẦN PHÁT TRIỂN AVG';
 
       const title = election.title || 'Quyết định triệu tập và Chương trình họp Đại hội đồng cổ đông';
+
+      //3.1.Tạo user, voter, electionParticipant và votingRight cho voter lấy từ excel
+      try {
+        const voterExcelResponse = await this.getVotersFromExcel(electionId);
+        const voterExcel: any[] = voterExcelResponse?.voters || [];
+
+        if (voterExcel && voterExcel.length > 0) {
+          // Lấy role VOTER
+          const voterRole = await this.rolesModel.findOne({ roleCode: USER_ROLE.VOTER }).exec();
+          if (!voterRole || !voterRole._id) {
+            console.warn('Không tìm thấy role VOTER, bỏ qua tạo voter từ Excel');
+          } else {
+            // Đảm bảo voterRoleId là ObjectId
+            const voterRoleId = voterRole._id instanceof Types.ObjectId
+              ? voterRole._id
+              : new Types.ObjectId(String(voterRole._id));
+
+            for (const v of voterExcel) {
+              try {
+                // Tìm user theo email
+                let user: any = await this.userModel.findOne({ email: v.email }).exec();
+
+                // Nếu chưa có user, tạo mới
+                if (!user) {
+                  const data: UserDto = {
+                    email: v.email,
+                    fullName: v.fullName,
+                    phone: v.phone,
+                    citizenId: v.citizenId,
+                  };
+                  user = await this.usersService.create(data);
+                } else {
+                  // Cập nhật status nếu đã có
+                  user.status = STATUS.ACTIVE;
+                  await user.save();
+                }
+
+                if (user && user._id) {
+                  const userIdObj = user._id instanceof Types.ObjectId
+                    ? user._id
+                    : new Types.ObjectId(user._id);
+
+                  // Kiểm tra và tạo voter nếu chưa có
+                  let voter = await this.voterModel.findOne({
+                    userId: userIdObj,
+                    electionId: new Types.ObjectId(electionId)
+                  }).exec();
+
+                  if (!voter) {
+
+                    voter = await this.voterModel.create({
+                      userId: userIdObj,
+                      electionId: new Types.ObjectId(electionId),
+                      status: STATUS.ACTIVE,
+                      eligible: true,
+                      createdBy: new Types.ObjectId(userId),
+                      createdAt: getCurrentDateVN(),
+                    });
+                  }
+                  if (voter && voter._id) {
+                    // Tạo ElectionParticipant với role VOTER nếu chưa có
+                    const existingParticipant = await this.electionParticipantsModel.findOne({
+                      electionId: new Types.ObjectId(electionId),
+                      userId: userIdObj,
+                      roleId: voterRoleId,
+                    }).exec();
+
+                    if (!existingParticipant) {
+                      await this.electionParticipantsModel.create({
+                        electionId: new Types.ObjectId(electionId),
+                        userId: userIdObj,
+                        roleId: voterRoleId,
+                        position: 'Cử tri',
+                        status: STATUS.ACTIVE,
+                        createdBy: new Types.ObjectId(userId),
+                        createdAt: getCurrentDateVN(),
+                      });
+                    } else {
+                      // Cập nhật status nếu đã có
+                      existingParticipant.status = STATUS.ACTIVE;
+                      await existingParticipant.save();
+                    }
+
+                    // Tạo VotingRight nếu chưa có
+                    const existingVotingRight = await this.votingRightsModel.findOne({
+                      electionId: new Types.ObjectId(electionId),
+                      voterId: voter._id,
+                    }).exec();
+
+                    if (!existingVotingRight) {
+                      // Sử dụng percentage từ Excel (có thể là v.percentage hoặc v.shares)
+                      const shares = v.percentage !== undefined ? v.percentage : (v.shares || 0);
+                      const votes = await this.calculateVotes(shares);
+
+                      await this.votingRightsModel.create({
+                        electionId: new Types.ObjectId(electionId),
+                        voterId: voter._id,
+                        shares: shares,
+                        votes: votes,
+                        status: STATUS.ACTIVE,
+                        createdBy: new Types.ObjectId(userId),
+                        createdAt: getCurrentDateVN(),
+                      });
+                    } else {
+                      // Cập nhật shares và votes nếu đã có (hoặc chỉ cập nhật status)
+                      const shares = v.percentage !== undefined ? v.percentage : (v.shares || existingVotingRight.shares);
+                      const votes = await this.calculateVotes(shares);
+
+                      existingVotingRight.shares = shares;
+                      existingVotingRight.votes = votes;
+                      existingVotingRight.status = STATUS.ACTIVE;
+                      await existingVotingRight.save();
+                    }
+                  }
+                }
+              } catch (voterError) {
+                // Log lỗi cho từng voter nhưng tiếp tục xử lý các voter khác
+                console.error(`Error processing voter ${v.email}:`, voterError);
+              }
+            }
+          }
+        }
+      } catch (excelError) {
+        // Log lỗi nhưng không throw để không ảnh hưởng đến quá trình duyệt
+        console.error('Error getting voters from Excel:', excelError);
+      }
+
+      //3.2.1 cập nhật trạng thái file excel trong election documents
+      await this.electionDocumentsModel.updateOne(
+        { electionId: new Types.ObjectId(electionId), type: FileType.VOTERS_IMPORT_EXCEL },
+        { $set: { status: STATUS.ACTIVE, updatedBy: new Types.ObjectId(userId), updatedAt: getCurrentDateVN() } },
+      );
+
+
 
       // 4. Lấy thông tin meeting
       const meeting = await this.meetingsModel
@@ -1099,6 +1342,7 @@ export class ElectionsService {
         voters,
         participants,
         isSubmitForApproval,
+        hasDocuments,
       } = dto;
 
       if (isSubmitForApproval) {
@@ -1116,8 +1360,10 @@ export class ElectionsService {
           }
         }
 
-        if (!electionDocuments || !Array.isArray(electionDocuments) || electionDocuments.length === 0) {
-          throw new Error('Vui lòng thêm ít nhất một tài liệu trước khi gửi duyệt');
+        if (!hasDocuments) {
+          if (!electionDocuments || !Array.isArray(electionDocuments) || electionDocuments.length === 0) {
+            throw new Error('Vui lòng thêm ít nhất một tài liệu trước khi gửi duyệt');
+          }
         }
         if (!voters || !Array.isArray(voters) || voters.length === 0) {
           throw new Error('Vui lòng thêm ít nhất một cử tri trước khi gửi duyệt');
@@ -1147,7 +1393,7 @@ export class ElectionsService {
       };
 
       if (isSubmitForApproval) {
-        electionUpdate.statusData = STATUS.WAIT_APPROVAL;
+        electionUpdate.statusData = STATUS.WAIT_BKS_CONFIRMED;
         electionUpdate.updatedBy = new Types.ObjectId(userId);
       }
 

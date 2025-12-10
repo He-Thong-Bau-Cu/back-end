@@ -8,6 +8,7 @@ import { Users, UsersSchema } from 'src/database/schemas/users.schema';
 import { Roles, RolesSchema } from 'src/database/schemas/roles.schema';
 import { RolePermissions, RolePermissionsSchema } from 'src/database/schemas/rolePermissions.schema';
 import { Voters, VotersSchema } from 'src/database/schemas/voters.schema';
+import { VotingRights, VotingRightsSchema } from 'src/database/schemas/votingRights.schema';
 import { Permissions, PermissionsSchema } from 'src/database/schemas/permissions.schema';
 import { Meetings, MeetingsSchema } from 'src/database/schemas/meetings.schema';
 
@@ -20,6 +21,7 @@ import { Meetings, MeetingsSchema } from 'src/database/schemas/meetings.schema';
       { name: Roles.name, schema: RolesSchema },
       { name: RolePermissions.name, schema: RolePermissionsSchema },
       { name: Voters.name, schema: VotersSchema },
+      { name: VotingRights.name, schema: VotingRightsSchema },
       { name: Permissions.name, schema: PermissionsSchema },
       { name: Meetings.name, schema: MeetingsSchema },
     ])

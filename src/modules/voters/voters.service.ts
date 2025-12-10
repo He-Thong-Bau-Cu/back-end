@@ -130,12 +130,18 @@ export class VotersService {
         userId: userId,
       });
 
+
       if (!existingParticipant) {
+        // Lấy role VOTER
+        const voterRole = await this.rolesModel.findOne({ roleCode: USER_ROLE.VOTER }).exec();
+        if (!voterRole || !voterRole._id) {
+          throw new Error(MESSAGE.ROLE_NOT_FOUND);
+        }
         // Tạo electionParticipant nếu chưa tồn tại
         await this.electionParticipantsModel.create({
           electionId: electionId,
           userId: userId,
-          roleId: USER_ROLE.VOTER,
+          roleId: voterRole._id,
           position: userExists.position || 'Voter',
         });
       }

@@ -368,4 +368,37 @@ export class ElectionsController {
       throw new HttpException({ message: error.message }, HttpStatus.INTERNAL_SERVER_ERROR);
     }
   }
+
+  @Post('/:electionId/approve-by-bks')
+  @ApiOperation({ summary: 'Phê duyệt cuộc bầu cử bởi Ban kiểm soát' })
+  @ApiResponse({ status: 200, description: 'Phê duyệt cuộc bầu cử thành công' })
+  @ApiResponse({ status: 500, description: 'Lỗi server' })
+  async approveElectionByBks(
+    @Param('electionId') electionId: string,
+    @Req() req: CustomRequest,
+  ): Promise<BaseResponse> {
+    try {
+      const resData = await this.electionsService.approveByBKS(electionId, req.user.sub);
+      return BaseResponse.success(resData, 'Phê duyệt cuộc bầu cử thành công', HttpStatus.OK);
+    } catch (error) {
+      throw new HttpException({ message: error.message }, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+  }
+
+  @Post('/:electionId/reject-by-bks')
+  @ApiOperation({ summary: 'Từ chối cuộc bầu cử bởi Ban kiểm soát' })
+  @ApiResponse({ status: 200, description: 'Từ chối cuộc bầu cử thành công' })
+  @ApiResponse({ status: 500, description: 'Lỗi server' })
+  async rejectElectionByBks(
+    @Param('electionId') electionId: string,
+    @Body('rejectReason') rejectReason: string,
+    @Req() req: CustomRequest,
+  ): Promise<BaseResponse> {
+    try {
+      const resData = await this.electionsService.rejectElectionByBKS(electionId, rejectReason, req.user.sub);
+      return BaseResponse.success(resData, 'Từ chối cuộc bầu cử thành công', HttpStatus.OK);
+    } catch (error) {
+      throw new HttpException({ message: error.message }, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+  }
 }
