@@ -443,6 +443,31 @@ export class ElectionsController {
     }
   }
 
+  @Post(':electionId/clone-for-reelection')
+  @ApiOperation({ summary: 'Clone election để bầu cử lại (trừ bảng results)' })
+  @ApiParam({ name: 'electionId', description: 'ID của cuộc bầu cử gốc', type: String })
+  @ApiResponse({ status: 200, description: 'Clone election thành công' })
+  @ApiResponse({ status: 404, description: 'Không tìm thấy cuộc bầu cử' })
+  @ApiResponse({ status: 500, description: 'Lỗi server' })
+  async cloneForReelection(
+    @Param('electionId') electionId: string,
+    @Body() body: { startDate: Date; endDate: Date; startStage: string },
+    @Req() req: CustomRequest,
+  ): Promise<BaseResponse> {
+    try {
+      const resData = await this.electionsService.cloneElectionForReelection(
+        electionId,
+        new Date(body.startDate),
+        new Date(body.endDate),
+        body.startStage,
+        req.user.sub,
+      );
+      return BaseResponse.success(resData, 'Clone election để bầu cử lại thành công', HttpStatus.OK);
+    } catch (error) {
+      throw new HttpException({ message: error.message }, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+  }
+
   @Post('/:electionId/approve-by-bks')
   @ApiOperation({ summary: 'Phê duyệt cuộc bầu cử bởi Ban kiểm soát' })
   @ApiResponse({ status: 200, description: 'Phê duyệt cuộc bầu cử thành công' })

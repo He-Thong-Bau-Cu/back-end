@@ -286,6 +286,47 @@ export class UsersService implements OnModuleInit {
     }
   }
 
+  async checkUserExists(email?: string, phone?: string, citizenId?: string) {
+    try {
+      const query: any = {};
+      const conditions: any[] = [];
+
+      if (email) {
+        conditions.push({ email: email });
+      }
+      if (phone) {
+        conditions.push({ phone: phone });
+      }
+      if (citizenId) {
+        conditions.push({ citizenId: citizenId });
+      }
+
+      if (conditions.length === 0) {
+        return { exists: false };
+      }
+
+      query.$or = conditions;
+      const existingUser = await this.userModel.findOne(query).exec();
+
+      if (existingUser) {
+        if (email && existingUser.email === email) {
+          return { exists: true, field: 'email', message: 'Email đã tồn tại trong hệ thống !' };
+        }
+        if (phone && existingUser.phone === phone) {
+          return { exists: true, field: 'phone', message: 'Số điện thoại đã tồn tại trong hệ thống !' };
+        }
+        if (citizenId && existingUser.citizenId === citizenId) {
+          return { exists: true, field: 'citizenId', message: 'Số căn cước công dân đã tồn tại trong hệ thống !' };
+        }
+        return { exists: true, field: 'unknown', message: 'Thông tin người dùng đã tồn tại trong hệ thống !' };
+      }
+
+      return { exists: false };
+    } catch (error) {
+      throw error;
+    }
+  }
+
   async createByInfoDelegate(req: UserDto) {
     try {
       if (!req.fullName) {

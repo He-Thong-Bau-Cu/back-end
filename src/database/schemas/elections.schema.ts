@@ -77,6 +77,21 @@ export class Elections extends BaseSchema {
 
   @Prop({ default: false })
   isUserBasicCreate: boolean;
+
+  @Prop({ type: Object, default: null })
+  tempSecretaryInfo: {
+    fullName?: string;
+    email?: string;
+    phone?: string;
+    citizenId?: string;
+    address?: string;
+  };
+
+  @Prop({ type: Types.ObjectId, ref: 'Users', default: null })
+  secretaryId: Types.ObjectId;
+
+  @Prop({ type: Types.ObjectId, ref: 'Users', default: null })
+  boardOfControlId: Types.ObjectId;
 }
 
 export const ElectionsSchema = SchemaFactory.createForClass(Elections);
