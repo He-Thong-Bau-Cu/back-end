@@ -35,6 +35,7 @@ import { VotingRights } from 'src/database/schemas/votingRights.schema';
 import { BulkSaveDraftDto } from './dto/bulk-save-draft-dto';
 import { MeetingAttendees } from 'src/database/schemas/meetingAttendees.schema';
 import { Ballots } from 'src/database/schemas/ballots.schema';
+import { DelegateCard, DelegateCardDocument } from 'src/database/schemas/delegateCard.schema';
 import { SigningService } from '../signature/signature.service';
 import { MinioService } from '../minio/minio.service';
 import { FileType } from 'src/common/enums/file-type.enum';
@@ -86,6 +87,8 @@ export class ElectionsService {
     private readonly systemConfigModel: Model<SystemConfigDocument>,
     @InjectModel(Ballots.name)
     private readonly ballotsModel: Model<Ballots>,
+    @InjectModel(DelegateCard.name)
+    private readonly delegateCardModel: Model<DelegateCardDocument>,
     private readonly signatureService: SigningService,
     private readonly fileService: MinioService,
     private readonly notificationService: NotificationService,
@@ -247,18 +250,6 @@ export class ElectionsService {
 
   async createElectionRequest(createElectionRequest: CreateElectionRequestDto, userId: string) {
     try {
-      //Kiểm tra trong ngày đó đã có cuộc bầu cử nào chưa
-      if (createElectionRequest?.startDate && createElectionRequest?.endDate) {
-        const startDate = new Date(createElectionRequest.startDate);
-        const endDate = new Date(createElectionRequest.endDate);
-        const elections = await this.electionsModel.find({
-          startDate: { $lte: endDate },
-          endDate: { $gte: startDate },
-        });
-        if (elections.length > 0) {
-          throw new Error(MESSAGE.ELECTION_ALREADY_EXISTS);
-        }
-      }
 
       //Kiểm tra xem số quyết định đã tồn tại hay Chưa
       if (createElectionRequest?.decisionNumber) {
@@ -1590,14 +1581,13 @@ export class ElectionsService {
         isParticipant = !!participant;
       }
 
-      // Nếu thỏa 1 trong 3 → push result
-      if (isDelegateValid || isVoterTable || isParticipant) {
-        result.push({
-          _id: user._id,
-          fullName: user.fullName,
-          email: user.email,
-        });
-      }
+      // Luôn thêm user vào result, bao gồm cả user mới chưa có trong các case
+      // (user đã có delegation/voter/participant HOẶC user mới)
+      result.push({
+        _id: user._id,
+        fullName: user.fullName,
+        email: user.email,
+      });
     }
 
     return result;
@@ -3206,7 +3196,49 @@ export class ElectionsService {
         throw new NotFoundException(MESSAGE.ELECTION_NOT_FOUND);
       }
 
-      // Tạo election mới (clone từ election cũ, trừ timeline, stages, statusData)
+      // Xác định các stage cần clone dựa trên startStage
+      const stageOrder = ['checkin', 'report', 'voting', 'result', 'closing'];
+      const startStageIndex = startStage ? stageOrder.indexOf(startStage) : -1;
+      const stagesToClone = startStageIndex >= 0 ? stageOrder.slice(0, startStageIndex + 1) : [];
+
+      // Clone timeline và stages từ election cũ
+      const clonedTimeline: any = {};
+      const clonedStages: any = {};
+
+      if (originalElection.timeline) {
+        stagesToClone.forEach((stage) => {
+          const timelineField = this.getTimelineFieldForStage(stage);
+          if (timelineField && originalElection.timeline[timelineField]) {
+            clonedTimeline[timelineField] = originalElection.timeline[timelineField];
+          }
+        });
+      }
+
+      if (originalElection.stages) {
+        stagesToClone.forEach((stage) => {
+          if (originalElection.stages[stage]) {
+            // Nếu là stage hiện tại thì set STARTED, các stage trước set COMPLETED
+            if (stage === startStage) {
+              clonedStages[stage] = 'STARTED';
+            } else {
+              clonedStages[stage] = 'COMPLETED';
+            }
+          }
+        });
+      }
+
+      // Set timeline và stage cho stage hiện tại nếu chưa có
+      if (startStage) {
+        const timelineField = this.getTimelineFieldForStage(startStage);
+        if (timelineField && !clonedTimeline[timelineField]) {
+          clonedTimeline[timelineField] = new Date();
+        }
+        if (!clonedStages[startStage]) {
+          clonedStages[startStage] = 'STARTED';
+        }
+      }
+
+      // Tạo election mới (clone từ election cũ)
       const newElectionData: any = {
         title: `${originalElection.title} (Bầu cử lại)`,
         typeId: originalElection.typeId,
@@ -3222,18 +3254,9 @@ export class ElectionsService {
         statusData: 'WAIT_ENTER_DATA',
         createByUser: originalElection.createByUser,
         createdBy: new Types.ObjectId(userId),
-        timeline: null,
-        stages: null,
+        timeline: Object.keys(clonedTimeline).length > 0 ? clonedTimeline : null,
+        stages: Object.keys(clonedStages).length > 0 ? clonedStages : null,
       };
-
-      // Set stage ban đầu nếu có
-      if (startStage) {
-        newElectionData.stages = { [startStage]: 'STARTED' };
-        const timelineField = this.getTimelineFieldForStage(startStage);
-        if (timelineField) {
-          newElectionData.timeline = { [timelineField]: new Date() };
-        }
-      }
 
       const newElection = await this.electionsModel.create(newElectionData);
       const newElectionId = newElection._id;
@@ -3397,6 +3420,108 @@ export class ElectionsService {
         }));
         await this.electionDocumentsModel.insertMany(newDocuments);
       }
+
+      // Clone Meeting
+      const originalMeeting = await this.meetingsModel
+        .findOne({ electionId: new Types.ObjectId(originalElectionId) })
+        .lean()
+        .exec();
+
+      let newMeetingId: Types.ObjectId | null = null;
+      if (originalMeeting) {
+        const { _id, ...meetingDataWithoutId } = originalMeeting;
+        const newMeeting = await this.meetingsModel.create({
+          ...meetingDataWithoutId,
+          electionId: newElectionId,
+          createdAt: getCurrentDateVN(),
+          updatedAt: getCurrentDateVN(),
+        });
+        if (newMeeting && newMeeting._id) {
+          newMeetingId = typeof newMeeting._id === 'string'
+            ? new Types.ObjectId(newMeeting._id)
+            : (newMeeting._id as Types.ObjectId);
+        }
+      }
+
+      // Clone MeetingAttendees
+      const originalMeetingAttendees = await this.meetingAttendeesModel
+        .find({ electionId: new Types.ObjectId(originalElectionId) })
+        .lean()
+        .exec();
+
+      if (originalMeetingAttendees.length > 0) {
+        const newMeetingAttendees = originalMeetingAttendees.map((attendee) => ({
+          ...attendee,
+          _id: new Types.ObjectId(),
+          electionId: newElectionId,
+          meetingId: newMeetingId || attendee.meetingId,
+          // Nếu startStage là checkin thì set attended = false
+          attended: startStage === 'checkin' ? false : attendee.attended,
+          createdAt: getCurrentDateVN(),
+          updatedAt: getCurrentDateVN(),
+        }));
+        await this.meetingAttendeesModel.insertMany(newMeetingAttendees);
+      }
+
+      // Clone DelegateCard
+      const originalDelegateCards = await this.delegateCardModel
+        .find({ electionId: new Types.ObjectId(originalElectionId) })
+        .lean()
+        .exec();
+
+      if (originalDelegateCards.length > 0) {
+        const newDelegateCards = originalDelegateCards.map((card) => ({
+          ...card,
+          _id: new Types.ObjectId(),
+          electionId: newElectionId,
+          createdAt: getCurrentDateVN(),
+          updatedAt: getCurrentDateVN(),
+        }));
+        await this.delegateCardModel.insertMany(newDelegateCards);
+      }
+
+      // Clone Ballots (chỉ nếu status = PENDING và startStage không phải checkin)
+      if (startStage !== 'checkin') {
+        const originalBallots = await this.ballotsModel
+          .find({
+            electionId: new Types.ObjectId(originalElectionId),
+            status: 'PENDING',
+          })
+          .lean()
+          .exec();
+
+        if (originalBallots.length > 0) {
+          const newBallots = originalBallots.map((ballot) => ({
+            ...ballot,
+            _id: new Types.ObjectId(),
+            electionId: newElectionId,
+            allocations: null, // Set allocations thành null
+            attempts: 0, // Set attempts về 0
+            createdAt: getCurrentDateVN(),
+            updatedAt: getCurrentDateVN(),
+          }));
+          await this.ballotsModel.insertMany(newBallots);
+        }
+      }
+
+      // Update election cũ: set status = INACTIVE và set tất cả stages = COMPLETED
+      const allStagesCompleted: any = {
+        checkin: 'COMPLETED',
+        report: 'COMPLETED',
+        voting: 'COMPLETED',
+        result: 'COMPLETED',
+        closing: 'COMPLETED',
+      };
+
+      await this.electionsModel.findByIdAndUpdate(
+        new Types.ObjectId(originalElectionId),
+        {
+          status: STATUS.INACTIVE,
+          stages: allStagesCompleted,
+          updatedBy: new Types.ObjectId(userId),
+        },
+        { new: true }
+      );
 
       return {
         newElectionId: newElection._id,

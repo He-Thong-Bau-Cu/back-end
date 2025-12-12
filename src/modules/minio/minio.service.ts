@@ -16,6 +16,7 @@ import { FileType } from '../../common/enums/file-type.enum';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { decryptBuffer, encryptBuffer } from '../../common/utils/encryption';
 import { getCurrentDateVN } from '../../common/utils/format';
+import * as crypto from 'crypto';
 
 @Injectable()
 export class MinioService {
@@ -79,6 +80,7 @@ export class MinioService {
     userId: string,
     file: Express.Multer.File,
     isSignFile = false,
+    fileHash?: string, // Hash từ front-end (optional, nếu không có sẽ tính lại)
   ): Promise<FileResponseDto> {
     if (!file) {
       throw new BadRequestException('File is required');
@@ -86,6 +88,38 @@ export class MinioService {
 
     if (!userId) {
       throw new BadRequestException('User ID is required');
+    }
+
+    // Tính hash của file gốc (trước khi encrypt)
+    const calculatedHash = fileHash || this.calculateHash(file.buffer);
+
+    // Map fileType sang string để check hash
+    let fileTypeString: string;
+    if (fileType === FileType.ELECTION_DOCUMENT || fileType === FileType.ELECTION_DOCUMENT_IMPORTANT) {
+      fileTypeString = 'election-documents';
+    } else if (fileType === FileType.ELECTION_ENTITIES) {
+      fileTypeString = 'election-entities';
+    } else {
+      fileTypeString = fileType.toString();
+    }
+
+    // Check hash với file trong hệ thống (chỉ check cho election-documents và election-entities)
+    if (fileTypeString === 'election-documents' || fileTypeString === 'election-entities') {
+      try {
+        const hashCheckResult = await this.checkFileHash(calculatedHash, fileTypeString);
+        if (hashCheckResult.isDuplicate) {
+          throw new BadRequestException(
+            `File này đã tồn tại trong hệ thống${hashCheckResult.duplicateFileUrl ? ` (File: ${hashCheckResult.duplicateFileUrl.split('/').pop()})` : ''}. Vui lòng chọn file khác.`
+          );
+        }
+      } catch (error) {
+        // Nếu là lỗi duplicate, throw lại
+        if (error instanceof BadRequestException && error.message.includes('đã tồn tại')) {
+          throw error;
+        }
+        // Nếu là lỗi khác, log và tiếp tục upload
+        console.warn('Could not check file hash before upload:', error);
+      }
     }
 
     let key: string;
@@ -114,6 +148,7 @@ export class MinioService {
         encrypted: 'true',
         'user-id': userId,
         'file-type': fileType,
+        'file-hash': calculatedHash, // Lưu hash vào metadata để dễ check sau này
       },
     });
 
@@ -551,5 +586,92 @@ export class MinioService {
       uploadDate: getCurrentDateVN(),
       url: `${this.minioEndpoint}/${this.bucketName}/${key}`,
     });
+  }
+
+  /**
+   * Tính hash SHA-256 của buffer
+   * @param buffer - Buffer cần tính hash
+   * @returns Hash string (hex)
+   */
+  private calculateHash(buffer: Buffer): string {
+    return crypto.createHash('sha256').update(buffer).digest('hex');
+  }
+
+  /**
+   * Check file hash để phát hiện file trùng
+   * @param fileHash - SHA-256 hash của file
+   * @param fileType - Loại file (election-documents, election-entities)
+   * @param electionId - ID của election (optional)
+   * @returns { isDuplicate: boolean; duplicateFileUrl?: string }
+   */
+  async checkFileHash(
+    fileHash: string,
+    fileType: string,
+    electionId?: string,
+  ): Promise<{ isDuplicate: boolean; duplicateFileUrl?: string }> {
+    try {
+      // Map fileType string sang FileType enum
+      let fileTypeEnum: FileType;
+      if (fileType === 'election-documents' || fileType === FileType.ELECTION_DOCUMENT || fileType === FileType.ELECTION_DOCUMENT_IMPORTANT) {
+        // Check cả ELECTION_DOCUMENT và ELECTION_DOCUMENT_IMPORTANT
+        fileTypeEnum = FileType.ELECTION_DOCUMENT;
+      } else if (fileType === 'election-entities' || fileType === FileType.ELECTION_ENTITIES) {
+        fileTypeEnum = FileType.ELECTION_ENTITIES;
+      } else {
+        throw new BadRequestException(`Invalid fileType: ${fileType}`);
+      }
+
+      // Lấy tất cả file trong bucket với prefix tương ứng
+      // Với election-documents, check cả ELECTION_DOCUMENT và ELECTION_DOCUMENT_IMPORTANT
+      const prefixes: string[] = [];
+      if (fileTypeEnum === FileType.ELECTION_DOCUMENT) {
+        prefixes.push(`${FileType.ELECTION_DOCUMENT}/`);
+        prefixes.push(`${FileType.ELECTION_DOCUMENT_IMPORTANT}/`);
+      } else {
+        prefixes.push(`${fileTypeEnum}/`);
+      }
+
+      // Duyệt qua từng prefix
+      for (const prefix of prefixes) {
+        const command = new ListObjectsV2Command({
+          Bucket: this.bucketName,
+          Prefix: prefix,
+        });
+
+        const response = await this.s3Client.send(command);
+
+        if (!response.Contents || response.Contents.length === 0) {
+          continue;
+        }
+
+        // Duyệt qua từng file và tính hash để so sánh
+        for (const object of response.Contents) {
+          if (!object.Key) continue;
+
+          try {
+            // Lấy file buffer và tính hash (file đã được decrypt)
+            const fileBuffer = await this.getFileBufferByKey(object.Key);
+            const existingFileHash = this.calculateHash(fileBuffer);
+
+            // So sánh hash
+            if (existingFileHash === fileHash) {
+              return {
+                isDuplicate: true,
+                duplicateFileUrl: object.Key,
+              };
+            }
+          } catch (error) {
+            // Nếu không đọc được file, bỏ qua và tiếp tục
+            console.warn(`Could not read file ${object.Key} for hash check:`, error);
+            continue;
+          }
+        }
+      }
+
+      return { isDuplicate: false };
+    } catch (error) {
+      console.error('Error checking file hash:', error);
+      throw new BadRequestException(`Failed to check file hash: ${error.message}`);
+    }
   }
 }
