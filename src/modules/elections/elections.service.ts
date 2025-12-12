@@ -1633,14 +1633,17 @@ export class ElectionsService {
           }
         }
 
+        console.log('hasDocuments', hasDocuments);
         if (!hasDocuments) {
           if (!electionDocuments || !Array.isArray(electionDocuments) || electionDocuments.length === 0) {
             throw new Error('Vui lòng thêm ít nhất một tài liệu trước khi gửi duyệt');
           }
+          if (!voters || !Array.isArray(voters) || voters.length === 0) {
+            throw new Error('Vui lòng thêm ít nhất một cử tri trước khi gửi duyệt');
+          }
         }
-        if (!voters || !Array.isArray(voters) || voters.length === 0) {
-          throw new Error('Vui lòng thêm ít nhất một cử tri trước khi gửi duyệt');
-        }
+
+
         if (!participants || !Array.isArray(participants) || participants.length === 0) {
           throw new Error('Vui lòng thêm ít nhất một thành viên tổ chức trước khi gửi duyệt');
         }
