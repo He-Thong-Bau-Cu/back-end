@@ -118,4 +118,30 @@ export class CreateElectionDto {
     // @IsNotEmpty()
     @IsString()
     decisionName: string;
+
+    @ApiPropertyOptional({
+        description: 'Thông tin thư ký tạm thời (khi statusData là DRAFT)',
+    })
+    @IsOptional()
+    tempSecretaryInfo?: {
+        fullName?: string;
+        email?: string;
+        phone?: string;
+        citizenId?: string;
+        address?: string;
+    };
+
+    @ApiPropertyOptional({
+        description: 'ID ban kiểm soát',
+    })
+    @IsOptional()
+    @IsString()
+    boardOfControlId?: string;
+
+    @ApiPropertyOptional({
+        description: 'ID thư ký chủ tọa',
+    })
+    @IsOptional()
+    @IsString()
+    secretaryId?: string;
 }

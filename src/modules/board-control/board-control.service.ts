@@ -605,6 +605,56 @@ export class BoardControlService {
     return { status: STATUS.REJECTED, reason, abnormalReportId: abnormalReport._id };
   }
 
+  async checkRejectionStatus(electionId: string) {
+    const electionObjectId = this.ensureObjectId(electionId);
+    const election = await this.getElectionOrThrow(electionId);
+
+    // Kiểm tra báo cáo xác minh có bị từ chối không
+    const verificationReport = await this.reportsModel
+      .findOne({ electionId: electionObjectId, type: REPORT_TYPE.VERIFICATION })
+      .lean()
+      .exec();
+
+    const isRejected = verificationReport?.status === STATUS.REJECTED;
+
+    // Kiểm tra báo cáo bất thường
+    const abnormalReport = await this.reportsModel
+      .findOne({ electionId: electionObjectId, type: REPORT_TYPE.ABNORMAL })
+      .lean()
+      .exec();
+
+    return {
+      isRejected,
+      hasAbnormalReport: !!abnormalReport,
+      abnormalReport: abnormalReport || null,
+      verificationReport: verificationReport || null,
+    };
+  }
+
+  async getAbnormalReport(electionId: string) {
+    try {
+      const electionObjectId = this.ensureObjectId(electionId);
+      await this.getElectionOrThrow(electionId);
+
+      const abnormalReport = await this.reportsModel
+        .findOne({ electionId: electionObjectId, type: REPORT_TYPE.ABNORMAL })
+        .populate('electionId', 'title decisionNumber decisionName status statusData startDate endDate')
+        .populate('createdBy', 'username fullName email position')
+        .populate('updatedBy', 'username fullName email position')
+        .populate('documentId')
+        .lean()
+        .exec();
+
+      if (!abnormalReport) {
+        throw new NotFoundException('Không tìm thấy báo cáo bất thường cho cuộc bầu cử này');
+      }
+
+      return abnormalReport;
+    } catch (error) {
+      throw error;
+    }
+  }
+
   private async generateAbnormalReportPdf(election: any, reason: string) {
     const fonts = {
       Roboto: {

@@ -67,6 +67,7 @@ export class MinioController {
     @Body('fileType') fileType: FileType,
     @Body('userId') userId: string,
     @Body('isSignFile') isSignFile?: string,
+    @Body('fileHash') fileHash?: string,
   ) {
     try {
       if (!file) {
@@ -88,6 +89,7 @@ export class MinioController {
         userId,
         file,
         isSigned,
+        fileHash,
       );
 
       return BaseResponse.success(result, MESSAGE_STATUS.SUCCESS, HttpStatus.OK);
@@ -400,6 +402,57 @@ export class MinioController {
       }
 
       return BaseResponse.success({ url }, MESSAGE_STATUS.SUCCESS, HttpStatus.OK);
+    } catch (error) {
+      throw new HttpException(
+        { message: error.message },
+        error.status || HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @ApiOperation({ summary: 'Check file hash to detect duplicate files' })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        fileHash: {
+          type: 'string',
+          description: 'SHA-256 hash of the file',
+        },
+        fileType: {
+          type: 'string',
+          description: 'Type of file (election-documents, election-entities)',
+        },
+        electionId: {
+          type: 'string',
+          description: 'Election ID (optional)',
+        },
+      },
+      required: ['fileHash', 'fileType'],
+    },
+  })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'File hash checked successfully',
+  })
+  @Post('check-hash')
+  async checkFileHash(
+    @Body('fileHash') fileHash: string,
+    @Body('fileType') fileType: string,
+    @Body('electionId') electionId?: string,
+  ) {
+    try {
+      if (!fileHash) {
+        throw new HttpException('File hash is required', HttpStatus.BAD_REQUEST);
+      }
+
+      if (!fileType) {
+        throw new HttpException('File type is required', HttpStatus.BAD_REQUEST);
+      }
+
+      const result = await this.minioService.checkFileHash(fileHash, fileType, electionId);
+
+      return BaseResponse.success(result, MESSAGE_STATUS.SUCCESS, HttpStatus.OK);
     } catch (error) {
       throw new HttpException(
         { message: error.message },

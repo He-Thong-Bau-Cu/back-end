@@ -132,6 +132,28 @@ export class BoardControlController {
     }
   }
 
+  @Get(':electionId/rejection-status')
+  @ApiOperation({ summary: 'Kiểm tra trạng thái từ chối và báo cáo bất thường' })
+  async checkRejectionStatus(@Param('electionId') electionId: string) {
+    try {
+      const data = await this.boardControlService.checkRejectionStatus(electionId);
+      return BaseResponse.success(data, 'Lấy trạng thái từ chối thành công', HttpStatus.OK);
+    } catch (error) {
+      throw new HttpException({ message: error.message }, error.status || HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+  }
+
+  @Get(':electionId/abnormal-report')
+  @ApiOperation({ summary: 'Lấy báo cáo bất thường theo electionId' })
+  async getAbnormalReport(@Param('electionId') electionId: string) {
+    try {
+      const data = await this.boardControlService.getAbnormalReport(electionId);
+      return BaseResponse.success(data, 'Lấy báo cáo bất thường thành công', HttpStatus.OK);
+    } catch (error) {
+      throw new HttpException({ message: error.message }, error.status || HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+  }
+
   @Get(':electionId/archive-report')
   @ApiOperation({ summary: 'Lấy hoặc tạo báo cáo lưu trữ' })
   async getArchiveReport(@Param('electionId') electionId: string) {

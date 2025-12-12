@@ -227,4 +227,20 @@ export class UsersController {
       throw new HttpException({ message: error.message }, HttpStatus.INTERNAL_SERVER_ERROR);
     }
   }
+
+  @Post('check-exists')
+  @ApiOperation({ summary: 'Kiểm tra user đã tồn tại chưa (email, phone, citizenId)' })
+  @ApiResponse({ status: 200, description: 'Kiểm tra thành công.' })
+  @ApiResponse({ status: 400, description: 'Dữ liệu không hợp lệ.' })
+  @ApiResponse({ status: 500, description: 'Lỗi server' })
+  async checkUserExists(
+    @Body() body: { email?: string; phone?: string; citizenId?: string }
+  ): Promise<BaseResponse> {
+    try {
+      const resData = await this.usersService.checkUserExists(body.email, body.phone, body.citizenId);
+      return BaseResponse.success(resData, 'Kiểm tra thành công', HttpStatus.OK);
+    } catch (error) {
+      throw new HttpException({ message: error.message }, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+  }
 }
