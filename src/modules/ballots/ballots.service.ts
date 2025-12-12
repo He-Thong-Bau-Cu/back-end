@@ -193,7 +193,7 @@ export class BallotsService {
       }
 
       const ballots = await this.ballotsModel
-        .find({ voterId: new Types.ObjectId(voterId), status: STATUS.CAST })
+        .find({ voterId: new Types.ObjectId(voterId), status: { $in: [STATUS.CAST, STATUS.BLANK] } })
         .populate({
           path: 'electionId',
           select:
