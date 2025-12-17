@@ -114,7 +114,7 @@ export class ElectionParticipantsService {
         throw new NotFoundException(MESSAGE.ELECTION_NOT_FOUND);
       }
       const electionParticipant = await this.electionParticipantsModel
-        .find({ electionId: new Types.ObjectId(electionId) })
+        .find({ electionId: new Types.ObjectId(electionId), status: { $ne: STATUS.INACTIVE } })
         .populate([
           {
             path: 'electionId',
