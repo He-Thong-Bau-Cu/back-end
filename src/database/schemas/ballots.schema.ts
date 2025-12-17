@@ -48,6 +48,9 @@ export class Ballots extends BaseSchema {
   status: string;
 
   @Prop({ default: null })
+  statusData: string;
+
+  @Prop({ default: null })
   issuedAt: Date;
 
   @Prop({ default: null })

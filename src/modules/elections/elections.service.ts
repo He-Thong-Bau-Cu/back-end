@@ -565,7 +565,68 @@ export class ElectionsService {
         })
         .exec();
 
-      return availableUsers;
+      // 4. Tính số lượng cuộc bầu cử đang tham gia hiện tại cho từng user
+      // "Đang tham gia hiện tại" được hiểu là:
+      //  - User đang là participant ACTIVE trong cuộc bầu cử
+      //  - Và khoảng thời gian của cuộc bầu cử giao với khoảng [startTime, endTime]
+      //      (!startDate || startDate <= endTime) && (!endDate || endDate >= startTime)
+      const userIdMap = availableUsers.map((u) => u._id);
+
+      if (userIdMap.length === 0) {
+        return availableUsers;
+      }
+
+      const nowRangeStart = startTime;
+      const nowRangeEnd = endTime;
+
+      const participants = await this.electionParticipantsModel
+        .find({
+          userId: { $in: userIdMap },
+          status: STATUS.ACTIVE,
+        })
+        .populate({
+          path: 'electionId',
+          select: 'startDate endDate status statusData',
+        })
+        .lean()
+        .exec();
+
+      const activeElectionCountMap = new Map<string, number>();
+
+      for (const participant of participants as any[]) {
+        const election = participant.electionId as {
+          _id?: Types.ObjectId;
+          startDate?: Date | null;
+          endDate?: Date | null;
+          status?: string | null;
+          statusData?: string | null;
+        } | null;
+
+        if (!election) continue;
+
+        const startDate = election.startDate ? new Date(election.startDate) : null;
+        const endDate = election.endDate ? new Date(election.endDate) : null;
+
+        const overlapsTimeRange =
+          (!startDate || startDate <= nowRangeEnd) &&
+          (!endDate || endDate >= nowRangeStart);
+
+        if (!overlapsTimeRange) continue;
+
+        const userIdStr = String(participant.userId);
+        const current = activeElectionCountMap.get(userIdStr) || 0;
+        activeElectionCountMap.set(userIdStr, current + 1);
+      }
+
+      // 5. Trả về danh sách user kèm theo số lượng cuộc bầu cử đang tham gia hiện tại
+      return availableUsers.map((user) => {
+        const userObj = user.toObject ? user.toObject() : user;
+        const count = activeElectionCountMap.get(String(user._id)) || 0;
+        return {
+          ...userObj,
+          currentElectionCount: count,
+        };
+      });
     } catch (error) {
       throw error;
     }
@@ -2678,8 +2739,21 @@ export class ElectionsService {
               }
             }
           );
+          const updateBallotRecord = await this.ballotsModel.updateMany(
+            {
+              electionId: new Types.ObjectId(electionId),
+              status: STATUS.ACTIVE
+            },
+            {
+              $set: {
+                status: STATUS.NOT_CAST,
+                updatedBy: userId ? new Types.ObjectId(userId) : null,
+              }
+            }
+          );
           await this.resultsService.autoCreateResultRecord(electionId);
           console.log(`[END VOTING STAGE] Đã cập nhật ${updateResult.modifiedCount} ballots của electionId ${electionId} thành INACTIVE`);
+          console.log(`[END VOTING STAGE] Đã cập nhật ${updateBallotRecord.modifiedCount} ballots của electionId ${electionId} thành NOT_CAST`);
         } catch (error) {
           console.error('[END VOTING STAGE] Failed to update ballots status to INACTIVE:', error.message || error);
         }
@@ -3254,7 +3328,7 @@ export class ElectionsService {
         decisionNumber: originalElection.decisionNumber,
         decisionName: originalElection.decisionName,
         status: STATUS.ACTIVE,
-        statusData: 'WAIT_ENTER_DATA',
+        statusData: 'REMAKE',
         createByUser: originalElection.createByUser,
         createdBy: new Types.ObjectId(userId),
         timeline: Object.keys(clonedTimeline).length > 0 ? clonedTimeline : null,
@@ -3507,23 +3581,67 @@ export class ElectionsService {
         }
       }
 
-      // Update election cũ: set status = INACTIVE và set tất cả stages = COMPLETED
-      const allStagesCompleted: any = {
-        checkin: 'COMPLETED',
-        report: 'COMPLETED',
-        voting: 'COMPLETED',
-        result: 'COMPLETED',
-        closing: 'COMPLETED',
+      // Update election cũ:
+      // - status = INACTIVE
+      // - statusData = 'REMAKE'
+      // - stages: các stage chưa có giá trị → 'STOPED', các stage đã có → giữ nguyên nếu đã COMPLETED, nếu đang STARTED/khác thì cũng chuyển về 'STOPED'
+      const originalStages = (originalElection as any).stages || {};
+      const normalizedOldStages: any = {
+        checkin: originalStages.checkin || null,
+        report: originalStages.report || null,
+        voting: originalStages.voting || null,
+        result: originalStages.result || null,
+        closing: originalStages.closing || null,
       };
+
+      const updatedOldStages: any = {};
+      (['checkin', 'report', 'voting', 'result', 'closing'] as const).forEach(
+        (stage) => {
+          const value = normalizedOldStages[stage];
+          if (!value || value === 'STARTED') {
+            updatedOldStages[stage] = 'STOPED';
+          } else {
+            updatedOldStages[stage] = value;
+          }
+        },
+      );
 
       await this.electionsModel.findByIdAndUpdate(
         new Types.ObjectId(originalElectionId),
         {
           status: STATUS.INACTIVE,
-          stages: allStagesCompleted,
+          statusData: 'ABNORMAL_REMAKE',
+          stages: updatedOldStages,
           updatedBy: new Types.ObjectId(userId),
         },
-        { new: true }
+        { new: true },
+      );
+
+      // Disable tất cả participants là VOTER trong cuộc bầu cử cũ (voter không còn thấy election cũ nữa)
+      const voterRole = await this.rolesModel
+        .findOne({ roleCode: USER_ROLE.VOTER })
+        .exec();
+      if (voterRole) {
+        await this.electionParticipantsModel.updateMany(
+          {
+            electionId: new Types.ObjectId(originalElectionId),
+            roleId: voterRole._id,
+          },
+          {
+            status: STATUS.INACTIVE,
+            updatedAt: getCurrentDateVN(),
+            updatedBy: new Types.ObjectId(userId),
+          },
+        );
+      }
+
+      // Cập nhật Meeting cũ (nếu có) sang trạng thái kết thúc
+      await this.meetingsModel.updateMany(
+        { electionId: new Types.ObjectId(originalElectionId) },
+        {
+          status: STATUS.COMPLETED,
+          updatedAt: getCurrentDateVN(),
+        },
       );
 
       return {
