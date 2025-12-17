@@ -3328,7 +3328,7 @@ export class ElectionsService {
         decisionNumber: originalElection.decisionNumber,
         decisionName: originalElection.decisionName,
         status: STATUS.ACTIVE,
-        statusData: 'WAIT_ENTER_DATA',
+        statusData: 'REMAKE',
         createByUser: originalElection.createByUser,
         createdBy: new Types.ObjectId(userId),
         timeline: Object.keys(clonedTimeline).length > 0 ? clonedTimeline : null,
@@ -3610,7 +3610,7 @@ export class ElectionsService {
         new Types.ObjectId(originalElectionId),
         {
           status: STATUS.INACTIVE,
-          statusData: 'REMAKE',
+          statusData: 'ABNORMAL_REMAKE',
           stages: updatedOldStages,
           updatedBy: new Types.ObjectId(userId),
         },
