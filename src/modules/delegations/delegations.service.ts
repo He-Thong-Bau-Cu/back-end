@@ -2162,6 +2162,14 @@ export class DelegationsService {
     if (new Date(dto.startDate) >= new Date(dto.endDate)) {
       throw new Error('Ngày bắt đầu ủy quyền phải trước ngày kết thúc ủy quyền');
     }
+
+    //Kiểm tra nếu ngày tạo ủy quyền nằm ngoài thời gian của ngày kết thúc bầu cử thì không cho tạo
+    const currentDate = getCurrentDateVN();
+    if (currentDate > election.delegationEnd) {
+      throw new Error(
+        'Thời gian ủy quyền đã kết thúc, không thể tạo ủy quyền mới',
+      );
+    }
   }
 
   private async validateDocument(dto: CreateDelegationDto) {
