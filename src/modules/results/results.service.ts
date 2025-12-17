@@ -24,6 +24,7 @@ import { ElectionDocuments } from 'src/database/schemas/electionDocuments.schema
 import { ElectionsParticipants } from 'src/database/schemas/electionParticipants.schema';
 import { MailService } from '../mail/mail.service';
 import { Reports } from 'src/database/schemas/reports.schema';
+import { VotingRights } from 'src/database/schemas/votingRights.schema';
 
 @Injectable()
 export class ResultsService {
@@ -44,6 +45,8 @@ export class ResultsService {
     private readonly electionsParticipantsModel: Model<ElectionsParticipants>,
     @InjectModel(Reports.name)
     private readonly reportsModel: Model<Reports>,
+    @InjectModel(VotingRights.name)
+    private readonly votingRightsModel: Model<VotingRights>,
     private readonly signingService: SigningService,
     private readonly minioService: MinioService,
     private readonly mailService: MailService,
@@ -389,113 +392,141 @@ export class ResultsService {
         throw new Error(MESSAGE.ELECTION_NOT_FOUND);
       }
 
-      // Đếm số phiếu trắng (allocations == null hoặc allocations == [])
-      const blankVotesCount = await this.ballotsModel.countDocuments({
-        electionId: new Types.ObjectId(electionId),
+      const electionObjectId = new Types.ObjectId(electionId);
+
+      // Lấy tất cả ballots đã bỏ phiếu (có allocations)
+      const castBallots = await this.ballotsModel.find({
+        electionId: electionObjectId,
+        status: STATUS.CAST,
+        allocations: { $ne: [], $exists: true }
+      }).lean().exec();
+
+      // Lấy tất cả voting rights để map shares
+      const votingRights = await this.votingRightsModel.find({
+        electionId: electionObjectId,
+        status: STATUS.ACTIVE
+      }).lean().exec();
+
+      // Tạo map voterId -> shares để lookup nhanh
+      const voterSharesMap = new Map<string, number>();
+      for (const vr of votingRights) {
+        const voterIdStr = String(vr.voterId);
+        voterSharesMap.set(voterIdStr, vr.shares || 0);
+      }
+
+      // Tính tổng shares cho phiếu trắng
+      let blankSharesTotal = 0;
+      const blankBallots = await this.ballotsModel.find({
+        electionId: electionObjectId,
         status: STATUS.BLANK,
         allocations: { $size: 0 }
-      });
+      }).lean().exec();
 
-      // Tính kết quả cho các phiếu đã bỏ (có allocations)
-      const totalYesNoAbstain = await this.ballotsModel.aggregate([
-        {
-          $match: {
-            electionId: new Types.ObjectId(electionId),
-            status: STATUS.CAST,
-            allocations: { $ne: [] }
-          }
-        },
-        {
-          $unwind: "$allocations"
-        },
-        {
-          $group: {
-            _id: "$allocations.voteValue",
-            total: { $sum: 1 }
-          }
-        },
-      ]);
-
-      let agree = 0;
-      let disagree = 0;
-
-      for (const r of totalYesNoAbstain) {
-        if (r._id == 1) agree = r.total;
-        else if (r._id == 0) disagree = r.total;
+      for (const ballot of blankBallots) {
+        const voterIdStr = String(ballot.voterId);
+        const shares = voterSharesMap.get(voterIdStr) || 0;
+        blankSharesTotal += shares;
       }
 
-      const totalVotesIncludingBlank = agree + disagree + blankVotesCount;
+      // Tính tổng shares cho YES và NO theo từng entity
+      const entityResultsMap = new Map<string, {
+        entityId: Types.ObjectId;
+        agreeShares: number;
+        disagreeShares: number;
+        agreeCount: number;
+        disagreeCount: number;
+      }>();
 
-      const results = await this.ballotsModel.aggregate([
-        {
-          $match: {
-            electionId: new Types.ObjectId(electionId),
-            status: STATUS.CAST,
-            allocations: { $not: { $size: 0 } }
-          }
-        },
-        { $unwind: '$allocations' },
-        {
-          $group: {
-            _id: '$allocations.entityId',
-            agree: {
-              $sum: {
-                $cond: [{ $eq: ['$allocations.voteValue', 1] }, 1, 0]
-              }
-            },
-            disagree: {
-              $sum: {
-                $cond: [{ $eq: ['$allocations.voteValue', 0] }, 1, 0]
-              }
-            }
-          }
-        },
-        {
-          $lookup: {
-            from: 'electionentities',
-            localField: '_id',
-            foreignField: '_id',
-            as: 'entity'
-          }
-        },
-        {
-          $unwind: "$entity"
-        },
-        {
-          $project: {
-            _id: 1,
-            totalVotes: { $add: ['$agree', '$disagree', blankVotesCount] },
-            entityTitle: '$entity.title',
-            entityDescription: '$entity.description',
-            entityMetaData: '$entity.metaData',
-            agree: 1,
-            disagree: 1,
-          }
-        },
-        {
-          $sort: { totalVotes: -1 }
+      for (const ballot of castBallots) {
+        const voterIdStr = String(ballot.voterId);
+        const shares = voterSharesMap.get(voterIdStr) || 0;
+
+        if (!ballot.allocations || ballot.allocations.length === 0) {
+          continue;
         }
-      ]);
 
-      const finalResults: any = results.map(r => ({
-        ...r,
-        percentage: r.agree === 0
+        for (const allocation of ballot.allocations) {
+          const entityId = allocation.entityId;
+          const entityIdStr = String(entityId);
+          const voteValue = allocation.voteValue;
+
+          if (!entityResultsMap.has(entityIdStr)) {
+            entityResultsMap.set(entityIdStr, {
+              entityId: new Types.ObjectId(entityId),
+              agreeShares: 0,
+              disagreeShares: 0,
+              agreeCount: 0,
+              disagreeCount: 0,
+            });
+          }
+
+          const entityResult = entityResultsMap.get(entityIdStr)!;
+
+          if (voteValue === 1) {
+            // YES
+            entityResult.agreeShares += shares;
+            entityResult.agreeCount += 1;
+          } else if (voteValue === 0) {
+            // NO
+            entityResult.disagreeShares += shares;
+            entityResult.disagreeCount += 1;
+          }
+        }
+      }
+
+      // Lấy thông tin entity và tính kết quả
+      const entityIds = Array.from(entityResultsMap.keys()).map(id => new Types.ObjectId(id));
+      const entities = await this.electionEntitiesModel.find({
+        _id: { $in: entityIds }
+      }).lean().exec();
+
+      const entityMap = new Map<string, any>();
+      for (const entity of entities) {
+        entityMap.set(String(entity._id), entity);
+      }
+
+      const results: any[] = [];
+      for (const [entityIdStr, result] of entityResultsMap.entries()) {
+        const entity = entityMap.get(entityIdStr);
+        if (!entity) continue;
+
+        const totalShares = result.agreeShares + result.disagreeShares + blankSharesTotal;
+        const agreePercentage = totalShares === 0
           ? 0
-          : Number(((r.agree / r.totalVotes) * 100).toFixed(2))
-      }));
+          : Number(((result.agreeShares / totalShares) * 100).toFixed(2));
+
+        results.push({
+          _id: result.entityId,
+          totalVotes: result.agreeCount + result.disagreeCount + blankBallots.length,
+          entityTitle: entity.title,
+          entityDescription: entity.description,
+          entityMetaData: entity.metaData,
+          agree: result.agreeShares, // Tổng shares của YES
+          disagree: result.disagreeShares, // Tổng shares của NO
+          agreeCount: result.agreeCount, // Số lượng phiếu YES
+          disagreeCount: result.disagreeCount, // Số lượng phiếu NO
+          percentage: agreePercentage,
+        });
+      }
+
+      // Sắp xếp theo tổng shares (agreeShares) giảm dần
+      results.sort((a, b) => b.agree - a.agree);
 
       // Thêm thông tin phiếu trắng vào kết quả nếu có
-      if (blankVotesCount > 0) {
-        finalResults.push({
-          blankVotes: blankVotesCount,
-          percentage: totalVotesIncludingBlank === 0
-            ? 0
-            : Number(((blankVotesCount / totalVotesIncludingBlank) * 100).toFixed(2))
-        });
+      if (blankBallots.length > 0) {
+        const totalSharesAll = results.reduce((sum, r) => sum + r.agree + r.disagree, 0) + blankSharesTotal;
+        const blankPercentage = totalSharesAll === 0
+          ? 0
+          : Number(((blankSharesTotal / totalSharesAll) * 100).toFixed(2));
 
+        results.push({
+          blankVotes: blankBallots.length,
+          blankShares: blankSharesTotal,
+          percentage: blankPercentage
+        });
       }
 
-      return finalResults;
+      return results;
     } catch (error) {
       throw error;
     }
@@ -698,20 +729,31 @@ export class ResultsService {
       const marginPercentThreshold = hasToken('MARGIN_PERCENT');
       const marginApplied = marginValueThreshold || marginPercentThreshold;
 
+      // Với YES_NO_ABSTAIN, tính tổng shares để xác định winner
+      const isYesNoMethod = votingMethodCode === 'YES_NO_ABSTAIN';
+      const sumShares = isYesNoMethod
+        ? rawResults.reduce((acc, r) => acc + (Number(r.agree) || 0) + (Number(r.disagree) || 0), 0)
+        : 0;
+
       const mapped = rawResults.map((r) => {
         const totalVotes = Number(r.totalVotes) || 0;
+        // Với YES_NO_ABSTAIN, sử dụng agree (shares) để tính percentage
         const percentage =
           typeof r.percentage === 'number'
             ? r.percentage
-            : sumVotes === 0
-              ? 0
-              : Number(((totalVotes / sumVotes) * 100).toFixed(2));
+            : isYesNoMethod && sumShares > 0
+              ? Number(((Number(r.agree) || 0) / sumShares * 100).toFixed(2))
+              : sumVotes === 0
+                ? 0
+                : Number(((totalVotes / sumVotes) * 100).toFixed(2));
 
         let passed = true;
         if (candidatePercentThreshold && !Number.isNaN(thresholdValue)) {
           passed = percentage >= thresholdValue;
         } else if (candidateValueThreshold && !Number.isNaN(thresholdValue)) {
-          passed = totalVotes >= thresholdValue;
+          // Với YES_NO_ABSTAIN, so sánh với shares (agree) thay vì số phiếu
+          const compareValue = isYesNoMethod ? (Number(r.agree) || 0) : totalVotes;
+          passed = compareValue >= thresholdValue;
         }
 
         return {
@@ -722,6 +764,8 @@ export class ResultsService {
           percentage,
           passed,
           raw: r,
+          // Thêm agreeShares để dùng cho việc xác định winner
+          agreeShares: isYesNoMethod ? (Number(r.agree) || 0) : 0,
         };
       });
 
@@ -736,11 +780,23 @@ export class ResultsService {
         quorumSatisfied = castBallots >= thresholdValue;
       }
 
-      const sortedByVotes = [...mapped].sort((a, b) => b.totalVotes - a.totalVotes);
-      const topVotes = sortedByVotes[0]?.totalVotes ?? 0;
-      const runnerUpVotes = sortedByVotes[1]?.totalVotes ?? 0;
+      // Với YES_NO_ABSTAIN, sắp xếp và so sánh theo shares (agreeShares)
+      // Với CUMULATIVE, sắp xếp theo totalVotes
+      const sortedByVotes = isYesNoMethod
+        ? [...mapped].sort((a, b) => b.agreeShares - a.agreeShares)
+        : [...mapped].sort((a, b) => b.totalVotes - a.totalVotes);
+
+      const topVotes = isYesNoMethod
+        ? (sortedByVotes[0]?.agreeShares ?? 0)
+        : (sortedByVotes[0]?.totalVotes ?? 0);
+      const runnerUpVotes = isYesNoMethod
+        ? (sortedByVotes[1]?.agreeShares ?? 0)
+        : (sortedByVotes[1]?.totalVotes ?? 0);
+
       const marginVotes = Math.max(topVotes - runnerUpVotes, 0);
-      const marginPercent = sumVotes === 0 ? 0 : Number(((marginVotes / sumVotes) * 100).toFixed(2));
+      const totalForMargin = isYesNoMethod ? sumShares : sumVotes;
+      const marginPercent = totalForMargin === 0 ? 0 : Number(((marginVotes / totalForMargin) * 100).toFixed(2));
+
       let marginSatisfied = true;
       if (marginValueThreshold && !Number.isNaN(thresholdValue)) {
         marginSatisfied = marginVotes >= thresholdValue;
@@ -755,9 +811,18 @@ export class ResultsService {
       const pool = candidateConstraintApplied ? candidateQualified : mapped;
       let winners: any[] = [];
       if (thresholdStatus && pool.length > 0) {
-        const maxVotes = Math.max(...pool.map((p) => p.totalVotes), 0);
-        if (maxVotes > 0) {
-          winners = pool.filter((p) => p.totalVotes === maxVotes);
+        // Với YES_NO_ABSTAIN, xác định winner dựa trên agreeShares (shares)
+        // Với CUMULATIVE, xác định winner dựa trên totalVotes
+        if (isYesNoMethod) {
+          const maxShares = Math.max(...pool.map((p) => p.agreeShares), 0);
+          if (maxShares > 0) {
+            winners = pool.filter((p) => p.agreeShares === maxShares);
+          }
+        } else {
+          const maxVotes = Math.max(...pool.map((p) => p.totalVotes), 0);
+          if (maxVotes > 0) {
+            winners = pool.filter((p) => p.totalVotes === maxVotes);
+          }
         }
       }
 
