@@ -259,6 +259,7 @@ export class MeetingAttendeesService {
       let ballotCreated: any = null;
       if (attended) {
         const participant = await this.electionParticipantsModel.findById(new Types.ObjectId(participantId)).lean();
+        console.log("participant", participant);
         if (!participant) {
           throw new Error(MESSAGE.ELECTION_PARTICIPANT_NOT_FOUND);
         }
@@ -303,6 +304,7 @@ export class MeetingAttendeesService {
           ]
         })
         .exec();
+        console.log(meetingAttendee)
       //Check if meetingAttendee is exist or IsNotEmpty
       if (!meetingAttendee) {
         throw new Error(MESSAGE.MEETING_ATTENDEE_NOT_FOUND);

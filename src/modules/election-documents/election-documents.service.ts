@@ -160,4 +160,19 @@ export class ElectionDocumentsService {
       throw error;
     }
   }
+
+  async delete(id: string) {
+    try {
+      //check if the document exists
+      const documentExist = await this.electionDocumentsModel.exists({ _id: id });
+      if (!documentExist) {
+        throw new Error(MESSAGE.ELECTION_DOCUMENT_NOT_FOUND);
+      }
+
+      await this.electionDocumentsModel.findByIdAndDelete(new Types.ObjectId(id)).exec();
+      return { success: true };
+    } catch (error) {
+      throw error;
+    }
+  }
 }

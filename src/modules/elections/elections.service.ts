@@ -604,6 +604,9 @@ export class ElectionsService {
 
         if (!election) continue;
 
+        // Chỉ đếm các election có status ACTIVE
+        if (election.status !== STATUS.ACTIVE) continue;
+
         const startDate = election.startDate ? new Date(election.startDate) : null;
         const endDate = election.endDate ? new Date(election.endDate) : null;
 
@@ -804,6 +807,7 @@ export class ElectionsService {
       const title = election.title || 'Quyết định triệu tập và Chương trình họp Đại hội đồng cổ đông';
 
       //3.1.Tạo user, voter, electionParticipant và votingRight cho voter lấy từ excel
+      const excelParticipantIds: Types.ObjectId[] = []; // Lưu danh sách participantIds từ Excel để tạo meetingAttendee
       try {
         const voterExcelResponse = await this.getVotersFromExcel(electionId);
         const voterExcel: any[] = voterExcelResponse?.voters || [];
@@ -831,6 +835,7 @@ export class ElectionsService {
                     fullName: v.fullName,
                     phone: v.phone,
                     citizenId: v.citizenId,
+                    roleId: '',
                   };
                   user = await this.usersService.create(data);
                 } else {
@@ -863,14 +868,14 @@ export class ElectionsService {
                   }
                   if (voter && voter._id) {
                     // Tạo ElectionParticipant với role VOTER nếu chưa có
-                    const existingParticipant = await this.electionParticipantsModel.findOne({
+                    let participant = await this.electionParticipantsModel.findOne({
                       electionId: new Types.ObjectId(electionId),
                       userId: userIdObj,
                       roleId: voterRoleId,
                     }).exec();
 
-                    if (!existingParticipant) {
-                      await this.electionParticipantsModel.create({
+                    if (!participant) {
+                      participant = await this.electionParticipantsModel.create({
                         electionId: new Types.ObjectId(electionId),
                         userId: userIdObj,
                         roleId: voterRoleId,
@@ -879,10 +884,22 @@ export class ElectionsService {
                         createdBy: new Types.ObjectId(userId),
                         createdAt: getCurrentDateVN(),
                       });
+                      // Lưu participantId để tạo meetingAttendee sau
+                      if (participant && participant._id) {
+                        excelParticipantIds.push(participant._id instanceof Types.ObjectId
+                          ? participant._id
+                          : new Types.ObjectId(String(participant._id)));
+                      }
                     } else {
                       // Cập nhật status nếu đã có
-                      existingParticipant.status = STATUS.ACTIVE;
-                      await existingParticipant.save();
+                      participant.status = STATUS.ACTIVE;
+                      await participant.save();
+                      // Lưu participantId để tạo meetingAttendee sau
+                      if (participant && participant._id) {
+                        excelParticipantIds.push(participant._id instanceof Types.ObjectId
+                          ? participant._id
+                          : new Types.ObjectId(String(participant._id)));
+                      }
                     }
 
                     // Tạo VotingRight nếu chưa có
@@ -941,6 +958,33 @@ export class ElectionsService {
       const meeting = await this.meetingsModel
         .findOne({ electionId: new Types.ObjectId(electionId) })
         .exec();
+
+      // 4.1. Tạo meetingAttendee cho voters từ Excel (nếu có)
+      if (meeting && excelParticipantIds.length > 0) {
+        try {
+          for (const participantId of excelParticipantIds) {
+            // Kiểm tra xem đã có meetingAttendee chưa
+            const existingAttendee = await this.meetingAttendeesModel.findOne({
+              meetingId: meeting._id,
+              participantId: participantId,
+            }).exec();
+
+            if (!existingAttendee) {
+              await this.meetingAttendeesModel.create({
+                meetingId: meeting._id,
+                participantId: participantId,
+                checkInTime: meeting.meetingDate || election.startDate,
+                attended: false,
+                createdBy: new Types.ObjectId(userId),
+                createdAt: getCurrentDateVN(),
+              });
+            }
+          }
+        } catch (attendeeError) {
+          // Log lỗi nhưng không throw để không ảnh hưởng đến quá trình duyệt
+          console.error('Error creating meetingAttendees for Excel voters:', attendeeError);
+        }
+      }
 
       // 5. Lấy danh sách participants để tạo chương trình họp
       const participants = await this.electionParticipantsModel
@@ -1699,8 +1743,37 @@ export class ElectionsService {
           if (!electionDocuments || !Array.isArray(electionDocuments) || electionDocuments.length === 0) {
             throw new Error('Vui lòng thêm ít nhất một tài liệu trước khi gửi duyệt');
           }
-          if (!voters || !Array.isArray(voters) || voters.length === 0) {
-            throw new Error('Vui lòng thêm ít nhất một cử tri trước khi gửi duyệt');
+
+          // Kiểm tra xem có file Excel import voters không
+          let hasExcelVoters = false;
+          try {
+            const excelDocument = await this.electionDocumentsModel
+              .findOne({
+                electionId: new Types.ObjectId(electionId),
+                type: FileType.VOTERS_IMPORT_EXCEL,
+              })
+              .lean()
+              .exec();
+
+            if (excelDocument && excelDocument.fileUrl) {
+              // Đọc file Excel và kiểm tra có voters không
+              const voterExcelResponse = await this.getVotersFromExcel(electionId);
+              const voterExcel: any[] = voterExcelResponse?.voters || [];
+              if (voterExcel && voterExcel.length > 0) {
+                hasExcelVoters = true;
+              }
+            }
+          } catch (excelError) {
+            // Nếu không đọc được file Excel, coi như không có
+            console.log('Error checking Excel voters:', excelError);
+            hasExcelVoters = false;
+          }
+
+          // Chỉ check voters array nếu không có voters từ Excel
+          if (!hasExcelVoters) {
+            if (!voters || !Array.isArray(voters) || voters.length === 0) {
+              throw new Error('Vui lòng thêm ít nhất một cử tri trước khi gửi duyệt');
+            }
           }
         }
 

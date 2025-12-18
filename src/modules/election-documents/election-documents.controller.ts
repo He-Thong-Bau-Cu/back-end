@@ -125,4 +125,22 @@ export class ElectionDocumentsController {
     }
   }
 
+  @Delete(':id')
+  @ApiOperation({ summary: "Xóa tài liệu của cuộc bầu cử" })
+  @ApiResponse({ status: 200, description: "Xóa tài liệu của cuộc bầu cử thành công" })
+  @ApiResponse({ status: 400, description: "Dữ liệu không hợp lệ" })
+  @ApiResponse({ status: 500, description: "Lỗi server" })
+  @HttpCode(HttpStatus.OK)
+  async delete(@Param('id') id: string): Promise<BaseResponse> {
+    try {
+      const resData = await this.electionDocumentsService.delete(id);
+      return BaseResponse.success(resData, MESSAGE.ELECTION_DOCUMENT_DELETE_SUCCESS, HttpStatus.OK);
+    } catch (error) {
+      throw new HttpException(
+        { message: error.message },
+        HttpStatus.INTERNAL_SERVER_ERROR
+      )
+    }
+  }
+
 }
