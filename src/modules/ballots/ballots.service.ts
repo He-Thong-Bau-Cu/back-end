@@ -455,19 +455,54 @@ export class BallotsService {
     }
   }
 
+  // async getStatistics(electionId: string) {
+  //   try {
+  //     //Lấy tổng số phiếu của cuộc bầu cử
+  //     const ballots = await this.ballotsModel.countDocuments({
+  //       electionId: new Types.ObjectId(electionId),
+  //     });
+
+  //     //Lấy tổng số phiếu đã bình chọn và chưa bình chonk => pending và active
+  //     const ballotStatus = await this.ballotsModel.aggregate([
+  //       {
+  //         $match: {
+  //           electionId: new Types.ObjectId(electionId),
+  //           status: { $in: [STATUS.PENDING, STATUS.CAST, STATUS.BLANK] },
+  //         },
+  //       },
+  //       {
+  //         $group: {
+  //           _id: '$status',
+  //           totalBallots: { $sum: 1 },
+  //         },
+  //       },
+  //     ]);
+
+  //     let data = {
+  //       total: ballots,
+  //       ballotStatus,
+  //     };
+  //     await this.notificationService.transferDataRealTime(electionId, data);
+
+  //     return {
+  //       total: ballots,
+  //       ballotStatus,
+  //     };
+  //   } catch (error) {
+  //     throw error;
+  //   }
+  // }
   async getStatistics(electionId: string) {
     try {
-      //Lấy tổng số phiếu của cuộc bầu cử
       const ballots = await this.ballotsModel.countDocuments({
         electionId: new Types.ObjectId(electionId),
       });
 
-      //Lấy tổng số phiếu đã bình chọn và chưa bình chonk => pending và active
-      const ballotStatus = await this.ballotsModel.aggregate([
+      const ballotStatusRaw = await this.ballotsModel.aggregate([
         {
           $match: {
             electionId: new Types.ObjectId(electionId),
-            status: { $in: [STATUS.PENDING, STATUS.CAST] },
+            status: { $in: [STATUS.PENDING, STATUS.CAST, STATUS.BLANK] },
           },
         },
         {
@@ -478,20 +513,37 @@ export class BallotsService {
         },
       ]);
 
-      let data = {
+      // XỬ LÝ LOGIC BLANK + CAST
+      let cast = 0;
+      let pending = 0;
+
+      ballotStatusRaw.forEach(item => {
+        if (item._id === STATUS.CAST || item._id === STATUS.BLANK) {
+          cast += item.totalBallots;
+        }
+        if (item._id === STATUS.PENDING) {
+          pending = item.totalBallots;
+        }
+      });
+
+      const ballotStatus = [
+        { _id: STATUS.CAST, totalBallots: cast },
+        { _id: STATUS.PENDING, totalBallots: pending },
+      ];
+
+      const data = {
         total: ballots,
         ballotStatus,
       };
+
       await this.notificationService.transferDataRealTime(electionId, data);
 
-      return {
-        total: ballots,
-        ballotStatus,
-      };
+      return data;
     } catch (error) {
       throw error;
     }
   }
+
 
   async searchBallots(req: BaseSearchDTO) {
     try {

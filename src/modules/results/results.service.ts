@@ -419,8 +419,10 @@ export class ResultsService {
       const blankBallots = await this.ballotsModel.find({
         electionId: electionObjectId,
         status: STATUS.BLANK,
-        allocations: { $size: 0 }
+        // allocations: { $size: 0 }
       }).lean().exec();
+
+      console.log("blankBallots", blankBallots);
 
       for (const ballot of blankBallots) {
         const voterIdStr = String(ballot.voterId);
