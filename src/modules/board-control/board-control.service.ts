@@ -488,7 +488,7 @@ export class BoardControlService {
 
     // Lấy thông tin người ký từ report
     let signerName = 'Ban Kiểm soát';
-    let signerRole = 'Trưởng ban kiểm soát';
+    let signerRole = 'Trưởng kiểm soát viên';
 
     if (populatedReport?.reviewedBy && typeof populatedReport.reviewedBy === 'object') {
       signerName = (populatedReport.reviewedBy as any)?.fullName || signerName;
@@ -542,7 +542,7 @@ export class BoardControlService {
 
     return {
       signerName: user?.fullName || 'Ban Kiểm soát',
-      signerRole: 'Trưởng ban kiểm soát',
+      signerRole: 'Trưởng kiểm soát viên',
       isConfirmed: true,
       confirmedAt: auditReport.reviewedAt,
       confirmedBy: userIdObjectId,

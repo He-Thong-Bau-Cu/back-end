@@ -132,7 +132,7 @@ export class CreateElectionDto {
     };
 
     @ApiPropertyOptional({
-        description: 'ID ban kiểm soát',
+        description: 'ID kiểm soát viên',
     })
     @IsOptional()
     @IsString()

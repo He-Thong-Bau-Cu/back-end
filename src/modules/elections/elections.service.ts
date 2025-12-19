@@ -96,7 +96,7 @@ export class ElectionsService {
     private readonly resultsService: ResultsService,
     private readonly votersService: VotersService,
     private readonly usersService: UsersService,
-  ) { }
+  ) {}
 
   async searchElections(req: SearchDTO & { electionId?: string }) {
     try {
@@ -131,6 +131,7 @@ export class ElectionsService {
         .populate('votingMethodId')
         .populate('thresholdId')
         .populate('createdBy', 'username fullName email position')
+        .sort({ createdAt: -1 }) // Sort theo ngày tạo từ mới nhất đến cũ nhất
         .exec();
       return paginate(elections, req.page, req.limit);
     } catch (error) {
@@ -140,7 +141,6 @@ export class ElectionsService {
 
   async createElection(createElection: CreateElectionDto, userId: string) {
     try {
-
       //Kiểm tra tiêu đề cuộc bầu cử đã tồn tại hay Không
       await this.checkElectionExists(createElection);
       //Kiểm tra các ID liên quan có tồn tại hay Không
@@ -198,12 +198,17 @@ export class ElectionsService {
         createdBy: userId ? new Types.ObjectId(userId) : null,
         createdAt: createdAt,
         tempSecretaryInfo: createElection.tempSecretaryInfo || null,
-        secretaryId: createElection.secretaryId ? new Types.ObjectId(createElection.secretaryId) : null,
-        boardOfControlId: createElection.boardOfControlId ? new Types.ObjectId(createElection.boardOfControlId) : null,
+        secretaryId: createElection.secretaryId
+          ? new Types.ObjectId(createElection.secretaryId)
+          : null,
+        boardOfControlId: createElection.boardOfControlId
+          ? new Types.ObjectId(createElection.boardOfControlId)
+          : null,
       });
 
       // Xác định status cho participants: PENDING nếu DRAFT, ACTIVE nếu WAIT_ENTER_DATA
-      const participantStatus = createElection.statusData === STATUS.DRAFT ? STATUS.PENDING : STATUS.ACTIVE;
+      const participantStatus =
+        createElection.statusData === STATUS.DRAFT ? STATUS.PENDING : STATUS.ACTIVE;
 
       // Xử lý thư ký: chỉ tạo participant khi statusData = WAIT_ENTER_DATA
       // Khi DRAFT, chỉ lưu secretaryId vào election record, không tạo participant
@@ -217,14 +222,14 @@ export class ElectionsService {
             electionId: election._id,
             userId: new Types.ObjectId(createElection.secretaryId),
             roleId: secretaryRole._id,
-            position: "Thư ký chủ tọa",
+            position: 'Thư ký chủ tọa',
             status: STATUS.ACTIVE,
             createdBy: new Types.ObjectId(userId),
           });
         }
       }
 
-      // Xử lý ban kiểm soát nếu có boardOfControlId
+      // Xử lý kiểm soát viên nếu có boardOfControlId
       if (createElection.boardOfControlId) {
         const boardOfControlRole = await this.rolesModel
           .findOne({ roleCode: USER_ROLE.BOARD_OF_CONTROL })
@@ -235,7 +240,7 @@ export class ElectionsService {
             electionId: election._id,
             userId: new Types.ObjectId(createElection.boardOfControlId),
             roleId: boardOfControlRole._id,
-            position: "Ban kiểm soát",
+            position: 'Kiểm soát viên',
             status: participantStatus,
             createdBy: new Types.ObjectId(userId),
           });
@@ -250,7 +255,6 @@ export class ElectionsService {
 
   async createElectionRequest(createElectionRequest: CreateElectionRequestDto, userId: string) {
     try {
-
       //Kiểm tra xem số quyết định đã tồn tại hay Chưa
       if (createElectionRequest?.decisionNumber) {
         const decisionNumberExist = await this.electionsModel.exists({
@@ -429,8 +433,12 @@ export class ElectionsService {
             delegationStart: updateElection.delegationStart,
             delegationEnd: updateElection.delegationEnd,
             tempSecretaryInfo: updateElection.tempSecretaryInfo || null,
-            secretaryId: updateElection.secretaryId ? new Types.ObjectId(updateElection.secretaryId) : null,
-            boardOfControlId: updateElection.boardOfControlId ? new Types.ObjectId(updateElection.boardOfControlId) : null,
+            secretaryId: updateElection.secretaryId
+              ? new Types.ObjectId(updateElection.secretaryId)
+              : null,
+            boardOfControlId: updateElection.boardOfControlId
+              ? new Types.ObjectId(updateElection.boardOfControlId)
+              : null,
             updatedBy: userId ? new Types.ObjectId(userId) : null,
             updatedAt: updatedAt,
           },
@@ -442,7 +450,8 @@ export class ElectionsService {
         throw new Error('Không tìm thấy cuộc bầu cử');
       }
 
-      const participantStatus = updateElection.statusData === STATUS.DRAFT ? STATUS.PENDING : STATUS.ACTIVE;
+      const participantStatus =
+        updateElection.statusData === STATUS.DRAFT ? STATUS.PENDING : STATUS.ACTIVE;
 
       if (updateElection.secretaryId) {
         election.secretaryId = new Types.ObjectId(updateElection.secretaryId);
@@ -471,7 +480,7 @@ export class ElectionsService {
                 electionId: election._id,
                 userId: new Types.ObjectId(updateElection.secretaryId),
                 roleId: secretaryRole._id,
-                position: "Thư ký chủ tọa",
+                position: 'Thư ký chủ tọa',
                 status: STATUS.ACTIVE,
                 createdBy: new Types.ObjectId(userId),
               });
@@ -484,15 +493,17 @@ export class ElectionsService {
             .exec();
 
           if (secretaryRole) {
-            await this.electionParticipantsModel.deleteMany({
-              electionId: election._id,
-              roleId: secretaryRole._id,
-            }).exec();
+            await this.electionParticipantsModel
+              .deleteMany({
+                electionId: election._id,
+                roleId: secretaryRole._id,
+              })
+              .exec();
           }
         }
       }
 
-      // Xử lý ban kiểm soát nếu có boardOfControlId
+      // Xử lý kiểm soát viên nếu có boardOfControlId
       if (updateElection.boardOfControlId) {
         const boardOfControlRole = await this.rolesModel
           .findOne({ roleCode: USER_ROLE.BOARD_OF_CONTROL })
@@ -516,7 +527,7 @@ export class ElectionsService {
               electionId: election._id,
               userId: new Types.ObjectId(updateElection.boardOfControlId),
               roleId: boardOfControlRole._id,
-              position: "Ban kiểm soát",
+              position: 'Kiểm soát viên',
               status: participantStatus,
               createdBy: new Types.ObjectId(userId),
             });
@@ -611,8 +622,7 @@ export class ElectionsService {
         const endDate = election.endDate ? new Date(election.endDate) : null;
 
         const overlapsTimeRange =
-          (!startDate || startDate <= nowRangeEnd) &&
-          (!endDate || endDate >= nowRangeStart);
+          (!startDate || startDate <= nowRangeEnd) && (!endDate || endDate >= nowRangeStart);
 
         if (!overlapsTimeRange) continue;
 
@@ -645,8 +655,13 @@ export class ElectionsService {
       }
 
       // 2. Kiểm tra statusData phải là WAIT_APPROVAL hoặc REQUEST_FROM_USER
-      if (election.statusData !== STATUS.WAIT_APPROVAL && election.statusData !== STATUS.REQUEST_FROM_USER) {
-        throw new BadRequestException('Chỉ có thể từ chối khi trạng thái là chờ duyệt chủ tọa hoặc yêu cầu từ user!');
+      if (
+        election.statusData !== STATUS.WAIT_APPROVAL &&
+        election.statusData !== STATUS.REQUEST_FROM_USER
+      ) {
+        throw new BadRequestException(
+          'Chỉ có thể từ chối khi trạng thái là chờ duyệt chủ tọa hoặc yêu cầu từ user!',
+        );
       }
 
       // 3. Cập nhật statusData thành REJECTED và lưu lý do từ chối
@@ -679,7 +694,9 @@ export class ElectionsService {
 
       // 2. Kiểm tra statusData phải là WAIT_APPROVAL
       if (election.statusData !== STATUS.WAIT_BKS_CONFIRMED) {
-        throw new BadRequestException('Chỉ có thể từ chối khi trạng thái là chờ duyệt bởi Ban Kiểm Soát!');
+        throw new BadRequestException(
+          'Chỉ có thể từ chối khi trạng thái là chờ duyệt bởi kiểm soát viên!',
+        );
       }
 
       // 3. Cập nhật statusData thành REJECTED và lưu lý do từ chối
@@ -703,10 +720,7 @@ export class ElectionsService {
     }
   }
 
-  async approveByBKS(
-    electionId: string,
-    userId: string,
-  ) {
+  async approveByBKS(electionId: string, userId: string) {
     try {
       // 1. Kiểm tra election có tồn tại không
       const election = await this.electionsModel
@@ -723,25 +737,28 @@ export class ElectionsService {
 
       // 2. Kiểm tra statusData phải là WAIT_APROVAL
       if (election.statusData !== STATUS.WAIT_BKS_CONFIRMED) {
-        throw new BadRequestException('Chỉ có thể ký duyệt khi trạng thái là chờ duyệt bởi Ban Kiểm Soát!');
+        throw new BadRequestException(
+          'Chỉ có thể ký duyệt khi trạng thái là chờ duyệt bởi kiểm soát viên!',
+        );
       }
-
 
       // 10. Cập nhật status election
       const updateElection = await this.electionsModel.updateOne(
         { _id: new Types.ObjectId(electionId) },
         {
           $set: {
-            statusData: STATUS.WAIT_APPROVAL
-            , updatedBy: new Types.ObjectId(userId)
-          }
+            statusData: STATUS.WAIT_APPROVAL,
+            updatedBy: new Types.ObjectId(userId),
+          },
         },
       );
 
       // 17. Gửi thông báo socket đến thư kí sau khi duyệt
       try {
         //Tìm role là thư kí
-        const secretaryRole = await this.rolesModel.findOne({ roleCode: USER_ROLE.PRESIDE_SECRETARY }).exec();
+        const secretaryRole = await this.rolesModel
+          .findOne({ roleCode: USER_ROLE.PRESIDE_SECRETARY })
+          .exec();
         if (secretaryRole) {
           const secretaryParticipant = await this.electionParticipantsModel
             .findOne({
@@ -754,7 +771,7 @@ export class ElectionsService {
             if (secretary && secretary._id) {
               await this.notificationService.notifyUser(
                 String(secretary._id),
-                `Cuộc bầu cử "${election.title}" đã được Ban Kiểm Soát duyệt thành công!`,
+                `Cuộc bầu cử "${election.title}" đã được kiểm soát viên duyệt thành công!`,
               );
             }
           }
@@ -804,7 +821,8 @@ export class ElectionsService {
         companyConfig?.configValue ||
         'CÔNG TY CỔ PHẦN PHÁT TRIỂN AVG';
 
-      const title = election.title || 'Quyết định triệu tập và Chương trình họp Đại hội đồng cổ đông';
+      const title =
+        election.title || 'Quyết định triệu tập và Chương trình họp Đại hội đồng cổ đông';
 
       //3.1.Tạo user, voter, electionParticipant và votingRight cho voter lấy từ excel
       const excelParticipantIds: Types.ObjectId[] = []; // Lưu danh sách participantIds từ Excel để tạo meetingAttendee
@@ -819,16 +837,22 @@ export class ElectionsService {
             console.warn('Không tìm thấy role VOTER, bỏ qua tạo voter từ Excel');
           } else {
             // Đảm bảo voterRoleId là ObjectId
-            const voterRoleId = voterRole._id instanceof Types.ObjectId
-              ? voterRole._id
-              : new Types.ObjectId(String(voterRole._id));
+            const voterRoleId =
+              voterRole._id instanceof Types.ObjectId
+                ? voterRole._id
+                : new Types.ObjectId(String(voterRole._id));
 
             for (const v of voterExcel) {
               try {
                 // Tìm user theo email
-                let user: any = await this.userModel.findOne({ email: v.email }).exec();
-
-                // Nếu chưa có user, tạo mới
+                let user: any = await this.userModel.findOne({
+                  $or: [
+                    { email: v.email },
+                    { phone: v.phone },
+                    { citizenId: v.citizenId }
+                  ]
+                }).exec();
+                // Nếu chưa có user, tạo mới (không ghi đè nếu đã có)
                 if (!user) {
                   const data: UserDto = {
                     email: v.email,
@@ -838,25 +862,22 @@ export class ElectionsService {
                     roleId: '',
                   };
                   user = await this.usersService.create(data);
-                } else {
-                  // Cập nhật status nếu đã có
-                  user.status = STATUS.ACTIVE;
-                  await user.save();
                 }
-
-                if (user && user._id) {
-                  const userIdObj = user._id instanceof Types.ObjectId
-                    ? user._id
-                    : new Types.ObjectId(user._id);
+                // Nếu user đã tồn tại, không cập nhật (chỉ sử dụng user hiện có)
+console.log(user, 12323123123123)
+                if (user) {
+                  const userIdObj =
+                    user._id instanceof Types.ObjectId ? user._id : new Types.ObjectId(user._id);
 
                   // Kiểm tra và tạo voter nếu chưa có
-                  let voter = await this.voterModel.findOne({
-                    userId: userIdObj,
-                    electionId: new Types.ObjectId(electionId)
-                  }).exec();
+                  let voter = await this.voterModel
+                    .findOne({
+                      userId: userIdObj,
+                      electionId: new Types.ObjectId(electionId),
+                    })
+                    .exec();
 
                   if (!voter) {
-
                     voter = await this.voterModel.create({
                       userId: userIdObj,
                       electionId: new Types.ObjectId(electionId),
@@ -868,11 +889,13 @@ export class ElectionsService {
                   }
                   if (voter && voter._id) {
                     // Tạo ElectionParticipant với role VOTER nếu chưa có
-                    let participant = await this.electionParticipantsModel.findOne({
-                      electionId: new Types.ObjectId(electionId),
-                      userId: userIdObj,
-                      roleId: voterRoleId,
-                    }).exec();
+                    let participant = await this.electionParticipantsModel
+                      .findOne({
+                        electionId: new Types.ObjectId(electionId),
+                        userId: userIdObj,
+                        roleId: voterRoleId,
+                      })
+                      .exec();
 
                     if (!participant) {
                       participant = await this.electionParticipantsModel.create({
@@ -884,33 +907,30 @@ export class ElectionsService {
                         createdBy: new Types.ObjectId(userId),
                         createdAt: getCurrentDateVN(),
                       });
-                      // Lưu participantId để tạo meetingAttendee sau
-                      if (participant && participant._id) {
-                        excelParticipantIds.push(participant._id instanceof Types.ObjectId
+                    }
+                    // Luôn lưu participantId để tạo meetingAttendee (dù mới tạo hay đã có)
+                    if (participant && participant._id) {
+                      const participantIdObj =
+                        participant._id instanceof Types.ObjectId
                           ? participant._id
-                          : new Types.ObjectId(String(participant._id)));
-                      }
-                    } else {
-                      // Cập nhật status nếu đã có
-                      participant.status = STATUS.ACTIVE;
-                      await participant.save();
-                      // Lưu participantId để tạo meetingAttendee sau
-                      if (participant && participant._id) {
-                        excelParticipantIds.push(participant._id instanceof Types.ObjectId
-                          ? participant._id
-                          : new Types.ObjectId(String(participant._id)));
+                          : new Types.ObjectId(String(participant._id));
+                      // Chỉ thêm vào danh sách nếu chưa có (tránh trùng lặp)
+                      if (!excelParticipantIds.some((id) => String(id) === String(participantIdObj))) {
+                        excelParticipantIds.push(participantIdObj);
                       }
                     }
 
-                    // Tạo VotingRight nếu chưa có
-                    const existingVotingRight = await this.votingRightsModel.findOne({
-                      electionId: new Types.ObjectId(electionId),
-                      voterId: voter._id,
-                    }).exec();
+                    // Tạo VotingRight nếu chưa có (không ghi đè nếu đã có)
+                    const existingVotingRight = await this.votingRightsModel
+                      .findOne({
+                        electionId: new Types.ObjectId(electionId),
+                        voterId: voter._id,
+                      })
+                      .exec();
 
                     if (!existingVotingRight) {
                       // Sử dụng percentage từ Excel (có thể là v.percentage hoặc v.shares)
-                      const shares = v.percentage !== undefined ? v.percentage : (v.shares || 0);
+                      const shares = v.percentage !== undefined ? v.percentage : v.shares || 0;
                       const votes = await this.calculateVotes(shares);
 
                       await this.votingRightsModel.create({
@@ -922,16 +942,8 @@ export class ElectionsService {
                         createdBy: new Types.ObjectId(userId),
                         createdAt: getCurrentDateVN(),
                       });
-                    } else {
-                      // Cập nhật shares và votes nếu đã có (hoặc chỉ cập nhật status)
-                      const shares = v.percentage !== undefined ? v.percentage : (v.shares || existingVotingRight.shares);
-                      const votes = await this.calculateVotes(shares);
-
-                      existingVotingRight.shares = shares;
-                      existingVotingRight.votes = votes;
-                      existingVotingRight.status = STATUS.ACTIVE;
-                      await existingVotingRight.save();
                     }
+                    // Nếu VotingRight đã tồn tại, không cập nhật (chỉ sử dụng VotingRight hiện có)
                   }
                 }
               } catch (voterError) {
@@ -949,10 +961,14 @@ export class ElectionsService {
       //3.2.1 cập nhật trạng thái file excel trong election documents
       await this.electionDocumentsModel.updateOne(
         { electionId: new Types.ObjectId(electionId), type: FileType.VOTERS_IMPORT_EXCEL },
-        { $set: { status: STATUS.ACTIVE, updatedBy: new Types.ObjectId(userId), updatedAt: getCurrentDateVN() } },
+        {
+          $set: {
+            status: STATUS.ACTIVE,
+            updatedBy: new Types.ObjectId(userId),
+            updatedAt: getCurrentDateVN(),
+          },
+        },
       );
-
-
 
       // 4. Lấy thông tin meeting
       const meeting = await this.meetingsModel
@@ -960,14 +976,17 @@ export class ElectionsService {
         .exec();
 
       // 4.1. Tạo meetingAttendee cho voters từ Excel (nếu có)
+      console.log('Excel Participant IDs:', meeting, excelParticipantIds);
       if (meeting && excelParticipantIds.length > 0) {
         try {
           for (const participantId of excelParticipantIds) {
             // Kiểm tra xem đã có meetingAttendee chưa
-            const existingAttendee = await this.meetingAttendeesModel.findOne({
-              meetingId: meeting._id,
-              participantId: participantId,
-            }).exec();
+            const existingAttendee = await this.meetingAttendeesModel
+              .findOne({
+                meetingId: meeting._id,
+                participantId: participantId,
+              })
+              .exec();
 
             if (!existingAttendee) {
               await this.meetingAttendeesModel.create({
@@ -999,7 +1018,7 @@ export class ElectionsService {
         meeting,
         participants,
         companyName,
-        title
+        title,
       );
 
       // 7. Ký PDF
@@ -1190,7 +1209,8 @@ export class ElectionsService {
         companyConfig?.configValue ||
         'CÔNG TY CỔ PHẦN PHÁT TRIỂN AVG';
 
-      const title = election.title || 'Quyết định triệu tập và Chương trình họp Đại hội đồng cổ đông';
+      const title =
+        election.title || 'Quyết định triệu tập và Chương trình họp Đại hội đồng cổ đông';
 
       // 3. Lấy thông tin meeting
       const meeting = await this.meetingsModel
@@ -1210,7 +1230,7 @@ export class ElectionsService {
         meeting,
         participants,
         companyName,
-        title
+        title,
       );
 
       return pdfFile;
@@ -1224,7 +1244,7 @@ export class ElectionsService {
     meeting: any,
     participants: any[],
     companyName: string,
-    title?: string
+    title?: string,
   ): Promise<Buffer> {
     try {
       const fonts = {
@@ -1724,23 +1744,35 @@ export class ElectionsService {
       } = dto;
 
       if (isSubmitForApproval) {
-        if (!electionEntities || !Array.isArray(electionEntities) || electionEntities.length === 0) {
+        if (
+          !electionEntities ||
+          !Array.isArray(electionEntities) ||
+          electionEntities.length === 0
+        ) {
           throw new Error('Vui lòng thêm ít nhất một ứng viên/bầu chọn trước khi gửi duyệt');
         }
 
         // Kiểm tra nếu hình thức bầu cử là YES_NO_ABSTAIN thì chỉ cho phép 1 bản ghi
         if (meetingInfo.method) {
-          const votingMethod = await this.votingMethodModel.findById(new Types.ObjectId(meetingInfo.method)).exec();
+          const votingMethod = await this.votingMethodModel
+            .findById(new Types.ObjectId(meetingInfo.method))
+            .exec();
           if (votingMethod && votingMethod.methodCode === 'YES_NO_ABSTAIN') {
             if (electionEntities.length > 1) {
-              throw new Error('Hình thức bầu cử YES-NO chỉ cho phép 1 nội dung bầu chọn. Vui lòng chỉ nhập 1 bản ghi.');
+              throw new Error(
+                'Hình thức bầu cử YES-NO chỉ cho phép 1 nội dung bầu chọn. Vui lòng chỉ nhập 1 bản ghi.',
+              );
             }
           }
         }
 
         console.log('hasDocuments', hasDocuments);
         if (!hasDocuments) {
-          if (!electionDocuments || !Array.isArray(electionDocuments) || electionDocuments.length === 0) {
+          if (
+            !electionDocuments ||
+            !Array.isArray(electionDocuments) ||
+            electionDocuments.length === 0
+          ) {
             throw new Error('Vui lòng thêm ít nhất một tài liệu trước khi gửi duyệt');
           }
 
@@ -1776,7 +1808,6 @@ export class ElectionsService {
             }
           }
         }
-
 
         if (!participants || !Array.isArray(participants) || participants.length === 0) {
           throw new Error('Vui lòng thêm ít nhất một thành viên tổ chức trước khi gửi duyệt');
@@ -1827,11 +1858,14 @@ export class ElectionsService {
             .exec();
 
           if (electionWithPreside && electionWithPreside.createdBy) {
-            const presideId = (electionWithPreside.createdBy as any)?._id || electionWithPreside.createdBy;
+            const presideId =
+              (electionWithPreside.createdBy as any)?._id || electionWithPreside.createdBy;
             if (presideId) {
               await this.notificationService.notifyUser(
                 String(presideId),
-                `Cuộc bầu cử "${updatedElection.title || updatedElection.decisionName}" đã được thư ký gửi duyệt. Vui lòng kiểm tra và duyệt.`,
+                `Cuộc bầu cử "${
+                  updatedElection.title || updatedElection.decisionName
+                }" đã được thư ký gửi duyệt. Vui lòng kiểm tra và duyệt.`,
               );
             }
           }
@@ -1846,16 +1880,22 @@ export class ElectionsService {
         // Lấy voting method để kiểm tra methodCode
         let votingMethodCode: string | null = null;
         if (electionUpdate.votingMethodId) {
-          const votingMethod = await this.votingMethodModel.findById(electionUpdate.votingMethodId).exec();
+          const votingMethod = await this.votingMethodModel
+            .findById(electionUpdate.votingMethodId)
+            .exec();
           votingMethodCode = votingMethod?.methodCode || null;
         } else if (originalElection?.votingMethodId) {
-          const votingMethod = await this.votingMethodModel.findById(originalElection.votingMethodId).exec();
+          const votingMethod = await this.votingMethodModel
+            .findById(originalElection.votingMethodId)
+            .exec();
           votingMethodCode = votingMethod?.methodCode || null;
         }
 
         // Nếu là YES_NO_ABSTAIN, chỉ cho phép 1 electionEntity
         if (votingMethodCode === 'YES_NO_ABSTAIN' && electionEntities.length > 1) {
-          throw new Error('Hình thức bầu cử YES-NO chỉ cho phép 1 nội dung bầu chọn. Vui lòng chỉ nhập 1 bản ghi.');
+          throw new Error(
+            'Hình thức bầu cử YES-NO chỉ cho phép 1 nội dung bầu chọn. Vui lòng chỉ nhập 1 bản ghi.',
+          );
         }
 
         const candidateIds = electionEntities
@@ -1874,7 +1914,6 @@ export class ElectionsService {
         }
 
         for (const candidate of electionEntities) {
-
           if (candidate._id) {
             const updateData = {
               title: candidate.title,
@@ -1926,11 +1965,11 @@ export class ElectionsService {
                 })
                 .distinct('_id'),
             },
-          })
+          });
           await this.voterModel.deleteMany({
             electionId: new Types.ObjectId(electionId),
             userId: { $nin: voterUserIds },
-          })
+          });
           await this.electionParticipantsModel.deleteMany({
             electionId: new Types.ObjectId(electionId),
             roleId: voterRole._id,
@@ -1989,7 +2028,10 @@ export class ElectionsService {
               await this.electionParticipantsModel.findByIdAndUpdate(
                 existingParticipant._id,
                 {
-                  position: (await this.userModel.findById(new Types.ObjectId(voterItem.userId)))?.position || 'Voter',
+                  position:
+                    (
+                      await this.userModel.findById(new Types.ObjectId(voterItem.userId))
+                    )?.position || 'Voter',
                   updatedBy: new Types.ObjectId(userId),
                   status: STATUS.PENDING,
                 },
@@ -2136,10 +2178,13 @@ export class ElectionsService {
       if (meeting) {
         const voterRole = await this.rolesModel.findOne({ roleCode: USER_ROLE.VOTER });
         if (voterRole) {
-          const voterParticipants = await this.electionParticipantsModel.find({
-            electionId: new Types.ObjectId(electionId),
-            roleId: voterRole._id,
-          }).exec();
+          const voterParticipants = await this.electionParticipantsModel
+            .find({
+              electionId: new Types.ObjectId(electionId),
+              roleId: voterRole._id,
+            })
+            .exec();
+            console.log(voterParticipants)
 
           await this.meetingAttendeesModel.deleteMany({
             meetingId: meeting._id,
@@ -2150,6 +2195,8 @@ export class ElectionsService {
               meetingId: meeting._id,
               participantId: voterParticipant._id,
             });
+            console.log(existingAttendee)
+            console.log(voterParticipant)
 
             if (!existingAttendee) {
               const createdAttendee = await this.meetingAttendeesModel.create({
@@ -2230,18 +2277,15 @@ export class ElectionsService {
 
         // 8. Restore lại trạng thái ban đầu của election
         if (originalElection) {
-          await this.electionsModel.findByIdAndUpdate(
-            new Types.ObjectId(dto.electionId),
-            {
-              typeId: originalElection.typeId,
-              votingMethodId: originalElection.votingMethodId,
-              thresholdId: originalElection.thresholdId,
-              delegationStart: originalElection.delegationStart,
-              delegationEnd: originalElection.delegationEnd,
-              statusData: originalElection.statusData,
-              updatedBy: originalElection.updatedBy,
-            },
-          );
+          await this.electionsModel.findByIdAndUpdate(new Types.ObjectId(dto.electionId), {
+            typeId: originalElection.typeId,
+            votingMethodId: originalElection.votingMethodId,
+            thresholdId: originalElection.thresholdId,
+            delegationStart: originalElection.delegationStart,
+            delegationEnd: originalElection.delegationEnd,
+            statusData: originalElection.statusData,
+            updatedBy: originalElection.updatedBy,
+          });
           console.log(`✅ Đã rollback election ${dto.electionId} về trạng thái ban đầu`);
         }
 
@@ -2348,16 +2392,19 @@ export class ElectionsService {
       const uniqueVotersMap = new Map<string, any>();
 
       voters.forEach((voter) => {
-        const userId = voter.userId && typeof voter.userId === 'object' && '_id' in voter.userId
-          ? String(voter.userId._id)
-          : String(voter.userId);
+        const userId =
+          voter.userId && typeof voter.userId === 'object' && '_id' in voter.userId
+            ? String(voter.userId._id)
+            : String(voter.userId);
 
         const votingRight = votingRights.find((vr) => String(vr.voterId) === String(voter._id));
         const percentage = votingRight ? votingRight.shares : null;
 
         // Nếu chưa có trong map, hoặc voter hiện tại có percentage mà voter trong map không có
-        if (!uniqueVotersMap.has(userId) ||
-          (percentage !== null && uniqueVotersMap.get(userId).percentage === null)) {
+        if (
+          !uniqueVotersMap.has(userId) ||
+          (percentage !== null && uniqueVotersMap.get(userId).percentage === null)
+        ) {
           const voterObj: any = { ...voter };
           // Khi populate với lean(), userId sẽ là object, cần extract _id
           if (voter.userId) {
@@ -2377,7 +2424,7 @@ export class ElectionsService {
 
       // Chỉ trả về những voters có percentage (không null)
       const votersWithPercentage = Array.from(uniqueVotersMap.values()).filter(
-        (v) => v.percentage !== null && v.percentage !== undefined
+        (v) => v.percentage !== null && v.percentage !== undefined,
       );
 
       // 7. Lấy participants với user và role info
@@ -2499,7 +2546,11 @@ export class ElectionsService {
       const headerRow = worksheet.getRow(1);
       const headers: string[] = [];
       headerRow.eachCell({ includeEmpty: false }, (cell) => {
-        headers.push(String(cell.value || '').toLowerCase().trim());
+        headers.push(
+          String(cell.value || '')
+            .toLowerCase()
+            .trim(),
+        );
       });
 
       // Tìm index của các cột
@@ -2513,10 +2564,7 @@ export class ElectionsService {
       const emailIndex = headers.findIndex((h) => h.includes('email') || h.includes('mail'));
       const phoneIndex = headers.findIndex(
         (h) =>
-          h.includes('phone') ||
-          h.includes('sđt') ||
-          h.includes('sdt') ||
-          h.includes('điện thoại'),
+          h.includes('phone') || h.includes('sđt') || h.includes('sdt') || h.includes('điện thoại'),
       );
       const citizenIdIndex = headers.findIndex(
         (h) =>
@@ -2536,9 +2584,7 @@ export class ElectionsService {
       );
 
       if (fullnameIndex === -1 || emailIndex === -1 || sharesIndex === -1) {
-        throw new BadRequestException(
-          'File Excel thiếu các cột bắt buộc: FullName, Email, Shares',
-        );
+        throw new BadRequestException('File Excel thiếu các cột bắt buộc: FullName, Email, Shares');
       }
 
       // 6. Parse dữ liệu từ dòng thứ 2 trở đi
@@ -2557,13 +2603,9 @@ export class ElectionsService {
         const fullname = String(row.getCell(fullnameIndex + 1).value || '').trim();
         const email = String(row.getCell(emailIndex + 1).value || '').trim();
         const phone =
-          phoneIndex !== -1
-            ? String(row.getCell(phoneIndex + 1).value || '').trim()
-            : '';
+          phoneIndex !== -1 ? String(row.getCell(phoneIndex + 1).value || '').trim() : '';
         const citizenId =
-          citizenIdIndex !== -1
-            ? String(row.getCell(citizenIdIndex + 1).value || '').trim()
-            : '';
+          citizenIdIndex !== -1 ? String(row.getCell(citizenIdIndex + 1).value || '').trim() : '';
         const sharesValue = row.getCell(sharesIndex + 1).value;
         const shares = sharesValue ? Number(sharesValue) : null;
 
@@ -2603,9 +2645,7 @@ export class ElectionsService {
         throw error;
       }
       console.error('Error getting voters from Excel:', error);
-      throw new BadRequestException(
-        `Lỗi khi đọc file Excel: ${error.message || 'Unknown error'}`,
-      );
+      throw new BadRequestException(`Lỗi khi đọc file Excel: ${error.message || 'Unknown error'}`);
     }
   }
 
@@ -2625,11 +2665,11 @@ export class ElectionsService {
       }
 
       const stageMap: Record<string, { timelineKey: string; statusData: string }> = {
-        'checkin': { timelineKey: 'checkinAt', statusData: 'CHECKIN_STARTED' },
-        'report': { timelineKey: 'reportAt', statusData: 'REPORT_STARTED' },
-        'voting': { timelineKey: 'votingAt', statusData: 'VOTING_STARTED' },
-        'result': { timelineKey: 'resultAnnouncedAt', statusData: 'RESULT_ANNOUNCED' },
-        'closing': { timelineKey: 'closingAt', statusData: 'CLOSING_STARTED' },
+        checkin: { timelineKey: 'checkinAt', statusData: 'CHECKIN_STARTED' },
+        report: { timelineKey: 'reportAt', statusData: 'REPORT_STARTED' },
+        voting: { timelineKey: 'votingAt', statusData: 'VOTING_STARTED' },
+        result: { timelineKey: 'resultAnnouncedAt', statusData: 'RESULT_ANNOUNCED' },
+        closing: { timelineKey: 'closingAt', statusData: 'CLOSING_STARTED' },
       };
 
       const stageInfo = stageMap[stage.toLowerCase()];
@@ -2654,12 +2694,17 @@ export class ElectionsService {
               $set: {
                 status: STATUS.ACTIVE,
                 updatedBy: userId ? new Types.ObjectId(userId) : null,
-              }
-            }
+              },
+            },
           );
-          console.log(`[START VOTING STAGE] Đã cập nhật ${updateResult.modifiedCount} ballots của electionId ${electionId} thành ACTIVE`);
+          console.log(
+            `[START VOTING STAGE] Đã cập nhật ${updateResult.modifiedCount} ballots của electionId ${electionId} thành ACTIVE`,
+          );
         } catch (error) {
-          console.error('[START VOTING STAGE] Failed to update ballots status to ACTIVE:', error.message || error);
+          console.error(
+            '[START VOTING STAGE] Failed to update ballots status to ACTIVE:',
+            error.message || error,
+          );
         }
       }
 
@@ -2674,7 +2719,7 @@ export class ElectionsService {
               updatedBy: userId ? new Types.ObjectId(userId) : null,
             },
           },
-          { new: true }
+          { new: true },
         )
         .exec();
 
@@ -2717,19 +2762,35 @@ export class ElectionsService {
         currentStage = 'checkin';
         stageStartedAt = timeline.checkinAt ?? null;
         stageStatus = 'STARTED';
-      } else if (stages.checkin === 'COMPLETED' && timeline.reportAt && stages.report !== 'COMPLETED') {
+      } else if (
+        stages.checkin === 'COMPLETED' &&
+        timeline.reportAt &&
+        stages.report !== 'COMPLETED'
+      ) {
         currentStage = 'report';
         stageStartedAt = timeline.reportAt ?? null;
         stageStatus = 'STARTED';
-      } else if (stages.report === 'COMPLETED' && timeline.votingAt && stages.voting !== 'COMPLETED') {
+      } else if (
+        stages.report === 'COMPLETED' &&
+        timeline.votingAt &&
+        stages.voting !== 'COMPLETED'
+      ) {
         currentStage = 'voting';
         stageStartedAt = timeline.votingAt ?? null;
         stageStatus = 'STARTED';
-      } else if (stages.voting === 'COMPLETED' && timeline.resultAnnouncedAt && stages.result !== 'COMPLETED') {
+      } else if (
+        stages.voting === 'COMPLETED' &&
+        timeline.resultAnnouncedAt &&
+        stages.result !== 'COMPLETED'
+      ) {
         currentStage = 'result';
         stageStartedAt = timeline.resultAnnouncedAt ?? null;
         stageStatus = 'STARTED';
-      } else if (stages.result === 'COMPLETED' && timeline.closingAt && stages.closing !== 'COMPLETED') {
+      } else if (
+        stages.result === 'COMPLETED' &&
+        timeline.closingAt &&
+        stages.closing !== 'COMPLETED'
+      ) {
         currentStage = 'closing';
         stageStartedAt = timeline.closingAt ?? null;
         stageStatus = 'STARTED';
@@ -2783,11 +2844,11 @@ export class ElectionsService {
       }
 
       const stageMap: Record<string, { statusData: string }> = {
-        'checkin': { statusData: 'CHECKIN_COMPLETED' },
-        'report': { statusData: 'REPORT_COMPLETED' },
-        'voting': { statusData: 'VOTING_COMPLETED' },
-        'result': { statusData: 'RESULT_COMPLETED' },
-        'closing': { statusData: 'CLOSING_COMPLETED' },
+        checkin: { statusData: 'CHECKIN_COMPLETED' },
+        report: { statusData: 'REPORT_COMPLETED' },
+        voting: { statusData: 'VOTING_COMPLETED' },
+        result: { statusData: 'RESULT_COMPLETED' },
+        closing: { statusData: 'CLOSING_COMPLETED' },
       };
 
       const stageInfo = stageMap[stage.toLowerCase()];
@@ -2803,32 +2864,39 @@ export class ElectionsService {
           const updateResult = await this.ballotsModel.updateMany(
             {
               electionId: new Types.ObjectId(electionId),
-              status: STATUS.PENDING
+              status: STATUS.PENDING,
             },
             {
               $set: {
                 status: STATUS.LOCKED,
                 updatedBy: userId ? new Types.ObjectId(userId) : null,
-              }
-            }
+              },
+            },
           );
           const updateBallotRecord = await this.ballotsModel.updateMany(
             {
               electionId: new Types.ObjectId(electionId),
-              status: STATUS.ACTIVE
+              status: STATUS.ACTIVE,
             },
             {
               $set: {
                 status: STATUS.NOT_CAST,
                 updatedBy: userId ? new Types.ObjectId(userId) : null,
-              }
-            }
+              },
+            },
           );
           await this.resultsService.autoCreateResultRecord(electionId);
-          console.log(`[END VOTING STAGE] Đã cập nhật ${updateResult.modifiedCount} ballots của electionId ${electionId} thành INACTIVE`);
-          console.log(`[END VOTING STAGE] Đã cập nhật ${updateBallotRecord.modifiedCount} ballots của electionId ${electionId} thành NOT_CAST`);
+          console.log(
+            `[END VOTING STAGE] Đã cập nhật ${updateResult.modifiedCount} ballots của electionId ${electionId} thành INACTIVE`,
+          );
+          console.log(
+            `[END VOTING STAGE] Đã cập nhật ${updateBallotRecord.modifiedCount} ballots của electionId ${electionId} thành NOT_CAST`,
+          );
         } catch (error) {
-          console.error('[END VOTING STAGE] Failed to update ballots status to INACTIVE:', error.message || error);
+          console.error(
+            '[END VOTING STAGE] Failed to update ballots status to INACTIVE:',
+            error.message || error,
+          );
         }
       }
 
@@ -2841,7 +2909,7 @@ export class ElectionsService {
               updatedBy: userId ? new Types.ObjectId(userId) : null,
             },
           },
-          { new: true }
+          { new: true },
         )
         .exec();
 
@@ -2950,7 +3018,7 @@ export class ElectionsService {
             ...election.toObject(),
             participants,
           };
-        })
+        }),
       );
 
       return paginate(electionsWithParticipants, req.page, req.limit);
@@ -2959,7 +3027,7 @@ export class ElectionsService {
     }
   }
 
-  // Duyệt election request (chuyển statusData thành WAIT_ENTER_DATA, có thể chỉ định thư ký/ban kiểm soát)
+  // Duyệt election request (chuyển statusData thành WAIT_ENTER_DATA, có thể chỉ định thư ký/kiểm soát viên)
   async approveElectionRequest(
     electionId: string,
     userId: string,
@@ -2968,29 +3036,30 @@ export class ElectionsService {
   ) {
     try {
       // 1. Kiểm tra election có tồn tại không
-      const election = await this.electionsModel
-        .findById(new Types.ObjectId(electionId))
-        .exec();
+      const election = await this.electionsModel.findById(new Types.ObjectId(electionId)).exec();
 
       if (!election) {
         throw new NotFoundException(MESSAGE.ELECTION_NOT_FOUND);
       }
 
       // 2. Kiểm tra statusData phải là REQUEST_FROM_USER hoặc REJECTED
-      if (election.statusData !== STATUS.REQUEST_FROM_USER && election.statusData !== STATUS.REJECTED) {
-        throw new BadRequestException('Chỉ có thể duyệt khi trạng thái là yêu cầu từ user hoặc đã từ chối!');
+      if (
+        election.statusData !== STATUS.REQUEST_FROM_USER &&
+        election.statusData !== STATUS.REJECTED
+      ) {
+        throw new BadRequestException(
+          'Chỉ có thể duyệt khi trạng thái là yêu cầu từ user hoặc đã từ chối!',
+        );
       }
 
-      // 3. Lấy roleId cho thư ký và ban kiểm soát
+      // 3. Lấy roleId cho thư ký và kiểm soát viên
       const secretaryRole = await this.rolesModel
         .findOne({ roleCode: USER_ROLE.PRESIDE_SECRETARY })
         .exec();
       const boardOfControlRole = await this.rolesModel
         .findOne({ roleCode: USER_ROLE.BOARD_OF_CONTROL })
         .exec();
-      const presideRole = await this.rolesModel
-        .findOne({ roleCode: USER_ROLE.PRESIDE })
-        .exec();
+      const presideRole = await this.rolesModel.findOne({ roleCode: USER_ROLE.PRESIDE }).exec();
 
       if (!secretaryRole || !boardOfControlRole || !presideRole) {
         throw new BadRequestException('Không tìm thấy role cần thiết!');
@@ -3032,17 +3101,17 @@ export class ElectionsService {
           .exec();
 
         if (existingBoardOfControl) {
-          // Cập nhật participant ban kiểm soát
+          // Cập nhật participant kiểm soát viên
           existingBoardOfControl.userId = new Types.ObjectId(boardOfControlId);
           existingBoardOfControl.status = STATUS.ACTIVE;
           await existingBoardOfControl.save();
         } else {
-          // Tạo mới participant ban kiểm soát
+          // Tạo mới participant kiểm soát viên
           await this.electionParticipantsModel.create({
             electionId: new Types.ObjectId(electionId),
             userId: new Types.ObjectId(boardOfControlId),
             roleId: boardOfControlRole._id,
-            position: 'Ban kiểm soát',
+            position: 'Kiểm soát viên',
             status: STATUS.ACTIVE,
             createdBy: new Types.ObjectId(userId),
           });
@@ -3190,10 +3259,9 @@ export class ElectionsService {
       minStart.setDate(minStart.getDate() + 20);
 
       if (start < minStart) {
-        throw new Error("Ngày bắt đầu cuộc bầu cử phải lớn hơn ngày tạo ít nhất 20 ngày");
+        throw new Error('Ngày bắt đầu cuộc bầu cử phải lớn hơn ngày tạo ít nhất 20 ngày');
       }
     }
-
 
     // 3. Delegation: delEnd > delStart
     if (delegationStart && delegationEnd) {
@@ -3201,9 +3269,7 @@ export class ElectionsService {
       const delEnd = new Date(delegationEnd);
 
       if (delEnd <= delStart) {
-        throw new BadRequestException(
-          "Ngày kết thúc ủy quyền phải sau ngày bắt đầu ủy quyền"
-        );
+        throw new BadRequestException('Ngày kết thúc ủy quyền phải sau ngày bắt đầu ủy quyền');
       }
     }
 
@@ -3216,16 +3282,14 @@ export class ElectionsService {
       minStart.setDate(minStart.getDate() + 10);
 
       if (start < minStart) {
-        throw new Error(
-          "Ngày kết thúc ủy quyền phải nhỏ hơn ngày bắt đầu bầu cử ít nhất 10 ngày"
-        );
+        throw new Error('Ngày kết thúc ủy quyền phải nhỏ hơn ngày bắt đầu bầu cử ít nhất 10 ngày');
       }
     }
 
     // 5. DelegationStart phải trước startDate
     if (delegationStart && startDate) {
       if (new Date(delegationStart) >= new Date(startDate)) {
-        throw new Error("Ngày bắt đầu ủy quyền phải nhỏ hơn ngày bắt đầu cuộc bầu cử");
+        throw new Error('Ngày bắt đầu ủy quyền phải nhỏ hơn ngày bắt đầu cuộc bầu cử');
       }
     }
   }
@@ -3265,13 +3329,12 @@ export class ElectionsService {
   private async checkDateInUpdate(updateElection: UpdateElectionDto, id: string) {
     const { startDate, endDate, delegationStart, delegationEnd } = updateElection;
 
-
     // 3. Delegation: delEnd > delStart
     if (delegationStart && delegationEnd) {
       const delStart = new Date(delegationStart);
       const delEnd = new Date(delegationEnd);
       if (delEnd <= delStart) {
-        throw new BadRequestException("Ngày kết thúc ủy quyền phải sau ngày bắt đầu ủy quyền");
+        throw new BadRequestException('Ngày kết thúc ủy quyền phải sau ngày bắt đầu ủy quyền');
       }
     }
 
@@ -3284,14 +3347,14 @@ export class ElectionsService {
       minStart.setDate(minStart.getDate() + 10);
 
       if (start < minStart) {
-        throw new Error("Ngày kết thúc ủy quyền phải nhỏ hơn ngày bắt đầu bầu cử ít nhất 10 ngày");
+        throw new Error('Ngày kết thúc ủy quyền phải nhỏ hơn ngày bắt đầu bầu cử ít nhất 10 ngày');
       }
     }
 
     // 5. DelegationStart < startDate
     if (delegationStart && startDate) {
       if (new Date(delegationStart) >= new Date(startDate)) {
-        throw new Error("Ngày bắt đầu ủy quyền phải nhỏ hơn ngày bắt đầu cuộc bầu cử");
+        throw new Error('Ngày bắt đầu ủy quyền phải nhỏ hơn ngày bắt đầu cuộc bầu cử');
       }
     }
   }
@@ -3337,10 +3400,7 @@ export class ElectionsService {
     userId: string,
   ) {
     try {
-      const originalElection = await this.electionsModel
-        .findById(originalElectionId)
-        .lean()
-        .exec();
+      const originalElection = await this.electionsModel.findById(originalElectionId).lean().exec();
 
       if (!originalElection) {
         throw new NotFoundException(MESSAGE.ELECTION_NOT_FOUND);
@@ -3397,24 +3457,21 @@ export class ElectionsService {
         }
       }
 
-      // Tạo election mới (clone từ election cũ)
+      // Tạo election mới (clone từ election cũ) - clone tất cả các trường
+      const { _id, __v, createdAt, updatedAt, createdBy, updatedBy, ...electionDataToClone } = originalElection as any;
+
       const newElectionData: any = {
+        ...electionDataToClone, // Clone tất cả các trường từ election cũ
         title: `${originalElection.title} (Bầu cử lại)`,
-        typeId: originalElection.typeId,
-        votingMethodId: originalElection.votingMethodId,
-        thresholdId: originalElection.thresholdId,
         startDate: newStartDate,
         endDate: newEndDate,
-        delegationStart: originalElection.delegationStart,
-        delegationEnd: originalElection.delegationEnd,
-        decisionNumber: originalElection.decisionNumber,
-        decisionName: originalElection.decisionName,
         status: STATUS.ACTIVE,
         statusData: 'REMAKE',
-        createByUser: originalElection.createByUser,
         createdBy: new Types.ObjectId(userId),
         timeline: Object.keys(clonedTimeline).length > 0 ? clonedTimeline : null,
         stages: Object.keys(clonedStages).length > 0 ? clonedStages : null,
+        createdAt: getCurrentDateVN(),
+        updatedAt: getCurrentDateVN(),
       };
 
       const newElection = await this.electionsModel.create(newElectionData);
@@ -3452,6 +3509,7 @@ export class ElectionsService {
           .exec();
 
         // Map voter cũ sang voter mới dựa trên userId
+
         for (const oldVoter of originalVoters) {
           const newVoter = newVotersList.find(
             (nv) => String(nv.userId) === String(oldVoter.userId),
@@ -3597,30 +3655,66 @@ export class ElectionsService {
           updatedAt: getCurrentDateVN(),
         });
         if (newMeeting && newMeeting._id) {
-          newMeetingId = typeof newMeeting._id === 'string'
-            ? new Types.ObjectId(newMeeting._id)
-            : (newMeeting._id as Types.ObjectId);
+          newMeetingId =
+            typeof newMeeting._id === 'string'
+              ? new Types.ObjectId(newMeeting._id)
+              : (newMeeting._id as Types.ObjectId);
         }
       }
 
       // Clone MeetingAttendees
-      const originalMeetingAttendees = await this.meetingAttendeesModel
-        .find({ electionId: new Types.ObjectId(originalElectionId) })
-        .lean()
-        .exec();
+      let originalMeetingId: Types.ObjectId | null = null;
+      if (originalMeeting && originalMeeting._id) {
+        originalMeetingId =
+          typeof originalMeeting._id === 'string'
+            ? new Types.ObjectId(originalMeeting._id)
+            : (originalMeeting._id as Types.ObjectId);
+      }
 
-      if (originalMeetingAttendees.length > 0) {
-        const newMeetingAttendees = originalMeetingAttendees.map((attendee) => ({
-          ...attendee,
-          _id: new Types.ObjectId(),
-          electionId: newElectionId,
-          meetingId: newMeetingId || attendee.meetingId,
-          // Nếu startStage là checkin thì set attended = false
-          attended: startStage === 'checkin' ? false : attendee.attended,
-          createdAt: getCurrentDateVN(),
-          updatedAt: getCurrentDateVN(),
-        }));
-        await this.meetingAttendeesModel.insertMany(newMeetingAttendees);
+      if (originalMeetingId && newMeetingId) {
+        const originalMeetingAttendees = await this.meetingAttendeesModel
+          .find({ meetingId: originalMeetingId })
+          .lean()
+          .exec();
+
+        if (originalMeetingAttendees.length > 0) {
+          // Map participant cũ sang participant mới
+          const participantsMap = new Map();
+          const newParticipantsList = await this.electionParticipantsModel
+            .find({ electionId: newElectionId })
+            .lean()
+            .exec();
+
+          for (const oldParticipant of originalParticipants) {
+            const newParticipant = newParticipantsList.find(
+              (np) => String(np.userId) === String(oldParticipant.userId),
+            );
+            if (newParticipant) {
+              participantsMap.set(String(oldParticipant._id), String(newParticipant._id));
+            }
+          }
+
+          const newMeetingAttendees = originalMeetingAttendees
+            .map((attendee) => {
+              const newParticipantId = participantsMap.get(String(attendee.participantId));
+              if (!newParticipantId) return null;
+              return {
+                ...attendee,
+                _id: new Types.ObjectId(),
+                meetingId: newMeetingId,
+                participantId: new Types.ObjectId(newParticipantId),
+                // Nếu startStage là checkin thì set attended = false
+                attended: finalStartStage === 'checkin' ? false : attendee.attended,
+                createdAt: getCurrentDateVN(),
+                updatedAt: getCurrentDateVN(),
+              };
+            })
+            .filter((attendee) => attendee !== null);
+
+          if (newMeetingAttendees.length > 0) {
+            await this.meetingAttendeesModel.insertMany(newMeetingAttendees);
+          }
+        }
       }
 
       // Clone DelegateCard
@@ -3649,20 +3743,47 @@ export class ElectionsService {
         .exec();
 
       if (originalBallots.length > 0) {
-        const newBallots = originalBallots.map((ballot) => ({
-          ...ballot,
-          _id: new Types.ObjectId(),
-          electionId: newElectionId,
-          status: STATUS.DRAFT, // Status mặc định từ schema
-          allocations: null, // Set allocations thành null
-          attempts: 0, // Set attempts về 0
-          statusData: null, // Reset statusData
-          issuedAt: null, // Reset issuedAt
-          castAt: null, // Reset castAt
-          createdAt: getCurrentDateVN(),
-          updatedAt: getCurrentDateVN(),
-        }));
-        await this.ballotsModel.insertMany(newBallots);
+        // Tạo map từ voter cũ sang voter mới dựa trên userId
+        const ballotVotersMap = new Map();
+        const newVotersList = await this.voterModel
+          .find({ electionId: newElectionId })
+          .lean()
+          .exec();
+
+        for (const oldVoter of originalVoters) {
+          const newVoter = newVotersList.find(
+            (nv) => String(nv.userId) === String(oldVoter.userId),
+          );
+          if (newVoter) {
+            ballotVotersMap.set(String(oldVoter._id), String(newVoter._id));
+          }
+        }
+
+        // Clone ballot và map voterId từ ballot cũ sang voter mới
+        const newBallots = originalBallots
+          .map((ballot) => {
+            const newVoterId = ballotVotersMap.get(String(ballot.voterId));
+            if (!newVoterId) return null;
+            return {
+              ...ballot, // Copy dữ liệu gốc
+              _id: new Types.ObjectId(), // Tạo ID mới cho phiếu
+              electionId: newElectionId,
+              voterId: new Types.ObjectId(newVoterId), // Map voterId từ voter cũ sang voter mới
+              status: STATUS.DRAFT,
+              allocations: null,
+              attempts: 0,
+              statusData: null,
+              issuedAt: null,
+              castAt: null,
+              createdAt: getCurrentDateVN(),
+              updatedAt: getCurrentDateVN(),
+            };
+          })
+          .filter((ballot) => ballot !== null);
+
+        if (newBallots.length > 0) {
+          await this.ballotsModel.insertMany(newBallots);
+        }
       }
 
       // Update election cũ:
@@ -3679,16 +3800,14 @@ export class ElectionsService {
       };
 
       const updatedOldStages: any = {};
-      (['checkin', 'report', 'voting', 'result', 'closing'] as const).forEach(
-        (stage) => {
-          const value = normalizedOldStages[stage];
-          if (!value || value === 'STARTED') {
-            updatedOldStages[stage] = 'STOPED';
-          } else {
-            updatedOldStages[stage] = value;
-          }
-        },
-      );
+      (['checkin', 'report', 'voting', 'result', 'closing'] as const).forEach((stage) => {
+        const value = normalizedOldStages[stage];
+        if (!value || value === 'STARTED') {
+          updatedOldStages[stage] = 'STOPED';
+        } else {
+          updatedOldStages[stage] = value;
+        }
+      });
 
       await this.electionsModel.findByIdAndUpdate(
         new Types.ObjectId(originalElectionId),
@@ -3702,9 +3821,7 @@ export class ElectionsService {
       );
 
       // Disable tất cả participants là VOTER trong cuộc bầu cử cũ (voter không còn thấy election cũ nữa)
-      const voterRole = await this.rolesModel
-        .findOne({ roleCode: USER_ROLE.VOTER })
-        .exec();
+      const voterRole = await this.rolesModel.findOne({ roleCode: USER_ROLE.VOTER }).exec();
       if (voterRole) {
         await this.electionParticipantsModel.updateMany(
           {
@@ -3747,5 +3864,4 @@ export class ElectionsService {
     };
     return stageMap[stage] || null;
   }
-
 }

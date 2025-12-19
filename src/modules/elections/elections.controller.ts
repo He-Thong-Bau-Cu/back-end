@@ -469,7 +469,7 @@ export class ElectionsController {
   }
 
   @Post('/:electionId/approve-by-bks')
-  @ApiOperation({ summary: 'Phê duyệt cuộc bầu cử bởi Ban kiểm soát' })
+  @ApiOperation({ summary: 'Phê duyệt cuộc bầu cử bởi Kiểm soát viên' })
   @ApiResponse({ status: 200, description: 'Phê duyệt cuộc bầu cử thành công' })
   @ApiResponse({ status: 500, description: 'Lỗi server' })
   async approveElectionByBks(
@@ -485,7 +485,7 @@ export class ElectionsController {
   }
 
   @Post('/:electionId/reject-by-bks')
-  @ApiOperation({ summary: 'Từ chối cuộc bầu cử bởi Ban kiểm soát' })
+  @ApiOperation({ summary: 'Từ chối cuộc bầu cử bởi Kiểm soát viên' })
   @ApiResponse({ status: 200, description: 'Từ chối cuộc bầu cử thành công' })
   @ApiResponse({ status: 500, description: 'Lỗi server' })
   async rejectElectionByBks(
